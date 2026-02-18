@@ -1,0 +1,75 @@
+import os
+import requests
+import base64
+from dotenv import load_dotenv
+
+load_dotenv()
+
+EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
+EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
+
+def get_ebay_token():
+    try:
+        credentials = f"{EBAY_CLIENT_ID}:{EBAY_CLIENT_SECRET}"
+        encoded = base64.b64encode(credentials.encode()).decode()
+
+        headers = {
+            "Authorization": f"Basic {encoded}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        data = {
+            "grant_type": "client_credentials",
+            "scope": "https://api.ebay.com/oauth/api_scope"
+        }
+
+        response = requests.post(
+            "https://api.ebay.com/identity/v1/oauth2/token",
+            headers=headers,
+            data=data,
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            return None
+
+        return response.json().get("access_token")
+
+    except:
+        return None
+
+
+def get_sold_data(query):
+    try:
+        token = get_ebay_token()
+        if not token:
+            return [], []
+
+        headers = {"Authorization": f"Bearer {token}"}
+        url = f"https://api.ebay.com/buy/browse/v1/item_summary/search?q={query}&filter=soldItems:true&limit=50"
+
+        response = requests.get(url, headers=headers, timeout=10)
+        data = response.json()
+
+        prices = []
+        items = []
+
+        for item in data.get("itemSummaries", []):
+            try:
+                price = float(item["price"]["value"])
+                image = item.get("image", {}).get("imageUrl", "")
+                link = item.get("itemWebUrl", "#")
+
+                prices.append(price)
+                items.append({
+                    "price": price,
+                    "image": image,
+                    "link": link
+                })
+            except:
+                continue
+
+        return prices, items
+
+    except:
+        return [], []
