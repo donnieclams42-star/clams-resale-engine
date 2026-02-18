@@ -24,14 +24,8 @@ CONDITION_MULTIPLIERS = {
 
 app = FastAPI()
 
-
-# ---------------- AUTH ----------------
-
 def is_authenticated(request: Request):
     return request.cookies.get("clams_auth") == "1"
-
-
-# ---------------- EBAY TOKEN ----------------
 
 def get_ebay_token():
     try:
@@ -59,12 +53,8 @@ def get_ebay_token():
             return None
 
         return response.json().get("access_token")
-
     except:
         return None
-
-
-# ---------------- SOLD DATA ----------------
 
 def get_sold_data(query):
     try:
@@ -97,12 +87,8 @@ def get_sold_data(query):
                 continue
 
         return prices, items
-
     except:
         return [], []
-
-
-# ---------------- LOGIN ----------------
 
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -113,12 +99,12 @@ def login_page(request: Request):
     <html>
     <body style="background:#0f0f0f;color:white;font-family:Arial;display:flex;align-items:center;justify-content:center;height:100vh;">
         <div style="text-align:center;">
-            <h1 style="color:#00ffcc;">CLAMS</h1>
+            <h1 style="color:#00ffc3;font-size:42px;">CLAMS</h1>
             <form method="post">
                 <input type="password" name="password" placeholder="Enter Password"
                 style="padding:15px;width:260px;border-radius:8px;border:none;margin-top:10px;">
                 <br><br>
-                <button style="padding:12px 40px;background:#00ffcc;border:none;border-radius:8px;font-weight:bold;">
+                <button style="padding:12px 40px;background:#00ffc3;border:none;border-radius:8px;font-weight:bold;">
                 Enter
                 </button>
             </form>
@@ -126,7 +112,6 @@ def login_page(request: Request):
     </body>
     </html>
     """
-
 
 @app.post("/", response_class=HTMLResponse)
 def check_password(password: str = Form(...)):
@@ -142,9 +127,6 @@ def check_password(password: str = Form(...)):
 
     return "<h2 style='color:red;text-align:center;margin-top:40vh;'>Access Denied</h2>"
 
-
-# ---------------- MAIN APP ----------------
-
 @app.get("/app", response_class=HTMLResponse)
 def main_app(request: Request):
     if not is_authenticated(request):
@@ -153,7 +135,8 @@ def main_app(request: Request):
     return f"""
     <html>
     <body style="background:#0f0f0f;color:white;font-family:Arial;padding:30px;text-align:center;">
-        <h1 style="color:#00ffcc;">CLAMS Resale Engine</h1>
+
+        <h1 style="color:#00ffc3;">CLAMS Resale Engine</h1>
 
         <form action="/search" style="max-width:600px;margin:auto;">
             <input name="q" placeholder="Search item..."
@@ -167,19 +150,24 @@ def main_app(request: Request):
                 <option value="Parts">Parts</option>
             </select>
 
-            <input name="profit" type="number" step="0.01" value="{DEFAULT_PROFIT}"
-            style="padding:14px;width:100%;margin-bottom:12px;border-radius:8px;border:none;">
+            <label style="font-size:14px;">Target Profit %</label>
+            <input name="profit" type="range" min="0.1" max="0.7" step="0.01"
+            value="{DEFAULT_PROFIT}"
+            oninput="this.nextElementSibling.value = (this.value*100).toFixed(0)+'%'"
+            style="width:100%;">
+            <output>{int(DEFAULT_PROFIT*100)}%</output>
 
-            <button style="padding:14px;width:100%;background:#00ffcc;border:none;border-radius:8px;font-weight:bold;">
+            <br><br>
+            <button style="padding:14px;width:100%;background:#00ffc3;border:none;border-radius:8px;font-weight:bold;">
             Analyze Deal
             </button>
         </form>
+
+        <p style="margin-top:40px;color:#555;">v1.0 Bold UI</p>
+
     </body>
     </html>
     """
-
-
-# ---------------- SEARCH ----------------
 
 @app.get("/search", response_class=HTMLResponse)
 def search(request: Request, q: str, condition: str = "A", profit: float = DEFAULT_PROFIT):
@@ -190,22 +178,28 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
     prices, items = get_sold_data(q)
 
     if not prices:
-        return "<h2 style='color:white;text-align:center;margin-top:40vh;'>No comps found. Try broader keywords.</h2>"
+        return "<h2 style='color:white;text-align:center;margin-top:40vh;'>No comps found.</h2>"
 
-    prices.sort()
     median_price = statistics.median(prices)
     adjusted = median_price * CONDITION_MULTIPLIERS.get(condition, 1.0)
     local = adjusted * LOCAL_FACTOR
+
     max_buy = local * (1 - profit)
     sell_target = local / (1 - profit) if profit < 0.99 else median_price
 
     confidence = min(len(prices) * 2, 100)
 
-    risk_color = "#00ffcc"
+    risk_color = "#00ffc3"
     if profit > 0.5:
         risk_color = "#ff4444"
     elif profit > 0.35:
         risk_color = "#ffaa00"
+
+    confidence_bar = f"""
+    <div style="background:#222;border-radius:8px;overflow:hidden;">
+        <div style="width:{confidence}%;background:#00ffc3;height:14px;"></div>
+    </div>
+    """
 
     comp_html = ""
     for item in items[:12]:
@@ -214,7 +208,7 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
             <a href="{item['link']}" target="_blank">
                 <img src="{item['image']}" style="width:100%;height:120px;object-fit:cover;border-radius:6px;">
             </a>
-            <div style="margin-top:6px;color:#00ffcc;">${item['price']}</div>
+            <div style="margin-top:6px;color:#00ffc3;">${item['price']}</div>
         </div>
         """
 
@@ -222,7 +216,7 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
     <html>
     <body style="background:#0f0f0f;color:white;font-family:Arial;padding:20px;max-width:1100px;margin:auto;">
 
-        <h2 style="color:#00ffcc;">{q}</h2>
+        <h2 style="color:#00ffc3;">{q}</h2>
 
         <div style="display:flex;gap:20px;flex-wrap:wrap;">
 
@@ -232,7 +226,7 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
             </div>
 
             <div style="flex:1;background:#1a1a1a;padding:20px;border-radius:10px;">
-                <h3 style="color:{risk_color};">Max Buy @ {profit*100:.0f}%</h3>
+                <h3 style="color:{risk_color};">Max Buy</h3>
                 <h1 style="color:{risk_color};">${max_buy:.2f}</h1>
             </div>
 
@@ -243,7 +237,8 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
 
             <div style="flex:1;background:#1a1a1a;padding:20px;border-radius:10px;">
                 <h3>Confidence</h3>
-                <h1>{confidence}%</h1>
+                {confidence_bar}
+                <p>{confidence}%</p>
             </div>
 
         </div>
@@ -254,7 +249,7 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
         </div>
 
         <br>
-        <a href="/app" style="color:#00ffcc;">Analyze Another</a>
+        <a href="/app" style="color:#00ffc3;">Analyze Another</a>
 
     </body>
     </html>
