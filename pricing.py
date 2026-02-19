@@ -9,42 +9,44 @@ CONDITION_MULTIPLIERS = {
     "Parts": 0.50
 }
 
-def analyze_pricing(prices, condition, profit):
-    if not prices:
+def analyze_market(sold_prices, active_prices, condition, profit):
+
+    if not sold_prices:
         return None
 
-    prices.sort()
-    median_price = statistics.median(prices)
-    high = max(prices)
-    low = min(prices)
+    sold_prices.sort()
+    sold_median = statistics.median(sold_prices)
+    sold_high = max(sold_prices)
+    sold_low = min(sold_prices)
 
-    adjusted = median_price * CONDITION_MULTIPLIERS.get(condition, 1.0)
+    active_median = statistics.median(active_prices) if active_prices else 0
+
+    adjusted = sold_median * CONDITION_MULTIPLIERS.get(condition, 1.0)
     local = adjusted * LOCAL_FACTOR
 
     max_buy = local * (1 - profit)
-    sell_target = local / (1 - profit) if profit < 0.99 else median_price
+    sell_target = local / (1 - profit) if profit < 0.99 else sold_median
 
-    # Volatility score
-    volatility = (high - low) / median_price if median_price else 0
+    supply_ratio = len(active_prices) / len(sold_prices) if sold_prices else 0
 
-    # Confidence score (volume weighted)
-    confidence = min(len(prices) * 2, 100)
-
-    # Demand tier
-    if confidence > 60 and volatility < 0.5:
-        demand = "🔥 Strong"
-    elif confidence > 30:
-        demand = "⚠️ Moderate"
+    if supply_ratio < 0.8:
+        pressure = "🔥 Seller Advantage"
+    elif supply_ratio < 1.5:
+        pressure = "⚖ Balanced"
     else:
-        demand = "❄️ Weak"
+        pressure = "📉 Oversupplied"
+
+    volatility = (sold_high - sold_low) / sold_median if sold_median else 0
+
+    undercut_price = active_median - 1 if active_median else sell_target
 
     return {
-        "median": round(median_price, 2),
+        "sold_median": round(sold_median, 2),
+        "active_median": round(active_median, 2),
         "max_buy": round(max_buy, 2),
         "sell_target": round(sell_target, 2),
-        "confidence": confidence,
+        "pressure": pressure,
+        "supply_ratio": round(supply_ratio, 2),
         "volatility": round(volatility, 2),
-        "demand": demand,
-        "high": round(high, 2),
-        "low": round(low, 2)
+        "undercut": round(undercut_price, 2)
     }

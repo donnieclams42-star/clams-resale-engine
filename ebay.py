@@ -39,37 +39,36 @@ def get_ebay_token():
         return None
 
 
-def get_sold_data(query):
+def fetch_prices(query, sold=True):
     try:
         token = get_ebay_token()
         if not token:
-            return [], []
+            return []
 
         headers = {"Authorization": f"Bearer {token}"}
-        url = f"https://api.ebay.com/buy/browse/v1/item_summary/search?q={query}&filter=soldItems:true&limit=50"
+        filter_param = "soldItems:true" if sold else "soldItems:false"
+
+        url = f"https://api.ebay.com/buy/browse/v1/item_summary/search?q={query}&filter={filter_param}&limit=50"
 
         response = requests.get(url, headers=headers, timeout=10)
         data = response.json()
 
         prices = []
-        items = []
 
         for item in data.get("itemSummaries", []):
             try:
                 price = float(item["price"]["value"])
-                image = item.get("image", {}).get("imageUrl", "")
-                link = item.get("itemWebUrl", "#")
-
                 prices.append(price)
-                items.append({
-                    "price": price,
-                    "image": image,
-                    "link": link
-                })
             except:
                 continue
 
-        return prices, items
+        return prices
 
     except:
-        return [], []
+        return []
+
+
+def get_market_data(query):
+    sold_prices = fetch_prices(query, sold=True)
+    active_prices = fetch_prices(query, sold=False)
+    return sold_prices, active_prices

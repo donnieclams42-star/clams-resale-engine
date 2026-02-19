@@ -4,8 +4,8 @@ import os
 from dotenv import load_dotenv
 
 from auth import is_authenticated
-from ebay import get_sold_data
-from pricing import analyze_pricing
+from ebay import get_market_data
+from pricing import analyze_market
 
 load_dotenv()
 
@@ -59,10 +59,11 @@ def main_app(request: Request):
     if not is_authenticated(request):
         return RedirectResponse("/")
 
-    return """
+    return f"""
     <html>
     <body style="background:#0f0f0f;color:white;font-family:Arial;padding:30px;text-align:center;">
-        <h1 style="color:#00ffc3;">CLAMS Resale Engine</h1>
+
+        <h1 style="color:#00ffc3;">CLAMS Market Intelligence</h1>
 
         <form action="/search" style="max-width:600px;margin:auto;">
             <input name="q" placeholder="Search item..."
@@ -76,13 +77,14 @@ def main_app(request: Request):
                 <option value="Parts">Parts</option>
             </select>
 
-            <input name="profit" type="number" step="0.01" value="0.40"
+            <input name="profit" type="number" step="0.01" value="{DEFAULT_PROFIT}"
             style="padding:14px;width:100%;margin-bottom:12px;border-radius:8px;border:none;">
 
             <button style="padding:14px;width:100%;background:#00ffc3;border:none;border-radius:8px;font-weight:bold;">
-            Analyze Deal
+            Analyze Market
             </button>
         </form>
+
     </body>
     </html>
     """
@@ -94,26 +96,38 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
     if not is_authenticated(request):
         return RedirectResponse("/")
 
-    prices, items = get_sold_data(q)
-    result = analyze_pricing(prices, condition, profit)
+    sold_prices, active_prices = get_market_data(q)
+    result = analyze_market(sold_prices, active_prices, condition, profit)
 
     if not result:
         return "<h2 style='color:white;text-align:center;margin-top:40vh;'>No comps found.</h2>"
 
     return f"""
     <html>
-    <body style="background:#0f0f0f;color:white;font-family:Arial;padding:20px;max-width:900px;margin:auto;">
+    <body style="background:#0f0f0f;color:white;font-family:Arial;padding:20px;max-width:1000px;margin:auto;">
+
         <h2 style="color:#00ffc3;">{q}</h2>
 
-        <h3>Median: ${result['median']}</h3>
-        <h3>Max Buy: ${result['max_buy']}</h3>
-        <h3>Sell Needed: ${result['sell_target']}</h3>
-        <h3>Demand: {result['demand']}</h3>
-        <h3>Volatility: {result['volatility']}</h3>
-        <h3>Confidence: {result['confidence']}%</h3>
+        <div style="background:#1a1a1a;padding:20px;border-radius:10px;margin-bottom:20px;">
+            <h3>📦 Sold Median: ${result['sold_median']}</h3>
+            <h3>🏷 Active Median: ${result['active_median']}</h3>
+        </div>
+
+        <div style="background:#1a1a1a;padding:20px;border-radius:10px;margin-bottom:20px;">
+            <h3>💰 Max Buy: ${result['max_buy']}</h3>
+            <h3>🎯 Sell Target: ${result['sell_target']}</h3>
+            <h3>💡 Undercut Active At: ${result['undercut']}</h3>
+        </div>
+
+        <div style="background:#1a1a1a;padding:20px;border-radius:10px;">
+            <h3>📊 Supply Ratio: {result['supply_ratio']}</h3>
+            <h3>🔥 Market Pressure: {result['pressure']}</h3>
+            <h3>⚡ Volatility: {result['volatility']}</h3>
+        </div>
 
         <br>
         <a href="/app" style="color:#00ffc3;">Analyze Another</a>
+
     </body>
     </html>
     """
