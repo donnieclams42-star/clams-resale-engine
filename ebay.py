@@ -8,6 +8,7 @@ load_dotenv()
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
 
+
 def get_ebay_token():
     try:
         credentials = f"{EBAY_CLIENT_ID}:{EBAY_CLIENT_SECRET}"
@@ -34,16 +35,15 @@ def get_ebay_token():
             return None
 
         return response.json().get("access_token")
-
     except:
         return None
 
 
-def fetch_prices(query, sold=True):
+def fetch_items(query, sold=True):
     try:
         token = get_ebay_token()
         if not token:
-            return []
+            return [], []
 
         headers = {"Authorization": f"Bearer {token}"}
         filter_param = "soldItems:true" if sold else "soldItems:false"
@@ -54,21 +54,30 @@ def fetch_prices(query, sold=True):
         data = response.json()
 
         prices = []
+        items = []
 
         for item in data.get("itemSummaries", []):
             try:
                 price = float(item["price"]["value"])
+                image = item.get("image", {}).get("imageUrl", "")
+                link = item.get("itemWebUrl", "#")
+
                 prices.append(price)
+                items.append({
+                    "price": price,
+                    "image": image,
+                    "link": link
+                })
             except:
                 continue
 
-        return prices
+        return prices, items
 
     except:
-        return []
+        return [], []
 
 
 def get_market_data(query):
-    sold_prices = fetch_prices(query, sold=True)
-    active_prices = fetch_prices(query, sold=False)
-    return sold_prices, active_prices
+    sold_prices, sold_items = fetch_items(query, sold=True)
+    active_prices, _ = fetch_items(query, sold=False)
+    return sold_prices, active_prices, sold_items
