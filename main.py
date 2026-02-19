@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 import os
 import requests
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
 from auth import is_authenticated
 from ebay import get_market_data
@@ -60,11 +61,8 @@ def main_app(request: Request):
     return f"""
     <html>
     <body style="background:#0f0f0f;color:white;font-family:Arial;padding:20px;text-align:center;">
-
         <h1 style="color:#00ffc3;">CLAMS Market Intelligence</h1>
-
         <form action="/search" style="max-width:600px;margin:auto;">
-
             <input name="q" placeholder="Search item..."
             style="padding:14px;width:100%;margin-bottom:12px;border-radius:8px;border:none;">
 
@@ -106,10 +104,11 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
 
     comp_html = ""
     for item in sold_items[:12]:
+        encoded_url = quote_plus(item["image"])
         comp_html += f"""
         <a href="{item['link']}" target="_blank" style="text-decoration:none;">
         <div style="width:150px;margin:8px;background:#1a1a1a;padding:10px;border-radius:10px;display:inline-block;">
-            <img src="/img?url={item['image']}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">
+            <img src="/img?url={encoded_url}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">
             <div style="margin-top:6px;color:#00ffc3;font-weight:bold;">${item['price']}</div>
         </div>
         </a>
@@ -118,7 +117,6 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
     return f"""
     <html>
     <body style="background:#0f0f0f;color:white;font-family:Arial;padding:20px;max-width:1100px;margin:auto;text-align:center;">
-
         <h2 style="color:#00ffc3;">{q}</h2>
 
         <div style="background:#1a1a1a;padding:15px;border-radius:12px;margin-bottom:20px;">
@@ -135,7 +133,6 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
 
         <br><br>
         <a href="/app" style="color:#00ffc3;">New Search</a>
-
     </body>
     </html>
     """
