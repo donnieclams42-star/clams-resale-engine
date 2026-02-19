@@ -1,6 +1,7 @@
 import os
 import requests
 import base64
+import time
 from dotenv import load_dotenv
 from urllib.parse import quote
 
@@ -9,12 +10,17 @@ load_dotenv()
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
 
-HEADERS = {
-    "Content-Type": "application/x-www-form-urlencoded"
+TOKEN_CACHE = {
+    "access_token": None,
+    "expires_at": 0
 }
 
 
 def get_token():
+    # Return cached token if still valid
+    if TOKEN_CACHE["access_token"] and time.time() < TOKEN_CACHE["expires_at"]:
+        return TOKEN_CACHE["access_token"]
+
     creds = f"{EBAY_CLIENT_ID}:{EBAY_CLIENT_SECRET}"
     encoded = base64.b64encode(creds.encode()).decode()
 
@@ -30,7 +36,24 @@ def get_token():
         }
     )
 
-    return r.json().get("access_token")
+    data = r.json()
+
+    if "access_token" not in data:
+        print("TOKEN ERROR:", data)
+        return None
+
+    TOKEN_CACHE["access_token"] = data["access_token"]
+    TOKEN_CACHE["expires_at"] = time.time() + data.get("expires_in", 7200) - 60
+
+    return TOKEN_CACHE["access_token"]
+
+
+def extract_image(item):
+    return (
+        item.get("image", {}).get("imageUrl")
+        or (item.get("thumbnailImages") or [{}])[0].get("imageUrl")
+        or (item.get("additionalImages") or [{}])[0].get("imageUrl")
+    )
 
 
 def get_market_data(query):
@@ -45,38 +68,35 @@ def get_market_data(query):
         "https://api.ebay.com/buy/browse/v1/item_summary/search"
         f"?q={q}"
         "&filter=soldItems:true"
-        "&limit=50"
+        "&limit=30"
         "&fieldgroups=EXTENDED"
     )
 
     active_url = (
         "https://api.ebay.com/buy/browse/v1/item_summary/search"
         f"?q={q}"
-        "&limit=50"
+        "&limit=30"
         "&fieldgroups=EXTENDED"
     )
 
     sold_r = requests.get(sold_url, headers=headers).json()
     active_r = requests.get(active_url, headers=headers).json()
 
+    raw_items = sold_r.get("itemSummaries", [])
     sold_prices = []
     sold_items = []
 
-    for item in sold_r.get("itemSummaries", []):
+    for item in raw_items:
         try:
             price = float(item["price"]["value"])
-            image = item.get("image", {}).get("imageUrl")
-            link = item.get("itemWebUrl", "#")
-
             sold_prices.append(price)
 
-            if image:
-                sold_items.append({
-                    "price": price,
-                    "image": image,
-                    "link": link
-                })
-
+            sold_items.append({
+                "price": price,
+                "image": extract_image(item),
+                "link": item.get("itemWebUrl", "#"),
+                "title": item.get("title", "")
+            })
         except:
             continue
 
