@@ -8,6 +8,8 @@ load_dotenv()
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
 
+PLACEHOLDER_IMAGE = "https://via.placeholder.com/300x200?text=No+Image"
+
 
 def get_ebay_token():
     try:
@@ -35,6 +37,7 @@ def get_ebay_token():
             return None
 
         return response.json().get("access_token")
+
     except:
         return None
 
@@ -59,7 +62,11 @@ def fetch_items(query, sold=True):
         for item in data.get("itemSummaries", []):
             try:
                 price = float(item["price"]["value"])
-                image = item.get("image", {}).get("imageUrl", "")
+                image = item.get("image", {}).get("imageUrl")
+
+                if not image:
+                    image = PLACEHOLDER_IMAGE
+
                 link = item.get("itemWebUrl", "#")
 
                 prices.append(price)
@@ -68,6 +75,7 @@ def fetch_items(query, sold=True):
                     "image": image,
                     "link": link
                 })
+
             except:
                 continue
 
