@@ -11,11 +11,10 @@ CONDITION_MULTIPLIERS = {
 
 
 def analyze_market(sold_prices, active_prices, condition, profit):
-
     if not sold_prices:
         return None
 
-    sold_prices.sort()
+    sold_prices = sorted(sold_prices)
 
     sold_median = statistics.median(sold_prices)
     sold_high = max(sold_prices)
@@ -25,6 +24,9 @@ def analyze_market(sold_prices, active_prices, condition, profit):
 
     adjusted = sold_median * CONDITION_MULTIPLIERS.get(condition, 1.0)
     local = adjusted * LOCAL_FACTOR
+
+    # profit is a fraction (0.40 = 40%)
+    profit = max(0.0, min(float(profit), 0.95))
 
     max_buy = local * (1 - profit)
     sell_target = local / (1 - profit) if profit < 0.99 else sold_median
@@ -40,7 +42,7 @@ def analyze_market(sold_prices, active_prices, condition, profit):
     else:
         pressure = "📉 Oversupplied"
 
-    undercut = active_median - 1 if active_median else sell_target
+    undercut = (active_median - 1) if active_median else sell_target
 
     return {
         "sold_median": round(sold_median, 2),
