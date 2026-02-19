@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 import os
 import requests
 from dotenv import load_dotenv
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, unquote_plus
 
 from auth import is_authenticated
 from ebay import get_market_data
@@ -11,23 +11,34 @@ from pricing import analyze_market
 
 load_dotenv()
 
-ACCESS_PASSWORD = os.getenv("ACCESS_PASSWORD")
 DEFAULT_PROFIT = 0.40
-
 app = FastAPI()
 
 
-# ---------------- IMAGE PROXY ----------------
+# ---------- IMAGE STREAM PROXY ----------
 @app.get("/img")
 def proxy_image(url: str):
     try:
-        r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
-        return Response(content=r.content, media_type="image/jpeg")
+        real_url = unquote_plus(url)
+
+        r = requests.get(
+            real_url,
+            stream=True,
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+                "Referer": "https://www.ebay.com/"
+            },
+            timeout=20
+        )
+
+        return StreamingResponse(r.raw, media_type=r.headers.get("Content-Type", "image/jpeg"))
+
     except:
-        return Response(status_code=404)
+        return StreamingResponse(iter([b""]), media_type="image/jpeg")
 
 
-# ---------------- LOGIN PAGE ----------------
+# ---------- LOGIN ----------
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
     if is_authenticated(request):
@@ -52,7 +63,7 @@ def login_page(request: Request):
     """
 
 
-# ---------------- MAIN APP ----------------
+# ---------- MAIN ----------
 @app.get("/app", response_class=HTMLResponse)
 def main_app(request: Request):
     if not is_authenticated(request):
@@ -62,6 +73,7 @@ def main_app(request: Request):
     <html>
     <body style="background:#0f0f0f;color:white;font-family:Arial;padding:20px;text-align:center;">
         <h1 style="color:#00ffc3;">CLAMS Market Intelligence</h1>
+
         <form action="/search" style="max-width:600px;margin:auto;">
             <input name="q" placeholder="Search item..."
             style="padding:14px;width:100%;margin-bottom:12px;border-radius:8px;border:none;">
@@ -86,7 +98,7 @@ def main_app(request: Request):
     """
 
 
-# ---------------- SEARCH RESULTS ----------------
+# ---------- SEARCH ----------
 @app.get("/search", response_class=HTMLResponse)
 def search(request: Request, q: str, condition: str = "A", profit: float = DEFAULT_PROFIT):
 
@@ -104,11 +116,11 @@ def search(request: Request, q: str, condition: str = "A", profit: float = DEFAU
 
     comp_html = ""
     for item in sold_items[:12]:
-        encoded_url = quote_plus(item["image"])
+        encoded = quote_plus(item["image"])
         comp_html += f"""
         <a href="{item['link']}" target="_blank" style="text-decoration:none;">
         <div style="width:150px;margin:8px;background:#1a1a1a;padding:10px;border-radius:10px;display:inline-block;">
-            <img src="/img?url={encoded_url}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">
+            <img src="/img?url={encoded}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">
             <div style="margin-top:6px;color:#00ffc3;font-weight:bold;">${item['price']}</div>
         </div>
         </a>
