@@ -9,14 +9,11 @@ load_dotenv()
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
 
-PLACEHOLDER_IMAGE = "https://via.placeholder.com/300x200/111111/00ffc3?text=NO+IMAGE"
+PLACEHOLDER_IMAGE = "https://ir.ebaystatic.com/cr/v/c1/placeholder-300x200.png"
 
 
 def get_ebay_token():
     try:
-        if not EBAY_CLIENT_ID or not EBAY_CLIENT_SECRET:
-            return None
-
         credentials = f"{EBAY_CLIENT_ID}:{EBAY_CLIENT_SECRET}"
         encoded = base64.b64encode(credentials.encode()).decode()
 
@@ -41,83 +38,66 @@ def get_ebay_token():
             return None
 
         return r.json().get("access_token")
+
     except Exception:
         return None
 
 
-def resolve_image(item: dict) -> str:
-    """
-    eBay Browse API item summaries are inconsistent across listing types.
-    This resolver checks multiple known locations.
-    """
+def resolve_image(item):
     try:
-        # 1) Standard "image"
-        img = item.get("image")
-        if isinstance(img, dict):
-            if img.get("imageUrl"):
-                return img["imageUrl"]
-            # Some responses use templates like ...{size}...
-            if img.get("imageUrlTemplate"):
-                return img["imageUrlTemplate"].replace("{size}", "300")
+        # modern primary image
+        if item.get("image") and item["image"].get("imageUrl"):
+            return item["image"]["imageUrl"]
 
-        # 2) Additional images array
-        add = item.get("additionalImages")
-        if isinstance(add, list) and add:
-            if isinstance(add[0], dict) and add[0].get("imageUrl"):
-                return add[0]["imageUrl"]
+        # template image
+        if item.get("image") and item["image"].get("imageUrlTemplate"):
+            return item["image"]["imageUrlTemplate"].replace("{size}", "300")
 
-        # 3) Thumbnails array
+        # thumbnails list
         thumbs = item.get("thumbnailImages")
-        if isinstance(thumbs, list) and thumbs:
-            if isinstance(thumbs[0], dict) and thumbs[0].get("imageUrl"):
+        if isinstance(thumbs, list) and len(thumbs) > 0:
+            if thumbs[0].get("imageUrl"):
                 return thumbs[0]["imageUrl"]
 
-        # 4) Sometimes "itemGroupHref" indicates variations/cat group (no image in summary)
-        if item.get("itemGroupHref"):
-            return PLACEHOLDER_IMAGE
+        # additional images
+        add = item.get("additionalImages")
+        if isinstance(add, list) and len(add) > 0:
+            if add[0].get("imageUrl"):
+                return add[0]["imageUrl"]
 
         return PLACEHOLDER_IMAGE
+
     except Exception:
         return PLACEHOLDER_IMAGE
 
 
-def safe_get_json(url: str, headers: dict) -> dict:
-    """
-    Prevents crashes when eBay returns HTML, empty body, 4xx/5xx, or rate limits.
-    """
+def safe_json(url, headers):
     try:
         r = requests.get(url, headers=headers, timeout=10)
         r.raise_for_status()
-        return r.json() if r.content else {}
+        return r.json()
     except Exception:
         return {}
 
 
-def get_market_data(query: str):
+def get_market_data(query):
     token = get_ebay_token()
     if not token:
         return [], [], []
 
     headers = {"Authorization": f"Bearer {token}"}
-
     q = quote(query)
 
-    sold_url = (
-        "https://api.ebay.com/buy/browse/v1/item_summary/search"
-        f"?q={q}&filter=soldItems:true&limit=50"
-    )
-    active_url = (
-        "https://api.ebay.com/buy/browse/v1/item_summary/search"
-        f"?q={q}&limit=50"
-    )
+    sold_url = f"https://api.ebay.com/buy/browse/v1/item_summary/search?q={q}&filter=soldItems:true&limit=50"
+    active_url = f"https://api.ebay.com/buy/browse/v1/item_summary/search?q={q}&limit=50"
 
-    sold_data = safe_get_json(sold_url, headers)
-    active_data = safe_get_json(active_url, headers)
+    sold_data = safe_json(sold_url, headers)
+    active_data = safe_json(active_url, headers)
 
     sold_prices = []
     sold_items = []
 
-    for item in sold_data.get("itemSummaries", []) or []:
+    for item in sold_data.get("itemSummaries", []):
         try:
             price = float(item["price"]["value"])
             image = resolve_image(item)
@@ -133,7 +113,7 @@ def get_market_data(query: str):
             continue
 
     active_prices = []
-    for item in active_data.get("itemSummaries", []) or []:
+    for item in active_data.get("itemSummaries", []):
         try:
             active_prices.append(float(item["price"]["value"]))
         except Exception:
