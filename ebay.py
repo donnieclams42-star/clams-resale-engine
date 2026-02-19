@@ -37,55 +37,45 @@ def get_ebay_token():
             return None
 
         return response.json().get("access_token")
-
     except:
         return None
 
 
-def fetch_items(query, sold=True):
-    try:
-        token = get_ebay_token()
-        if not token:
-            return [], []
-
-        headers = {"Authorization": f"Bearer {token}"}
-        filter_param = "soldItems:true" if sold else "soldItems:false"
-
-        url = f"https://api.ebay.com/buy/browse/v1/item_summary/search?q={query}&filter={filter_param}&limit=50"
-
-        response = requests.get(url, headers=headers, timeout=10)
-        data = response.json()
-
-        prices = []
-        items = []
-
-        for item in data.get("itemSummaries", []):
-            try:
-                price = float(item["price"]["value"])
-                image = item.get("image", {}).get("imageUrl")
-
-                if not image:
-                    image = PLACEHOLDER_IMAGE
-
-                link = item.get("itemWebUrl", "#")
-
-                prices.append(price)
-                items.append({
-                    "price": price,
-                    "image": image,
-                    "link": link
-                })
-
-            except:
-                continue
-
-        return prices, items
-
-    except:
-        return [], []
-
-
 def get_market_data(query):
-    sold_prices, sold_items = fetch_items(query, sold=True)
-    active_prices, _ = fetch_items(query, sold=False)
-    return sold_prices, active_prices, sold_items
+
+    token = get_ebay_token()
+    if not token:
+        return [], [], []
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # --- SOLD ITEMS (WITH IMAGES) ---
+    sold_url = (
+        "https://api.ebay.com/buy/browse/v1/item_summary/search"
+        f"?q={query}&filter=soldItems:true&limit=50"
+    )
+
+    sold_response = requests.get(sold_url, headers=headers, timeout=10)
+    sold_data = sold_response.json()
+
+    sold_prices = []
+    sold_items = []
+
+    for item in sold_data.get("itemSummaries", []):
+        try:
+            price = float(item["price"]["value"])
+            image = item.get("image", {}).get("imageUrl") or PLACEHOLDER_IMAGE
+            link = item.get("itemWebUrl", "#")
+
+            sold_prices.append(price)
+            sold_items.append({
+                "price": price,
+                "image": image,
+                "link": link
+            })
+        except:
+            continue
+
+    # --- ACTIVE PRICES ONLY ---
+    active_url = (
+        "https://api.ebay.com/buy/browse/v1/it
