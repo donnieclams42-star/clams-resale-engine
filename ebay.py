@@ -49,7 +49,7 @@ def get_market_data(query):
 
     headers = {"Authorization": f"Bearer {token}"}
 
-    # --- SOLD ITEMS (WITH IMAGES) ---
+    # SOLD QUERY
     sold_url = (
         "https://api.ebay.com/buy/browse/v1/item_summary/search"
         f"?q={query}&filter=soldItems:true&limit=50"
@@ -64,7 +64,14 @@ def get_market_data(query):
     for item in sold_data.get("itemSummaries", []):
         try:
             price = float(item["price"]["value"])
-            image = item.get("image", {}).get("imageUrl") or PLACEHOLDER_IMAGE
+
+            # Try multiple possible image fields
+            image = (
+                item.get("image", {}).get("imageUrl")
+                or (item.get("thumbnailImages") or [{}])[0].get("imageUrl")
+                or PLACEHOLDER_IMAGE
+            )
+
             link = item.get("itemWebUrl", "#")
 
             sold_prices.append(price)
@@ -73,9 +80,26 @@ def get_market_data(query):
                 "image": image,
                 "link": link
             })
+
         except:
             continue
 
-    # --- ACTIVE PRICES ONLY ---
+    # ACTIVE QUERY
     active_url = (
-        "https://api.ebay.com/buy/browse/v1/it
+        "https://api.ebay.com/buy/browse/v1/item_summary/search"
+        f"?q={query}&limit=50"
+    )
+
+    active_response = requests.get(active_url, headers=headers, timeout=10)
+    active_data = active_response.json()
+
+    active_prices = []
+
+    for item in active_data.get("itemSummaries", []):
+        try:
+            price = float(item["price"]["value"])
+            active_prices.append(price)
+        except:
+            continue
+
+    return sold_prices, active_prices, sold_items
