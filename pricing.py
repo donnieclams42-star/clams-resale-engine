@@ -1,7 +1,5 @@
 import statistics
 
-LOCAL_FACTOR = 0.80
-
 CONDITION_MULTIPLIERS = {
     "A": 1.0,
     "B": 0.85,
@@ -10,7 +8,7 @@ CONDITION_MULTIPLIERS = {
 }
 
 
-def analyze_market(sold_prices, active_prices, condition, profit):
+def analyze_market(sold_prices, active_prices, condition, profit, local_factor):
     if not sold_prices:
         return None
 
@@ -23,9 +21,8 @@ def analyze_market(sold_prices, active_prices, condition, profit):
     active_median = statistics.median(active_prices) if active_prices else 0
 
     adjusted = sold_median * CONDITION_MULTIPLIERS.get(condition, 1.0)
-    local = adjusted * LOCAL_FACTOR
+    local = adjusted * local_factor
 
-    # profit is a fraction (0.40 = 40%)
     profit = max(0.0, min(float(profit), 0.95))
 
     max_buy = local * (1 - profit)
