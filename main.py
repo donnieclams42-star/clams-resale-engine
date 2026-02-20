@@ -29,9 +29,10 @@ def login_page(request: Request):
         <h2>CLAMS Beta Access</h2>
         <form method="post" action="/login">
             <input type="password" name="password" placeholder="Enter Password" required
-                   style="padding:10px;border-radius:6px;border:none;">
+                   style="padding:12px;border-radius:8px;border:none;width:250px;">
             <br><br>
-            <button type="submit" style="padding:10px 20px;border:none;border-radius:6px;background:#00cc66;font-weight:bold;color:black;">
+            <button type="submit"
+                    style="padding:12px 30px;border:none;border-radius:8px;background:#00cc66;font-weight:bold;color:black;">
                 Enter
             </button>
         </form>
@@ -113,27 +114,36 @@ def render_page(query="", preset="balanced", analysis=None,
 
     if analysis:
         marketing_block = f"""
-        <div class="card">
+        <div class="panel">
             <h3>Market Intelligence</h3>
-            <p>Sold Median: <b>${analysis["sold_median"]}</b></p>
-            <p>Active Median: <b>${analysis["active_median"]}</b></p>
-            <p>Supply Ratio: <b>{analysis["supply_ratio"]}</b></p>
-            <p>Market Pressure: <b>{analysis["pressure"]}</b></p>
-            <p>Volatility: <b>{analysis["volatility"]}</b></p>
-            <p>Confidence: <b>{analysis["confidence"]}%</b></p>
+            <div class="grid">
+                <div><span>Sold Median</span><b>${analysis["sold_median"]}</b></div>
+                <div><span>Active Median</span><b>${analysis["active_median"]}</b></div>
+                <div><span>Supply Ratio</span><b>{analysis["supply_ratio"]}</b></div>
+                <div><span>Market Pressure</span><b>{analysis["pressure"]}</b></div>
+                <div><span>Volatility</span><b>{analysis["volatility"]}</b></div>
+                <div><span>Confidence</span><b>{analysis["confidence"]}%</b></div>
+            </div>
         </div>
         """
 
         posting_block = f"""
-        <div class="card">
+        <div class="panel">
             <h3>Pricing Strategy</h3>
-            <div class="bar fast">🔥 FAST CASH: ${fast_cash}</div>
-            <div class="bar market">⚖ MARKET: ${market_price}</div>
-            <div class="bar hold">💎 HOLD MAX: ${hold_price}</div>
+
+            <div class="preset-row">
+                <button class="preset" onclick="setPreset('aggressive')">Aggressive</button>
+                <button class="preset" onclick="setPreset('balanced')">Balanced</button>
+                <button class="preset" onclick="setPreset('collector')">Collector</button>
+            </div>
+
+            <div class="bar fast">FAST CASH — ${fast_cash}</div>
+            <div class="bar market">MARKET — ${market_price}</div>
+            <div class="bar hold">HOLD MAX — ${hold_price}</div>
         </div>
         """
 
-    error_block = f"<div style='color:red;margin:20px;'>{error}</div>" if error else ""
+    error_block = f"<div class='error'>{error}</div>" if error else ""
 
     return f"""
     <html>
@@ -141,30 +151,35 @@ def render_page(query="", preset="balanced", analysis=None,
         <title>CLAMS Resale Engine</title>
         <style>
             body {{
-                background:#111;
+                margin:0;
+                font-family:Arial, Helvetica, sans-serif;
                 color:white;
-                font-family:Arial;
+                background:linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.85)),
+                url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1920&auto=format&fit=crop');
+                background-size:cover;
+                background-attachment:fixed;
                 text-align:center;
                 padding:40px;
             }}
 
             h1 {{
-                font-size:40px;
-                color:#00ffcc;
+                font-size:38px;
+                letter-spacing:2px;
+                margin-bottom:30px;
             }}
 
-            .view-toggle {{
-                margin-bottom:20px;
+            .toggle {{
+                margin-bottom:25px;
             }}
 
-            .toggle-btn {{
-                padding:10px 25px;
-                margin:5px;
+            .toggle button {{
+                padding:10px 30px;
                 border:none;
-                border-radius:8px;
-                cursor:pointer;
+                border-radius:6px;
+                margin:5px;
                 font-weight:bold;
-                background:#333;
+                cursor:pointer;
+                background:#2a2a2a;
                 color:white;
             }}
 
@@ -173,79 +188,100 @@ def render_page(query="", preset="balanced", analysis=None,
                 color:black;
             }}
 
-            .preset-btn {{
-                padding:10px 20px;
-                margin:5px;
-                border-radius:8px;
-                border:none;
-                font-weight:bold;
-                cursor:pointer;
-                background:#333;
-                color:white;
-            }}
-
-            .bar {{
-                width:500px;
-                margin:10px auto;
-                padding:15px;
-                font-size:20px;
-                border-radius:10px;
-            }}
-
-            .fast {{ background:#c0392b; }}
-            .market {{ background:#2980b9; }}
-            .hold {{ background:#27ae60; }}
-
-            .card {{
-                background:#1a1a1a;
-                padding:25px;
+            .panel {{
+                background:rgba(20,20,20,.95);
+                padding:30px;
                 border-radius:12px;
-                width:600px;
+                width:650px;
                 margin:20px auto;
                 text-align:left;
             }}
 
+            .grid {{
+                display:grid;
+                grid-template-columns:1fr 1fr;
+                gap:15px;
+            }}
+
+            .grid div span {{
+                display:block;
+                font-size:13px;
+                color:#aaa;
+            }}
+
+            .grid div b {{
+                font-size:18px;
+            }}
+
+            .bar {{
+                padding:15px;
+                border-radius:8px;
+                margin-top:15px;
+                font-weight:bold;
+            }}
+
+            .fast {{ background:#b02a2a; }}
+            .market {{ background:#1f5fa9; }}
+            .hold {{ background:#1e7e34; }}
+
+            .preset-row {{
+                margin-bottom:20px;
+                text-align:center;
+            }}
+
+            .preset {{
+                padding:8px 20px;
+                margin:5px;
+                border:none;
+                border-radius:6px;
+                background:#333;
+                color:white;
+                cursor:pointer;
+            }}
+
             input, select {{
                 padding:10px;
-                border-radius:8px;
+                border-radius:6px;
                 border:none;
                 margin:5px;
             }}
 
             button.submit {{
-                padding:10px 20px;
-                border-radius:8px;
+                padding:10px 25px;
+                border-radius:6px;
                 border:none;
                 background:#00cc66;
                 font-weight:bold;
                 color:black;
+            }}
+
+            .error {{
+                color:#ff6b6b;
+                margin:15px;
             }}
         </style>
     </head>
 
     <body>
 
-        <h1>CLAMS Resale Engine</h1>
+        <h1>CLAMS RESALE ENGINE</h1>
 
-        <div class="view-toggle">
-            <button class="toggle-btn toggle-active" id="marketingBtn"
+        <div class="toggle">
+            <button id="marketingBtn" class="toggle-active"
                     onclick="switchView('marketing')">MARKETING</button>
-            <button class="toggle-btn" id="postingBtn"
+            <button id="postingBtn"
                     onclick="switchView('posting')">POSTING</button>
         </div>
 
         <form method="post" action="/app">
             <input type="hidden" name="preset" id="presetInput" value="{preset}">
-
             <input name="query" value="{query}" placeholder="Search item..." required>
-
             <select name="condition">
                 <option value="A">A</option>
                 <option value="B">B</option>
                 <option value="C">C</option>
                 <option value="Parts">Parts</option>
             </select>
-
             <button type="submit" class="submit">Analyze</button>
         </form>
 
@@ -260,26 +296,34 @@ def render_page(query="", preset="balanced", analysis=None,
         </div>
 
         <br><br>
-        <a href="/logout" style="color:#888;">Logout</a>
+        <a href="/logout" style="color:#aaa;">Logout</a>
 
         <script>
             function switchView(view) {{
-                const marketing = document.getElementById("marketingView");
-                const posting = document.getElementById("postingView");
-                const mBtn = document.getElementById("marketingBtn");
-                const pBtn = document.getElementById("postingBtn");
+                const m = document.getElementById("marketingView");
+                const p = document.getElementById("postingView");
+                const mb = document.getElementById("marketingBtn");
+                const pb = document.getElementById("postingBtn");
 
-                if (view === "marketing") {{
-                    marketing.style.display = "block";
-                    posting.style.display = "none";
-                    mBtn.classList.add("toggle-active");
-                    pBtn.classList.remove("toggle-active");
+                if(view === "marketing") {{
+                    m.style.display = "block";
+                    p.style.display = "none";
+                    mb.classList.add("toggle-active");
+                    pb.classList.remove("toggle-active");
                 }} else {{
-                    marketing.style.display = "none";
-                    posting.style.display = "block";
-                    pBtn.classList.add("toggle-active");
-                    mBtn.classList.remove("toggle-active");
+                    m.style.display = "none";
+                    p.style.display = "block";
+                    pb.classList.add("toggle-active");
+                    mb.classList.remove("toggle-active");
                 }}
+            }}
+
+            function setPreset(mode) {{
+                document.getElementById("presetInput").value = mode;
+                document.querySelectorAll(".preset").forEach(btn => {{
+                    btn.style.background = "#333";
+                }});
+                event.target.style.background = "#00cc66";
             }}
         </script>
 
