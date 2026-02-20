@@ -15,7 +15,6 @@ PRESETS = {
     "collector": {"profit": 0.55, "local": 0.90},
 }
 
-
 # ---------------- LOGIN ---------------- #
 
 @app.get("/", response_class=HTMLResponse)
@@ -40,18 +39,15 @@ def login_page(request: Request):
     </html>
     """
 
-
 @app.post("/login")
 def login(password: str = Form(...)):
     if password == CLAMS_PASSWORD:
         return login_success_response("/app")
     return RedirectResponse("/", status_code=303)
 
-
 @app.get("/logout")
 def logout():
     return logout_response("/")
-
 
 # ---------------- APP ---------------- #
 
@@ -60,7 +56,6 @@ def app_home(request: Request):
     if not is_authenticated(request):
         return RedirectResponse("/", status_code=303)
     return render_page()
-
 
 @app.post("/app", response_class=HTMLResponse)
 def analyze(
@@ -99,17 +94,19 @@ def analyze(
         analysis=analysis,
         fast_cash=fast_cash,
         market_price=market_price,
-        hold_price=hold_price
+        hold_price=hold_price,
+        sold_items=sold_items[:12]
     )
-
 
 # ---------------- UI ---------------- #
 
 def render_page(query="", preset="balanced", analysis=None,
                 fast_cash=None, market_price=None,
-                hold_price=None, error=None):
+                hold_price=None, sold_items=None,
+                error=None):
 
     marketing_block = ""
+    comps_block = ""
     posting_block = ""
 
     if analysis:
@@ -127,16 +124,31 @@ def render_page(query="", preset="balanced", analysis=None,
         </div>
         """
 
+        if sold_items:
+            cards = ""
+            for item in sold_items:
+                cards += f"""
+                <div class="comp-card" onclick="selectComp(this)">
+                    <img src="{item['image'] or ''}" />
+                    <div class="comp-info">
+                        <p>{item['title'][:60]}</p>
+                        <b>${item['price']}</b>
+                    </div>
+                </div>
+                """
+
+            comps_block = f"""
+            <div class="panel">
+                <h3>Select Best Match</h3>
+                <div class="comp-grid">
+                    {cards}
+                </div>
+            </div>
+            """
+
         posting_block = f"""
         <div class="panel">
             <h3>Pricing Strategy</h3>
-
-            <div class="preset-row">
-                <button class="preset" onclick="setPreset('aggressive')">Aggressive</button>
-                <button class="preset" onclick="setPreset('balanced')">Balanced</button>
-                <button class="preset" onclick="setPreset('collector')">Collector</button>
-            </div>
-
             <div class="bar fast">FAST CASH — ${fast_cash}</div>
             <div class="bar market">MARKET — ${market_price}</div>
             <div class="bar hold">HOLD MAX — ${hold_price}</div>
@@ -162,37 +174,13 @@ def render_page(query="", preset="balanced", analysis=None,
                 padding:40px;
             }}
 
-            h1 {{
-                font-size:38px;
-                letter-spacing:2px;
-                margin-bottom:30px;
-            }}
-
-            .toggle {{
-                margin-bottom:25px;
-            }}
-
-            .toggle button {{
-                padding:10px 30px;
-                border:none;
-                border-radius:6px;
-                margin:5px;
-                font-weight:bold;
-                cursor:pointer;
-                background:#2a2a2a;
-                color:white;
-            }}
-
-            .toggle-active {{
-                background:#00cc66;
-                color:black;
-            }}
+            h1 {{ font-size:38px; margin-bottom:30px; }}
 
             .panel {{
                 background:rgba(20,20,20,.95);
                 padding:30px;
                 border-radius:12px;
-                width:650px;
+                width:750px;
                 margin:20px auto;
                 text-align:left;
             }}
@@ -203,15 +191,7 @@ def render_page(query="", preset="balanced", analysis=None,
                 gap:15px;
             }}
 
-            .grid div span {{
-                display:block;
-                font-size:13px;
-                color:#aaa;
-            }}
-
-            .grid div b {{
-                font-size:18px;
-            }}
+            .grid span {{ font-size:13px; color:#aaa; }}
 
             .bar {{
                 padding:15px;
@@ -224,19 +204,37 @@ def render_page(query="", preset="balanced", analysis=None,
             .market {{ background:#1f5fa9; }}
             .hold {{ background:#1e7e34; }}
 
-            .preset-row {{
-                margin-bottom:20px;
-                text-align:center;
+            .comp-grid {{
+                display:grid;
+                grid-template-columns:repeat(3, 1fr);
+                gap:15px;
             }}
 
-            .preset {{
-                padding:8px 20px;
-                margin:5px;
-                border:none;
-                border-radius:6px;
-                background:#333;
-                color:white;
+            .comp-card {{
+                background:#222;
+                border-radius:10px;
+                overflow:hidden;
                 cursor:pointer;
+                transition:0.2s ease;
+            }}
+
+            .comp-card:hover {{
+                transform:scale(1.03);
+            }}
+
+            .comp-card.selected {{
+                outline:3px solid #00cc66;
+            }}
+
+            .comp-card img {{
+                width:100%;
+                height:150px;
+                object-fit:cover;
+                background:#000;
+            }}
+
+            .comp-info {{
+                padding:10px;
             }}
 
             input, select {{
@@ -255,10 +253,7 @@ def render_page(query="", preset="balanced", analysis=None,
                 color:black;
             }}
 
-            .error {{
-                color:#ff6b6b;
-                margin:15px;
-            }}
+            .error {{ color:#ff6b6b; margin:15px; }}
         </style>
     </head>
 
@@ -266,15 +261,8 @@ def render_page(query="", preset="balanced", analysis=None,
 
         <h1>CLAMS RESALE ENGINE</h1>
 
-        <div class="toggle">
-            <button id="marketingBtn" class="toggle-active"
-                    onclick="switchView('marketing')">MARKETING</button>
-            <button id="postingBtn"
-                    onclick="switchView('posting')">POSTING</button>
-        </div>
-
         <form method="post" action="/app">
-            <input type="hidden" name="preset" id="presetInput" value="{preset}">
+            <input type="hidden" name="preset" value="{preset}">
             <input name="query" value="{query}" placeholder="Search item..." required>
             <select name="condition">
                 <option value="A">A</option>
@@ -286,44 +274,19 @@ def render_page(query="", preset="balanced", analysis=None,
         </form>
 
         {error_block}
-
-        <div id="marketingView">
-            {marketing_block}
-        </div>
-
-        <div id="postingView" style="display:none;">
-            {posting_block}
-        </div>
+        {marketing_block}
+        {comps_block}
+        {posting_block}
 
         <br><br>
         <a href="/logout" style="color:#aaa;">Logout</a>
 
         <script>
-            function switchView(view) {{
-                const m = document.getElementById("marketingView");
-                const p = document.getElementById("postingView");
-                const mb = document.getElementById("marketingBtn");
-                const pb = document.getElementById("postingBtn");
-
-                if(view === "marketing") {{
-                    m.style.display = "block";
-                    p.style.display = "none";
-                    mb.classList.add("toggle-active");
-                    pb.classList.remove("toggle-active");
-                }} else {{
-                    m.style.display = "none";
-                    p.style.display = "block";
-                    pb.classList.add("toggle-active");
-                    mb.classList.remove("toggle-active");
-                }}
-            }}
-
-            function setPreset(mode) {{
-                document.getElementById("presetInput").value = mode;
-                document.querySelectorAll(".preset").forEach(btn => {{
-                    btn.style.background = "#333";
+            function selectComp(card) {{
+                document.querySelectorAll('.comp-card').forEach(c => {{
+                    c.classList.remove('selected');
                 }});
-                event.target.style.background = "#00cc66";
+                card.classList.add('selected');
             }}
         </script>
 
