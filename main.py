@@ -138,14 +138,8 @@ def render_page(query="", fast_cash=None,
                 cursor:pointer;
             }}
 
-            .active {{
-                background:#00cc66;
-            }}
-
-            .inactive {{
-                background:#444;
-                color:white;
-            }}
+            .active {{ background:#00cc66; }}
+            .inactive {{ background:#444; color:white; }}
 
             .bar {{
                 width:500px;
@@ -174,10 +168,7 @@ def render_page(query="", fast_cash=None,
                 font-weight:bold;
             }}
 
-            .error {{
-                color:red;
-                margin:20px;
-            }}
+            .error {{ color:red; margin:20px; }}
         </style>
     </head>
 
@@ -188,7 +179,7 @@ def render_page(query="", fast_cash=None,
         <form method="post" action="/app" id="mainForm">
             <input type="hidden" name="preset" id="presetInput" value="{preset}">
 
-            <div>
+            <div id="presetContainer">
                 <button type="button"
                         class="preset-btn {'active' if preset=='aggressive' else 'inactive'}"
                         onclick="changePreset('aggressive')">
@@ -230,16 +221,13 @@ def render_page(query="", fast_cash=None,
 
         <script>
             function changePreset(mode) {{
-                document.getElementById("presetInput").value = mode;
                 localStorage.setItem("clamsPreset", mode);
+                document.getElementById("presetInput").value = mode;
 
-                const queryField = document.querySelector("input[name='query']");
+                const buttons = document.querySelectorAll(".preset-btn");
+                buttons.forEach(btn => btn.classList.remove("active"));
 
-                if (queryField && queryField.value.trim() !== "") {{
-                    document.getElementById("mainForm").submit();
-                }} else {{
-                    location.reload();
-                }}
+                event.target.classList.add("active");
             }}
 
             window.onload = function() {{
