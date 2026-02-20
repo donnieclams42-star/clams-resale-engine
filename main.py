@@ -1,9 +1,13 @@
-from fastapi import FastAPI, Form
-from fastapi.responses import HTMLResponse
+import os
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from ebay import get_market_data
 from pricing import analyze_market
+from auth import is_authenticated, login_success_response, logout_response
 
 app = FastAPI()
+
+CLAMS_PASSWORD = os.getenv("CLAMS_PASSWORD", "changeme")
 
 PRESETS = {
     "aggressive": {"profit": 0.25, "local": 0.75},
@@ -11,24 +15,62 @@ PRESETS = {
     "collector": {"profit": 0.55, "local": 0.90},
 }
 
+# ---------------- LOGIN ---------------- #
 
 @app.get("/", response_class=HTMLResponse)
-def home():
+def login_page(request: Request):
+    if is_authenticated(request):
+        return RedirectResponse("/app", status_code=303)
+
+    return """
+    <html>
+    <body style="background:#111;color:white;font-family:Arial;text-align:center;padding-top:150px;">
+        <h2>CLAMS Beta Access</h2>
+        <form method="post" action="/login">
+            <input type="password" name="password" placeholder="Enter Password" required
+                   style="padding:10px;border-radius:6px;border:none;">
+            <br><br>
+            <button type="submit" style="padding:10px 20px;border:none;border-radius:6px;background:#00cc66;font-weight:bold;">
+                Enter
+            </button>
+        </form>
+    </body>
+    </html>
+    """
+
+@app.post("/login")
+def login(password: str = Form(...)):
+    if password == CLAMS_PASSWORD:
+        return login_success_response("/app")
+    return RedirectResponse("/", status_code=303)
+
+@app.get("/logout")
+def logout():
+    return logout_response("/")
+
+# ---------------- APP ---------------- #
+
+@app.get("/app", response_class=HTMLResponse)
+def app_home(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse("/", status_code=303)
+
     return render_page()
 
-
-@app.post("/", response_class=HTMLResponse)
+@app.post("/app", response_class=HTMLResponse)
 def analyze(
+    request: Request,
     query: str = Form(...),
     condition: str = Form("A"),
     preset: str = Form("balanced"),
-    platform: str = Form("facebook"),
 ):
+    if not is_authenticated(request):
+        return RedirectResponse("/", status_code=303)
 
     sold_prices, active_prices, sold_items = get_market_data(query)
 
     if not sold_prices:
-        return render_page(error="No comps found.")
+        return render_page(error="No comps found.", preset=preset)
 
     preset_config = PRESETS.get(preset, PRESETS["balanced"])
     profit = preset_config["profit"]
@@ -46,65 +88,18 @@ def analyze(
     market_price = analysis["sell_target"]
     hold_price = round(analysis["sell_target"] * 1.15, 2)
 
-    listing_text = generate_listing(
-        query=query,
-        condition=condition,
-        price=fast_cash,
-        platform=platform
-    )
-
     return render_page(
         query=query,
-        analysis=analysis,
         fast_cash=fast_cash,
         market_price=market_price,
         hold_price=hold_price,
-        listing_text=listing_text,
-        platform=platform,
         preset=preset
     )
 
+# ---------------- UI ---------------- #
 
-def generate_listing(query, condition, price, platform):
-    query_clean = query.strip().title()
-
-    condition_map = {
-        "A": "Excellent condition",
-        "B": "Good condition",
-        "C": "Fair condition",
-        "Parts": "For parts or repair"
-    }
-
-    condition_text = condition_map.get(condition, "Good condition")
-
-    if platform == "facebook":
-        title = f"{query_clean} - {condition_text}"
-        description = (
-            f"{query_clean} available.\n"
-            f"{condition_text}.\n"
-            f"Fully functional.\n"
-            f"Priced to sell at ${price}.\n"
-            f"Local pickup preferred. Shipping available."
-        )
-    elif platform == "ebay":
-        title = f"{query_clean} | {condition_text} | Fast Shipping"
-        description = (
-            f"{query_clean}\n\n"
-            f"Condition: {condition_text}\n"
-            f"Tested and fully working.\n"
-            f"Ships quickly and securely.\n"
-            f"Buy with confidence."
-        )
-    else:
-        title = f"{query_clean}"
-        description = f"{condition_text} {query_clean}"
-
-    return f"TITLE:\n{title}\n\nPRICE:\n${price}\n\nDESCRIPTION:\n{description}"
-
-
-def render_page(query="", analysis=None, fast_cash=None,
+def render_page(query="", fast_cash=None,
                 market_price=None, hold_price=None,
-                listing_text=None, platform="facebook",
                 preset="balanced", error=None):
 
     pricing_block = ""
@@ -113,15 +108,6 @@ def render_page(query="", analysis=None, fast_cash=None,
         <div class="bar fast">🔥 FAST CASH: ${fast_cash}</div>
         <div class="bar market">⚖ MARKET: ${market_price}</div>
         <div class="bar hold">💎 HOLD MAX: ${hold_price}</div>
-        """
-
-    listing_block = ""
-    if listing_text:
-        listing_block = f"""
-        <div class="listing">
-            <h3>Generated Listing</h3>
-            <textarea rows="12">{listing_text}</textarea>
-        </div>
         """
 
     error_block = f"<div class='error'>{error}</div>" if error else ""
@@ -151,11 +137,21 @@ def render_page(query="", analysis=None, fast_cash=None,
             .market {{ background:#2980b9; }}
             .hold {{ background:#27ae60; }}
 
-            input, select {{ padding:10px; border-radius:8px; border:none; margin:5px; }}
-            button {{ padding:10px 20px; border-radius:8px; border:none; background:#00cc66; font-weight:bold; }}
+            input, select {{
+                padding:10px;
+                border-radius:8px;
+                border:none;
+                margin:5px;
+            }}
 
-            .listing {{ width:600px; margin:30px auto; text-align:left; }}
-            textarea {{ width:100%; padding:10px; border-radius:8px; border:none; font-family:monospace; }}
+            button.submit {{
+                padding:10px 20px;
+                border-radius:8px;
+                border:none;
+                background:#00cc66;
+                font-weight:bold;
+            }}
+
             .error {{ color:red; margin:20px; }}
         </style>
     </head>
@@ -164,13 +160,13 @@ def render_page(query="", analysis=None, fast_cash=None,
 
         <h1>CLAMS Resale Engine</h1>
 
-        <form method="post">
+        <form method="post" action="/app" id="mainForm">
             <input type="hidden" name="preset" id="presetInput" value="{preset}">
 
             <div>
-                <button type="button" class="preset-btn {'active' if preset=='aggressive' else 'inactive'}" onclick="setPreset('aggressive')">Aggressive</button>
-                <button type="button" class="preset-btn {'active' if preset=='balanced' else 'inactive'}" onclick="setPreset('balanced')">Balanced</button>
-                <button type="button" class="preset-btn {'active' if preset=='collector' else 'inactive'}" onclick="setPreset('collector')">Collector</button>
+                <button type="button" class="preset-btn {'active' if preset=='aggressive' else 'inactive'}" onclick="changePreset('aggressive')">Aggressive</button>
+                <button type="button" class="preset-btn {'active' if preset=='balanced' else 'inactive'}" onclick="changePreset('balanced')">Balanced</button>
+                <button type="button" class="preset-btn {'active' if preset=='collector' else 'inactive'}" onclick="changePreset('collector')">Collector</button>
             </div>
 
             <br>
@@ -183,27 +179,20 @@ def render_page(query="", analysis=None, fast_cash=None,
                 <option value="Parts">Parts</option>
             </select>
 
-            <select name="platform">
-                <option value="facebook">Facebook Marketplace</option>
-                <option value="ebay">eBay</option>
-                <option value="mercari">Mercari</option>
-                <option value="offerup">OfferUp</option>
-                <option value="nextdoor">Nextdoor</option>
-                <option value="craigslist">Craigslist</option>
-            </select>
-
-            <button type="submit">Analyze & Generate</button>
+            <button type="submit" class="submit">Analyze</button>
         </form>
 
         {error_block}
         {pricing_block}
-        {listing_block}
+
+        <br><br>
+        <a href="/logout" style="color:#888;">Logout</a>
 
         <script>
-            function setPreset(mode) {{
-                localStorage.setItem("clamsPreset", mode);
+            function changePreset(mode) {{
                 document.getElementById("presetInput").value = mode;
-                location.reload();
+                localStorage.setItem("clamsPreset", mode);
+                document.getElementById("mainForm").submit();
             }}
 
             window.onload = function() {{
