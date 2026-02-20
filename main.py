@@ -26,7 +26,7 @@ def login_page(request: Request):
     <body style="background:#111;color:white;font-family:Arial;text-align:center;padding-top:150px;">
         <h2>CLAMS Beta Access</h2>
         <form method="post" action="/login">
-            <input type="password" name="password" placeholder="Enter Password" required
+            <input type="password" name="password" required
                    style="padding:12px;border-radius:8px;border:none;width:250px;">
             <br><br>
             <button type="submit"
@@ -71,7 +71,7 @@ def analyze(
     sold_prices, active_prices, sold_items = get_market_data(query)
 
     if not sold_prices:
-        return render_page(error="No comps found.", preset=preset)
+        return render_page(error="No comps found.")
 
     preset_config = PRESETS.get(preset, PRESETS["balanced"])
     profit = preset_config["profit"]
@@ -89,29 +89,29 @@ def analyze(
     market_price = analysis["sell_target"]
     hold_price = round(analysis["sell_target"] * 1.15, 2)
 
-    best_match = sold_items[0] if sold_items else None
+    # Top 5 matches
+    matches = sold_items[:5] if sold_items else []
 
     return render_page(
         query=query,
-        preset=preset,
         analysis=analysis,
         fast_cash=fast_cash,
         market_price=market_price,
         hold_price=hold_price,
-        best_match=best_match
+        matches=matches
     )
 
 
-def render_page(query="", preset="balanced", analysis=None,
+def render_page(query="", analysis=None,
                 fast_cash=None, market_price=None,
-                hold_price=None, best_match=None,
+                hold_price=None, matches=None,
                 error=None):
 
     marketing_block = ""
     posting_block = ""
 
     if analysis:
-        marketing_block = f"""
+        marketing_block += f"""
         <div class="panel">
             <h3>Market Intelligence</h3>
             <div class="grid">
@@ -125,24 +125,29 @@ def render_page(query="", preset="balanced", analysis=None,
         </div>
         """
 
-        if best_match:
-            safe_title = best_match["title"].replace("'", "\\'")
-            marketing_block += f"""
+        if matches:
+            marketing_block += """
             <div class="panel">
                 <h3>Confirm Item Match</h3>
+            """
+
+            for item in matches:
+                safe_title = item["title"].replace("'", "\\'")
+                marketing_block += f"""
                 <div class="match-card">
-                    <img src="{best_match['image'] or ''}">
+                    <img src="{item['image'] or ''}">
                     <div class="match-info">
-                        <p>{best_match['title']}</p>
-                        <b>Sold: ${best_match['price']}</b>
+                        <p>{item['title']}</p>
+                        <b>Sold: ${item['price']}</b>
                         <br><br>
                         <button onclick="useMatch('{safe_title}')">
-                            Use This Item
+                            Use This
                         </button>
                     </div>
                 </div>
-            </div>
-            """
+                """
+
+            marketing_block += "</div>"
 
         posting_block = f"""
         <div class="panel">
@@ -162,21 +167,17 @@ def render_page(query="", preset="balanced", analysis=None,
         <style>
             body {{
                 margin:0;
-                font-family:Arial, Helvetica, sans-serif;
+                font-family:Arial;
                 color:white;
-                background:linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.85)),
-                url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1920&auto=format&fit=crop');
+                background:linear-gradient(rgba(0,0,0,.8), rgba(0,0,0,.9)),
+                url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1920');
                 background-size:cover;
                 background-attachment:fixed;
                 text-align:center;
                 padding:40px;
             }}
 
-            h1 {{ font-size:38px; margin-bottom:30px; }}
-
-            .toggle {{
-                margin-bottom:25px;
-            }}
+            h1 {{ font-size:36px; }}
 
             .toggle button {{
                 padding:10px 30px;
@@ -185,18 +186,13 @@ def render_page(query="", preset="balanced", analysis=None,
                 margin:5px;
                 font-weight:bold;
                 cursor:pointer;
-                background:#2a2a2a;
+                background:#333;
                 color:white;
             }}
 
-            .active-toggle {{
-                background:#00cc66;
-                color:black;
-            }}
-
             .panel {{
-                background:rgba(20,20,20,.95);
-                padding:30px;
+                background:rgba(25,25,25,.95);
+                padding:25px;
                 border-radius:12px;
                 width:750px;
                 margin:20px auto;
@@ -208,8 +204,6 @@ def render_page(query="", preset="balanced", analysis=None,
                 grid-template-columns:1fr 1fr;
                 gap:15px;
             }}
-
-            .grid span {{ font-size:13px; color:#aaa; }}
 
             .bar {{
                 padding:15px;
@@ -226,17 +220,18 @@ def render_page(query="", preset="balanced", analysis=None,
                 display:flex;
                 gap:20px;
                 align-items:center;
+                margin-bottom:20px;
             }}
 
             .match-card img {{
-                width:200px;
-                height:200px;
+                width:150px;
+                height:150px;
                 object-fit:cover;
                 border-radius:10px;
             }}
 
             .match-info button {{
-                padding:10px 20px;
+                padding:8px 16px;
                 border:none;
                 border-radius:6px;
                 background:#00cc66;
@@ -270,14 +265,11 @@ def render_page(query="", preset="balanced", analysis=None,
         <h1>CLAMS RESALE ENGINE</h1>
 
         <div class="toggle">
-            <button id="marketingBtn" class="active-toggle"
-                    onclick="switchView('marketing')">MARKETING</button>
-            <button id="postingBtn"
-                    onclick="switchView('posting')">POSTING</button>
+            <button id="marketingBtn" onclick="switchView('marketing')">MARKETING</button>
+            <button id="postingBtn" onclick="switchView('posting')">POSTING</button>
         </div>
 
         <form method="post" action="/app" id="mainForm">
-            <input type="hidden" name="preset" value="{preset}">
             <input name="query" id="queryInput" value="{query}" placeholder="Search item..." required>
             <select name="condition">
                 <option value="A">A</option>
@@ -290,21 +282,11 @@ def render_page(query="", preset="balanced", analysis=None,
 
         {error_block}
 
-        <div id="marketingView">
-            {marketing_block}
-        </div>
-
-        <div id="postingView" style="display:none;">
-            {posting_block}
-        </div>
-
-        <br><br>
-        <a href="/logout" style="color:#aaa;">Logout</a>
+        <div id="marketingView">{marketing_block}</div>
+        <div id="postingView" style="display:none;">{posting_block}</div>
 
         <script>
             function switchView(view) {{
-                localStorage.setItem("clamsView", view);
-
                 const m = document.getElementById("marketingView");
                 const p = document.getElementById("postingView");
                 const mb = document.getElementById("marketingBtn");
@@ -313,19 +295,24 @@ def render_page(query="", preset="balanced", analysis=None,
                 if(view === "marketing") {{
                     m.style.display = "block";
                     p.style.display = "none";
-                    mb.classList.add("active-toggle");
-                    pb.classList.remove("active-toggle");
+                    mb.style.background = "#00cc66";
+                    mb.style.color = "black";
+                    pb.style.background = "#333";
+                    pb.style.color = "white";
                 }} else {{
                     m.style.display = "none";
                     p.style.display = "block";
-                    pb.classList.add("active-toggle");
-                    mb.classList.remove("active-toggle");
+                    pb.style.background = "#00cc66";
+                    pb.style.color = "black";
+                    mb.style.background = "#333";
+                    mb.style.color = "white";
                 }}
+
+                localStorage.setItem("clamsView", view);
             }}
 
             function useMatch(title) {{
                 document.getElementById("queryInput").value = title;
-                localStorage.setItem("clamsView", "marketing");
                 document.getElementById("mainForm").submit();
             }}
 
