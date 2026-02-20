@@ -15,6 +15,9 @@ PRESETS = {
     "collector": {"profit": 0.55, "local": 0.90},
 }
 
+
+# ---------------- LOGIN ---------------- #
+
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
     if is_authenticated(request):
@@ -36,21 +39,27 @@ def login_page(request: Request):
     </html>
     """
 
+
 @app.post("/login")
 def login(password: str = Form(...)):
     if password == CLAMS_PASSWORD:
         return login_success_response("/app")
     return RedirectResponse("/", status_code=303)
 
+
 @app.get("/logout")
 def logout():
     return logout_response("/")
+
+
+# ---------------- APP ---------------- #
 
 @app.get("/app", response_class=HTMLResponse)
 def app_home(request: Request):
     if not is_authenticated(request):
         return RedirectResponse("/", status_code=303)
     return render_page()
+
 
 @app.post("/app", response_class=HTMLResponse)
 def analyze(
@@ -85,22 +94,43 @@ def analyze(
 
     return render_page(
         query=query,
+        preset=preset,
+        analysis=analysis,
         fast_cash=fast_cash,
         market_price=market_price,
-        hold_price=hold_price,
-        preset=preset
+        hold_price=hold_price
     )
 
-def render_page(query="", fast_cash=None,
-                market_price=None, hold_price=None,
-                preset="balanced", error=None):
 
-    pricing_block = ""
-    if fast_cash:
-        pricing_block = f"""
-        <div class="bar fast">🔥 FAST CASH: ${fast_cash}</div>
-        <div class="bar market">⚖ MARKET: ${market_price}</div>
-        <div class="bar hold">💎 HOLD MAX: ${hold_price}</div>
+# ---------------- UI ---------------- #
+
+def render_page(query="", preset="balanced", analysis=None,
+                fast_cash=None, market_price=None,
+                hold_price=None, error=None):
+
+    marketing_block = ""
+    posting_block = ""
+
+    if analysis:
+        marketing_block = f"""
+        <div class="card">
+            <h3>Market Intelligence</h3>
+            <p>Sold Median: <b>${analysis["sold_median"]}</b></p>
+            <p>Active Median: <b>${analysis["active_median"]}</b></p>
+            <p>Supply Ratio: <b>{analysis["supply_ratio"]}</b></p>
+            <p>Market Pressure: <b>{analysis["pressure"]}</b></p>
+            <p>Volatility: <b>{analysis["volatility"]}</b></p>
+            <p>Confidence: <b>{analysis["confidence"]}%</b></p>
+        </div>
+        """
+
+        posting_block = f"""
+        <div class="card">
+            <h3>Pricing Strategy</h3>
+            <div class="bar fast">🔥 FAST CASH: ${fast_cash}</div>
+            <div class="bar market">⚖ MARKET: ${market_price}</div>
+            <div class="bar hold">💎 HOLD MAX: ${hold_price}</div>
+        </div>
         """
 
     error_block = f"<div style='color:red;margin:20px;'>{error}</div>" if error else ""
@@ -123,6 +153,26 @@ def render_page(query="", fast_cash=None,
                 color:#00ffcc;
             }}
 
+            .view-toggle {{
+                margin-bottom:20px;
+            }}
+
+            .toggle-btn {{
+                padding:10px 25px;
+                margin:5px;
+                border:none;
+                border-radius:8px;
+                cursor:pointer;
+                font-weight:bold;
+                background:#333;
+                color:white;
+            }}
+
+            .toggle-active {{
+                background:#00cc66;
+                color:black;
+            }}
+
             .preset-btn {{
                 padding:10px 20px;
                 margin:5px;
@@ -132,11 +182,6 @@ def render_page(query="", fast_cash=None,
                 cursor:pointer;
                 background:#333;
                 color:white;
-                transition:all 0.2s ease;
-            }}
-
-            .preset-btn:hover {{
-                transform:scale(1.05);
             }}
 
             .bar {{
@@ -150,6 +195,15 @@ def render_page(query="", fast_cash=None,
             .fast {{ background:#c0392b; }}
             .market {{ background:#2980b9; }}
             .hold {{ background:#27ae60; }}
+
+            .card {{
+                background:#1a1a1a;
+                padding:25px;
+                border-radius:12px;
+                width:600px;
+                margin:20px auto;
+                text-align:left;
+            }}
 
             input, select {{
                 padding:10px;
@@ -173,25 +227,15 @@ def render_page(query="", fast_cash=None,
 
         <h1>CLAMS Resale Engine</h1>
 
+        <div class="view-toggle">
+            <button class="toggle-btn toggle-active" id="marketingBtn"
+                    onclick="switchView('marketing')">MARKETING</button>
+            <button class="toggle-btn" id="postingBtn"
+                    onclick="switchView('posting')">POSTING</button>
+        </div>
+
         <form method="post" action="/app">
             <input type="hidden" name="preset" id="presetInput" value="{preset}">
-
-            <button type="button" class="preset-btn" id="btn-aggressive"
-                    onclick="changePreset('aggressive')">
-                Aggressive
-            </button>
-
-            <button type="button" class="preset-btn" id="btn-balanced"
-                    onclick="changePreset('balanced')">
-                Balanced
-            </button>
-
-            <button type="button" class="preset-btn" id="btn-collector"
-                    onclick="changePreset('collector')">
-                Collector
-            </button>
-
-            <br><br>
 
             <input name="query" value="{query}" placeholder="Search item..." required>
 
@@ -206,34 +250,37 @@ def render_page(query="", fast_cash=None,
         </form>
 
         {error_block}
-        {pricing_block}
+
+        <div id="marketingView">
+            {marketing_block}
+        </div>
+
+        <div id="postingView" style="display:none;">
+            {posting_block}
+        </div>
 
         <br><br>
         <a href="/logout" style="color:#888;">Logout</a>
 
         <script>
-            function highlight(mode) {{
-                const presets = ['aggressive','balanced','collector'];
+            function switchView(view) {{
+                const marketing = document.getElementById("marketingView");
+                const posting = document.getElementById("postingView");
+                const mBtn = document.getElementById("marketingBtn");
+                const pBtn = document.getElementById("postingBtn");
 
-                presets.forEach(p => {{
-                    const btn = document.getElementById('btn-' + p);
-                    btn.style.background = '#333';
-                    btn.style.color = 'white';
-                }});
-
-                const active = document.getElementById('btn-' + mode);
-                active.style.background = '#00cc66';
-                active.style.color = 'black';
+                if (view === "marketing") {{
+                    marketing.style.display = "block";
+                    posting.style.display = "none";
+                    mBtn.classList.add("toggle-active");
+                    pBtn.classList.remove("toggle-active");
+                }} else {{
+                    marketing.style.display = "none";
+                    posting.style.display = "block";
+                    pBtn.classList.add("toggle-active");
+                    mBtn.classList.remove("toggle-active");
+                }}
             }}
-
-            function changePreset(mode) {{
-                document.getElementById("presetInput").value = mode;
-                highlight(mode);
-            }}
-
-            window.onload = function() {{
-                highlight("{preset}");
-            }};
         </script>
 
     </body>
