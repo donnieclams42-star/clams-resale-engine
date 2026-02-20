@@ -15,8 +15,6 @@ PRESETS = {
     "collector": {"profit": 0.55, "local": 0.90},
 }
 
-# ---------------- LOGIN ---------------- #
-
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
     if is_authenticated(request):
@@ -30,7 +28,7 @@ def login_page(request: Request):
             <input type="password" name="password" placeholder="Enter Password" required
                    style="padding:10px;border-radius:6px;border:none;">
             <br><br>
-            <button type="submit" style="padding:10px 20px;border:none;border-radius:6px;background:#00cc66;font-weight:bold;">
+            <button type="submit" style="padding:10px 20px;border:none;border-radius:6px;background:#00cc66;font-weight:bold;color:black;">
                 Enter
             </button>
         </form>
@@ -47,8 +45,6 @@ def login(password: str = Form(...)):
 @app.get("/logout")
 def logout():
     return logout_response("/")
-
-# ---------------- APP ---------------- #
 
 @app.get("/app", response_class=HTMLResponse)
 def app_home(request: Request):
@@ -95,8 +91,6 @@ def analyze(
         preset=preset
     )
 
-# ---------------- UI ---------------- #
-
 def render_page(query="", fast_cash=None,
                 market_price=None, hold_price=None,
                 preset="balanced", error=None):
@@ -109,7 +103,7 @@ def render_page(query="", fast_cash=None,
         <div class="bar hold">💎 HOLD MAX: ${hold_price}</div>
         """
 
-    error_block = f"<div class='error'>{error}</div>" if error else ""
+    error_block = f"<div style='color:red;margin:20px;'>{error}</div>" if error else ""
 
     return f"""
     <html>
@@ -136,10 +130,14 @@ def render_page(query="", fast_cash=None,
                 border:none;
                 font-weight:bold;
                 cursor:pointer;
+                background:#333;
+                color:white;
+                transition:all 0.2s ease;
             }}
 
-            .active {{ background:#00cc66; }}
-            .inactive {{ background:#444; color:white; }}
+            .preset-btn:hover {{
+                transform:scale(1.05);
+            }}
 
             .bar {{
                 width:500px;
@@ -166,9 +164,8 @@ def render_page(query="", fast_cash=None,
                 border:none;
                 background:#00cc66;
                 font-weight:bold;
+                color:black;
             }}
-
-            .error {{ color:red; margin:20px; }}
         </style>
     </head>
 
@@ -176,30 +173,25 @@ def render_page(query="", fast_cash=None,
 
         <h1>CLAMS Resale Engine</h1>
 
-        <form method="post" action="/app" id="mainForm">
+        <form method="post" action="/app">
             <input type="hidden" name="preset" id="presetInput" value="{preset}">
 
-            <div id="presetContainer">
-                <button type="button"
-                        class="preset-btn {'active' if preset=='aggressive' else 'inactive'}"
-                        onclick="changePreset('aggressive', this)">
-                        Aggressive
-                </button>
+            <button type="button" class="preset-btn" id="btn-aggressive"
+                    onclick="changePreset('aggressive')">
+                Aggressive
+            </button>
 
-                <button type="button"
-                        class="preset-btn {'active' if preset=='balanced' else 'inactive'}"
-                        onclick="changePreset('balanced', this)">
-                        Balanced
-                </button>
+            <button type="button" class="preset-btn" id="btn-balanced"
+                    onclick="changePreset('balanced')">
+                Balanced
+            </button>
 
-                <button type="button"
-                        class="preset-btn {'active' if preset=='collector' else 'inactive'}"
-                        onclick="changePreset('collector', this)">
-                        Collector
-                </button>
-            </div>
+            <button type="button" class="preset-btn" id="btn-collector"
+                    onclick="changePreset('collector')">
+                Collector
+            </button>
 
-            <br>
+            <br><br>
 
             <input name="query" value="{query}" placeholder="Search item..." required>
 
@@ -220,31 +212,27 @@ def render_page(query="", fast_cash=None,
         <a href="/logout" style="color:#888;">Logout</a>
 
         <script>
-            function changePreset(mode, btn) {{
-                localStorage.setItem("clamsPreset", mode);
-                document.getElementById("presetInput").value = mode;
+            function highlight(mode) {{
+                const presets = ['aggressive','balanced','collector'];
 
-                const buttons = document.querySelectorAll(".preset-btn");
-                buttons.forEach(b => {{
-                    b.classList.remove("active");
-                    b.classList.add("inactive");
+                presets.forEach(p => {{
+                    const btn = document.getElementById('btn-' + p);
+                    btn.style.background = '#333';
+                    btn.style.color = 'white';
                 }});
 
-                btn.classList.remove("inactive");
-                btn.classList.add("active");
+                const active = document.getElementById('btn-' + mode);
+                active.style.background = '#00cc66';
+                active.style.color = 'black';
+            }}
+
+            function changePreset(mode) {{
+                document.getElementById("presetInput").value = mode;
+                highlight(mode);
             }}
 
             window.onload = function() {{
-                const saved = localStorage.getItem("clamsPreset") || "balanced";
-                document.getElementById("presetInput").value = saved;
-
-                const buttons = document.querySelectorAll(".preset-btn");
-                buttons.forEach(b => {{
-                    if (b.innerText.toLowerCase() === saved) {{
-                        b.classList.remove("inactive");
-                        b.classList.add("active");
-                    }}
-                }});
+                highlight("{preset}");
             }};
         </script>
 
