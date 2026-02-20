@@ -16,6 +16,7 @@ def analyze(
     query: str = Form(...),
     condition: str = Form("A"),
     profit_margin: float = Form(40.0),
+    platform: str = Form("facebook"),
 ):
     sold_prices, active_prices, sold_items = get_market_data(query)
 
@@ -31,46 +32,135 @@ def analyze(
         profit_decimal
     )
 
+    # Posting Mode Calculations
+    fast_cash = analysis["undercut"]
+    market_price = analysis["sell_target"]
+    hold_price = round(analysis["sell_target"] * 1.15, 2)
+
+    listing_text = generate_listing(
+        query=query,
+        condition=condition,
+        price=fast_cash,
+        platform=platform
+    )
+
     return render_page(
         query=query,
         analysis=analysis,
-        items=sold_items,
-        comp_count=len(sold_prices)
+        fast_cash=fast_cash,
+        market_price=market_price,
+        hold_price=hold_price,
+        listing_text=listing_text,
+        platform=platform
     )
 
 
-def render_page(query="", analysis=None, items=None, comp_count=0, error=None):
+def generate_listing(query, condition, price, platform):
 
-    images_html = ""
+    query_clean = query.strip().title()
 
-    if items:
-        for item in items:
-            images_html += f"""
-            <div class="card" title="{item.get('title')}">
-                <a href="{item.get('link')}" target="_blank">
-                    {
-                        f'<img src="{item.get("image")}" />'
-                        if item.get("image")
-                        else '<div class="placeholder"></div>'
-                    }
-                </a>
-                <div class="price">${item.get('price')}</div>
-            </div>
-            """
+    condition_map = {
+        "A": "Excellent condition",
+        "B": "Good condition",
+        "C": "Fair condition",
+        "Parts": "For parts or repair"
+    }
 
-    result_block = ""
+    condition_text = condition_map.get(condition, "Good condition")
 
-    if analysis:
-        result_block = f"""
-        <div class="result-box">
-            <div><strong>Comps:</strong> {comp_count}</div>
-            <div><strong>Median:</strong> ${analysis['sold_median']}</div>
-            <div><strong>Buy Below:</strong> ${analysis['max_buy']}</div>
-            <div><strong>Target Sell:</strong> ${analysis['sell_target']}</div>
-            <div><strong>Fast Sale:</strong> ${analysis['undercut']}</div>
-            <div><strong>Volatility:</strong> {analysis['volatility']*100:.1f}%</div>
-            <div><strong>Confidence:</strong> {analysis['confidence']}%</div>
-            <div class="pressure">{analysis['pressure']}</div>
+    # Basic rule-based category detection
+    electronics_keywords = ["iphone", "samsung", "laptop", "tablet", "camera"]
+    fitness_keywords = ["dumbbell", "bench", "barbell", "weights"]
+    collectible_keywords = ["vintage", "collectible", "limited", "rare", "lot"]
+
+    category = "general"
+
+    lower_query = query.lower()
+
+    if any(k in lower_query for k in electronics_keywords):
+        category = "electronics"
+    elif any(k in lower_query for k in fitness_keywords):
+        category = "fitness"
+    elif any(k in lower_query for k in collectible_keywords):
+        category = "collectible"
+
+    # Platform formatting
+    if platform == "facebook":
+        title = f"{query_clean} - {condition_text}"
+        description = (
+            f"{query_clean} available.\n"
+            f"{condition_text}.\n"
+            f"Fully functional.\n"
+            f"Priced to sell at ${price}.\n"
+            f"Local pickup preferred. Shipping available."
+        )
+
+    elif platform == "ebay":
+        title = f"{query_clean} | {condition_text} | Fast Shipping"
+        description = (
+            f"{query_clean}\n\n"
+            f"Condition: {condition_text}\n"
+            f"Tested and fully working.\n"
+            f"Ships quickly and securely.\n"
+            f"Buy with confidence."
+        )
+
+    elif platform == "mercari":
+        title = f"{query_clean} - Great Deal"
+        description = (
+            f"{condition_text} {query_clean}.\n"
+            f"Ships fast.\n"
+            f"Open to reasonable offers."
+        )
+
+    elif platform == "offerup":
+        title = f"{query_clean} - Must Go"
+        description = (
+            f"{query_clean} in {condition_text.lower()}.\n"
+            f"Cash preferred.\n"
+            f"Fast pickup gets priority."
+        )
+
+    elif platform == "nextdoor":
+        title = f"{query_clean} for Sale"
+        description = (
+            f"{query_clean} available locally.\n"
+            f"{condition_text}.\n"
+            f"Message if interested."
+        )
+
+    else:  # craigslist
+        title = f"{query_clean} - Priced To Sell"
+        description = (
+            f"{query_clean}\n"
+            f"{condition_text}\n"
+            f"Serious inquiries only.\n"
+            f"Email if interested."
+        )
+
+    return f"TITLE:\n{title}\n\nPRICE:\n${price}\n\nDESCRIPTION:\n{description}"
+
+
+def render_page(query="", analysis=None, fast_cash=None,
+                market_price=None, hold_price=None,
+                listing_text=None, platform="facebook", error=None):
+
+    pricing_block = ""
+
+    if fast_cash:
+        pricing_block = f"""
+        <div class="bar fast">🔥 FAST CASH: ${fast_cash}</div>
+        <div class="bar market">⚖ MARKET: ${market_price}</div>
+        <div class="bar hold">💎 HOLD MAX: ${hold_price}</div>
+        """
+
+    listing_block = ""
+
+    if listing_text:
+        listing_block = f"""
+        <div class="listing">
+            <h3>Generated Listing</h3>
+            <textarea rows="12">{listing_text}</textarea>
         </div>
         """
 
@@ -82,7 +172,7 @@ def render_page(query="", analysis=None, items=None, comp_count=0, error=None):
         <title>CLAMS Resale Engine</title>
         <style>
             body {{
-                background:#0d0d0d;
+                background:#111;
                 color:white;
                 font-family:Arial;
                 text-align:center;
@@ -90,63 +180,23 @@ def render_page(query="", analysis=None, items=None, comp_count=0, error=None):
             }}
 
             h1 {{
-                color:#00ffcc;
                 font-size:40px;
-            }}
-
-            .result-box {{
-                background:#1a1a1a;
-                padding:20px;
-                border-radius:15px;
-                margin:30px auto;
-                width:520px;
-                font-size:16px;
-                line-height:1.8;
-            }}
-
-            .pressure {{
-                margin-top:10px;
-                font-weight:bold;
                 color:#00ffcc;
             }}
 
-            .grid {{
-                max-height:500px;
-                overflow-y:auto;
-                margin-top:30px;
+            .bar {{
+                width:500px;
+                margin:10px auto;
+                padding:15px;
+                font-size:20px;
+                border-radius:10px;
             }}
 
-            .card {{
-                width:170px;
-                background:#1a1a1a;
-                display:inline-block;
-                margin:8px;
-                border-radius:12px;
-                overflow:hidden;
-                transition:0.2s;
-            }}
+            .fast {{ background:#c0392b; }}
+            .market {{ background:#2980b9; }}
+            .hold {{ background:#27ae60; }}
 
-            .card:hover {{
-                transform:scale(1.05);
-            }}
-
-            .card img {{
-                width:100%;
-                height:170px;
-                object-fit:cover;
-            }}
-
-            .placeholder {{
-                height:170px;
-                background:#222;
-            }}
-
-            .price {{
-                padding:6px;
-                font-weight:bold;
-            }}
-
-            input, select {{
+            select, input {{
                 padding:10px;
                 border-radius:8px;
                 border:none;
@@ -158,8 +208,21 @@ def render_page(query="", analysis=None, items=None, comp_count=0, error=None):
                 border-radius:8px;
                 border:none;
                 background:#00cc66;
-                color:black;
                 font-weight:bold;
+            }}
+
+            .listing {{
+                width:600px;
+                margin:30px auto;
+                text-align:left;
+            }}
+
+            textarea {{
+                width:100%;
+                padding:10px;
+                border-radius:8px;
+                border:none;
+                font-family:monospace;
             }}
 
             .error {{
@@ -181,16 +244,20 @@ def render_page(query="", analysis=None, items=None, comp_count=0, error=None):
                 <option value="C">C</option>
                 <option value="Parts">Parts</option>
             </select>
-            <input name="profit_margin" type="number" value="40">
-            <button type="submit">Analyze</button>
+            <select name="platform">
+                <option value="facebook">Facebook Marketplace</option>
+                <option value="ebay">eBay</option>
+                <option value="mercari">Mercari</option>
+                <option value="offerup">OfferUp</option>
+                <option value="nextdoor">Nextdoor</option>
+                <option value="craigslist">Craigslist</option>
+            </select>
+            <button type="submit">Analyze & Generate</button>
         </form>
 
         {error_block}
-        {result_block}
-
-        <div class="grid">
-            {images_html}
-        </div>
+        {pricing_block}
+        {listing_block}
 
     </body>
     </html>
