@@ -54,7 +54,6 @@ def logout():
 def app_home(request: Request):
     if not is_authenticated(request):
         return RedirectResponse("/", status_code=303)
-
     return render_page()
 
 @app.post("/app", response_class=HTMLResponse)
@@ -117,8 +116,18 @@ def render_page(query="", fast_cash=None,
     <head>
         <title>CLAMS Resale Engine</title>
         <style>
-            body {{ background:#111; color:white; font-family:Arial; text-align:center; padding:40px; }}
-            h1 {{ font-size:40px; color:#00ffcc; }}
+            body {{
+                background:#111;
+                color:white;
+                font-family:Arial;
+                text-align:center;
+                padding:40px;
+            }}
+
+            h1 {{
+                font-size:40px;
+                color:#00ffcc;
+            }}
 
             .preset-btn {{
                 padding:10px 20px;
@@ -129,10 +138,23 @@ def render_page(query="", fast_cash=None,
                 cursor:pointer;
             }}
 
-            .active {{ background:#00cc66; }}
-            .inactive {{ background:#444; color:white; }}
+            .active {{
+                background:#00cc66;
+            }}
 
-            .bar {{ width:500px; margin:10px auto; padding:15px; font-size:20px; border-radius:10px; }}
+            .inactive {{
+                background:#444;
+                color:white;
+            }}
+
+            .bar {{
+                width:500px;
+                margin:10px auto;
+                padding:15px;
+                font-size:20px;
+                border-radius:10px;
+            }}
+
             .fast {{ background:#c0392b; }}
             .market {{ background:#2980b9; }}
             .hold {{ background:#27ae60; }}
@@ -152,7 +174,10 @@ def render_page(query="", fast_cash=None,
                 font-weight:bold;
             }}
 
-            .error {{ color:red; margin:20px; }}
+            .error {{
+                color:red;
+                margin:20px;
+            }}
         </style>
     </head>
 
@@ -164,14 +189,29 @@ def render_page(query="", fast_cash=None,
             <input type="hidden" name="preset" id="presetInput" value="{preset}">
 
             <div>
-                <button type="button" class="preset-btn {'active' if preset=='aggressive' else 'inactive'}" onclick="changePreset('aggressive')">Aggressive</button>
-                <button type="button" class="preset-btn {'active' if preset=='balanced' else 'inactive'}" onclick="changePreset('balanced')">Balanced</button>
-                <button type="button" class="preset-btn {'active' if preset=='collector' else 'inactive'}" onclick="changePreset('collector')">Collector</button>
+                <button type="button"
+                        class="preset-btn {'active' if preset=='aggressive' else 'inactive'}"
+                        onclick="changePreset('aggressive')">
+                        Aggressive
+                </button>
+
+                <button type="button"
+                        class="preset-btn {'active' if preset=='balanced' else 'inactive'}"
+                        onclick="changePreset('balanced')">
+                        Balanced
+                </button>
+
+                <button type="button"
+                        class="preset-btn {'active' if preset=='collector' else 'inactive'}"
+                        onclick="changePreset('collector')">
+                        Collector
+                </button>
             </div>
 
             <br>
 
             <input name="query" value="{query}" placeholder="Search item..." required>
+
             <select name="condition">
                 <option value="A">A</option>
                 <option value="B">B</option>
@@ -192,7 +232,14 @@ def render_page(query="", fast_cash=None,
             function changePreset(mode) {{
                 document.getElementById("presetInput").value = mode;
                 localStorage.setItem("clamsPreset", mode);
-                document.getElementById("mainForm").submit();
+
+                const queryField = document.querySelector("input[name='query']");
+
+                if (queryField && queryField.value.trim() !== "") {{
+                    document.getElementById("mainForm").submit();
+                }} else {{
+                    location.reload();
+                }}
             }}
 
             window.onload = function() {{
