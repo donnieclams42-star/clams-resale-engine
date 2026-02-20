@@ -182,19 +182,19 @@ def render_page(query="", fast_cash=None,
             <div id="presetContainer">
                 <button type="button"
                         class="preset-btn {'active' if preset=='aggressive' else 'inactive'}"
-                        onclick="changePreset('aggressive')">
+                        onclick="changePreset('aggressive', this)">
                         Aggressive
                 </button>
 
                 <button type="button"
                         class="preset-btn {'active' if preset=='balanced' else 'inactive'}"
-                        onclick="changePreset('balanced')">
+                        onclick="changePreset('balanced', this)">
                         Balanced
                 </button>
 
                 <button type="button"
                         class="preset-btn {'active' if preset=='collector' else 'inactive'}"
-                        onclick="changePreset('collector')">
+                        onclick="changePreset('collector', this)">
                         Collector
                 </button>
             </div>
@@ -220,19 +220,31 @@ def render_page(query="", fast_cash=None,
         <a href="/logout" style="color:#888;">Logout</a>
 
         <script>
-            function changePreset(mode) {{
+            function changePreset(mode, btn) {{
                 localStorage.setItem("clamsPreset", mode);
                 document.getElementById("presetInput").value = mode;
 
                 const buttons = document.querySelectorAll(".preset-btn");
-                buttons.forEach(btn => btn.classList.remove("active"));
+                buttons.forEach(b => {{
+                    b.classList.remove("active");
+                    b.classList.add("inactive");
+                }});
 
-                event.target.classList.add("active");
+                btn.classList.remove("inactive");
+                btn.classList.add("active");
             }}
 
             window.onload = function() {{
                 const saved = localStorage.getItem("clamsPreset") || "balanced";
                 document.getElementById("presetInput").value = saved;
+
+                const buttons = document.querySelectorAll(".preset-btn");
+                buttons.forEach(b => {{
+                    if (b.innerText.toLowerCase() === saved) {{
+                        b.classList.remove("inactive");
+                        b.classList.add("active");
+                    }}
+                }});
             }};
         </script>
 
