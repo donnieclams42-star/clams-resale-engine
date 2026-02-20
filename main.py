@@ -71,7 +71,7 @@ def analyze(
     sold_prices, active_prices, sold_items = get_market_data(query)
 
     if not sold_prices:
-        return render_page(error="No comps found.")
+        return render_page(error="No comps found.", query=query, condition=condition)
 
     preset_config = PRESETS.get(preset, PRESETS["balanced"])
     profit = preset_config["profit"]
@@ -89,7 +89,6 @@ def analyze(
     market_price = analysis["sell_target"]
     hold_price = round(analysis["sell_target"] * 1.15, 2)
 
-    # Top 5 matches
     matches = sold_items[:5] if sold_items else []
 
     return render_page(
@@ -98,14 +97,16 @@ def analyze(
         fast_cash=fast_cash,
         market_price=market_price,
         hold_price=hold_price,
-        matches=matches
+        matches=matches,
+        condition=condition
     )
 
 
 def render_page(query="", analysis=None,
                 fast_cash=None, market_price=None,
                 hold_price=None, matches=None,
-                error=None):
+                error=None,
+                condition="A"):
 
     marketing_block = ""
     posting_block = ""
@@ -271,12 +272,14 @@ def render_page(query="", analysis=None,
 
         <form method="post" action="/app" id="mainForm">
             <input name="query" id="queryInput" value="{query}" placeholder="Search item..." required>
+
             <select name="condition">
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="Parts">Parts</option>
+                <option value="A" {"selected" if condition=="A" else ""}>A – Excellent</option>
+                <option value="B" {"selected" if condition=="B" else ""}>B – Good</option>
+                <option value="C" {"selected" if condition=="C" else ""}>C – Fair</option>
+                <option value="Parts" {"selected" if condition=="Parts" else ""}>Parts – Not Working</option>
             </select>
+
             <button type="submit" class="submit">Analyze</button>
         </form>
 
