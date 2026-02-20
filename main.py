@@ -15,7 +15,6 @@ PRESETS = {
     "collector": {"profit": 0.55, "local": 0.90},
 }
 
-# ---------------- LOGIN ---------------- #
 
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -39,23 +38,25 @@ def login_page(request: Request):
     </html>
     """
 
+
 @app.post("/login")
 def login(password: str = Form(...)):
     if password == CLAMS_PASSWORD:
         return login_success_response("/app")
     return RedirectResponse("/", status_code=303)
 
+
 @app.get("/logout")
 def logout():
     return logout_response("/")
 
-# ---------------- APP ---------------- #
 
 @app.get("/app", response_class=HTMLResponse)
 def app_home(request: Request):
     if not is_authenticated(request):
         return RedirectResponse("/", status_code=303)
     return render_page()
+
 
 @app.post("/app", response_class=HTMLResponse)
 def analyze(
@@ -88,6 +89,8 @@ def analyze(
     market_price = analysis["sell_target"]
     hold_price = round(analysis["sell_target"] * 1.15, 2)
 
+    best_match = sold_items[0] if sold_items else None
+
     return render_page(
         query=query,
         preset=preset,
@@ -95,18 +98,16 @@ def analyze(
         fast_cash=fast_cash,
         market_price=market_price,
         hold_price=hold_price,
-        sold_items=sold_items[:12]
+        best_match=best_match
     )
 
-# ---------------- UI ---------------- #
 
 def render_page(query="", preset="balanced", analysis=None,
                 fast_cash=None, market_price=None,
-                hold_price=None, sold_items=None,
+                hold_price=None, best_match=None,
                 error=None):
 
     marketing_block = ""
-    comps_block = ""
     posting_block = ""
 
     if analysis:
@@ -124,24 +125,21 @@ def render_page(query="", preset="balanced", analysis=None,
         </div>
         """
 
-        if sold_items:
-            cards = ""
-            for item in sold_items:
-                cards += f"""
-                <div class="comp-card" onclick="selectComp(this)">
-                    <img src="{item['image'] or ''}" />
-                    <div class="comp-info">
-                        <p>{item['title'][:60]}</p>
-                        <b>${item['price']}</b>
-                    </div>
-                </div>
-                """
-
-            comps_block = f"""
+        if best_match:
+            safe_title = best_match["title"].replace("'", "\\'")
+            marketing_block += f"""
             <div class="panel">
-                <h3>Select Best Match</h3>
-                <div class="comp-grid">
-                    {cards}
+                <h3>Confirm Item Match</h3>
+                <div class="match-card">
+                    <img src="{best_match['image'] or ''}">
+                    <div class="match-info">
+                        <p>{best_match['title']}</p>
+                        <b>Sold: ${best_match['price']}</b>
+                        <br><br>
+                        <button onclick="useMatch('{safe_title}')">
+                            Use This Item
+                        </button>
+                    </div>
                 </div>
             </div>
             """
@@ -176,6 +174,26 @@ def render_page(query="", preset="balanced", analysis=None,
 
             h1 {{ font-size:38px; margin-bottom:30px; }}
 
+            .toggle {{
+                margin-bottom:25px;
+            }}
+
+            .toggle button {{
+                padding:10px 30px;
+                border:none;
+                border-radius:6px;
+                margin:5px;
+                font-weight:bold;
+                cursor:pointer;
+                background:#2a2a2a;
+                color:white;
+            }}
+
+            .active-toggle {{
+                background:#00cc66;
+                color:black;
+            }}
+
             .panel {{
                 background:rgba(20,20,20,.95);
                 padding:30px;
@@ -204,37 +222,27 @@ def render_page(query="", preset="balanced", analysis=None,
             .market {{ background:#1f5fa9; }}
             .hold {{ background:#1e7e34; }}
 
-            .comp-grid {{
-                display:grid;
-                grid-template-columns:repeat(3, 1fr);
-                gap:15px;
+            .match-card {{
+                display:flex;
+                gap:20px;
+                align-items:center;
             }}
 
-            .comp-card {{
-                background:#222;
-                border-radius:10px;
-                overflow:hidden;
-                cursor:pointer;
-                transition:0.2s ease;
-            }}
-
-            .comp-card:hover {{
-                transform:scale(1.03);
-            }}
-
-            .comp-card.selected {{
-                outline:3px solid #00cc66;
-            }}
-
-            .comp-card img {{
-                width:100%;
-                height:150px;
+            .match-card img {{
+                width:200px;
+                height:200px;
                 object-fit:cover;
-                background:#000;
+                border-radius:10px;
             }}
 
-            .comp-info {{
-                padding:10px;
+            .match-info button {{
+                padding:10px 20px;
+                border:none;
+                border-radius:6px;
+                background:#00cc66;
+                font-weight:bold;
+                color:black;
+                cursor:pointer;
             }}
 
             input, select {{
@@ -261,9 +269,16 @@ def render_page(query="", preset="balanced", analysis=None,
 
         <h1>CLAMS RESALE ENGINE</h1>
 
-        <form method="post" action="/app">
+        <div class="toggle">
+            <button id="marketingBtn" class="active-toggle"
+                    onclick="switchView('marketing')">MARKETING</button>
+            <button id="postingBtn"
+                    onclick="switchView('posting')">POSTING</button>
+        </div>
+
+        <form method="post" action="/app" id="mainForm">
             <input type="hidden" name="preset" value="{preset}">
-            <input name="query" value="{query}" placeholder="Search item..." required>
+            <input name="query" id="queryInput" value="{query}" placeholder="Search item..." required>
             <select name="condition">
                 <option value="A">A</option>
                 <option value="B">B</option>
@@ -274,19 +289,49 @@ def render_page(query="", preset="balanced", analysis=None,
         </form>
 
         {error_block}
-        {marketing_block}
-        {comps_block}
-        {posting_block}
+
+        <div id="marketingView">
+            {marketing_block}
+        </div>
+
+        <div id="postingView" style="display:none;">
+            {posting_block}
+        </div>
 
         <br><br>
         <a href="/logout" style="color:#aaa;">Logout</a>
 
         <script>
-            function selectComp(card) {{
-                document.querySelectorAll('.comp-card').forEach(c => {{
-                    c.classList.remove('selected');
-                }});
-                card.classList.add('selected');
+            function switchView(view) {{
+                localStorage.setItem("clamsView", view);
+
+                const m = document.getElementById("marketingView");
+                const p = document.getElementById("postingView");
+                const mb = document.getElementById("marketingBtn");
+                const pb = document.getElementById("postingBtn");
+
+                if(view === "marketing") {{
+                    m.style.display = "block";
+                    p.style.display = "none";
+                    mb.classList.add("active-toggle");
+                    pb.classList.remove("active-toggle");
+                }} else {{
+                    m.style.display = "none";
+                    p.style.display = "block";
+                    pb.classList.add("active-toggle");
+                    mb.classList.remove("active-toggle");
+                }}
+            }}
+
+            function useMatch(title) {{
+                document.getElementById("queryInput").value = title;
+                localStorage.setItem("clamsView", "marketing");
+                document.getElementById("mainForm").submit();
+            }}
+
+            window.onload = function() {{
+                const saved = localStorage.getItem("clamsView") || "marketing";
+                switchView(saved);
             }}
         </script>
 
