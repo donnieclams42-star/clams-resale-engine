@@ -1,20 +1,28 @@
+# ===============================
+# CLAMS Engine – Posting FINAL LOCKED
+# Marketplace intact + Generator intact
+# YouTube restored + Volume + Lighter UI
+# ===============================
+
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+
 from ebay import get_market_data
 from pricing import analyze_market
 from auth import is_authenticated, login_success_response, logout_response
+from openai import OpenAI
 
 app = FastAPI()
+client = OpenAI()
 
 CLAMS_PASSWORD = os.getenv("CLAMS_PASSWORD", "changeme")
 
-PRESETS = {
-    "aggressive": {"profit": 0.25, "local": 0.75},
-    "balanced": {"profit": 0.40, "local": 0.80},
-    "collector": {"profit": 0.55, "local": 0.90},
-}
 
+# ---------------- AUTH ---------------- #
 
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -22,20 +30,13 @@ def login_page(request: Request):
         return RedirectResponse("/app", status_code=303)
 
     return """
-    <html>
-    <body style="background:#111;color:white;font-family:Arial;text-align:center;padding-top:150px;">
-        <h2>CLAMS Beta Access</h2>
-        <form method="post" action="/login">
-            <input type="password" name="password" required
-                   style="padding:12px;border-radius:8px;border:none;width:250px;">
-            <br><br>
-            <button type="submit"
-                    style="padding:12px 30px;border:none;border-radius:8px;background:#00cc66;font-weight:bold;color:black;">
-                Enter
-            </button>
-        </form>
-    </body>
-    </html>
+    <html><body style="background:#111;color:white;font-family:Segoe UI;text-align:center;padding-top:150px;">
+    <h2>CLAMS Access</h2>
+    <form method="post" action="/login">
+    <input type="password" name="password" required style="padding:12px;border-radius:8px;border:none;width:250px;">
+    <br><br>
+    <button type="submit" style="padding:12px 30px;border:none;border-radius:8px;background:#00cc66;font-weight:bold;color:black;">
+    Enter</button></form></body></html>
     """
 
 
@@ -51,6 +52,8 @@ def logout():
     return logout_response("/")
 
 
+# ---------------- MAIN ---------------- #
+
 @app.get("/app", response_class=HTMLResponse)
 def app_home(request: Request):
     if not is_authenticated(request):
@@ -59,272 +62,334 @@ def app_home(request: Request):
 
 
 @app.post("/app", response_class=HTMLResponse)
-def analyze(
-    request: Request,
-    query: str = Form(...),
-    condition: str = Form("A"),
-    preset: str = Form("balanced"),
-):
+def analyze(request: Request, query: str = Form(...),
+            condition: str = Form("A"),
+            profit: float = Form(0.40)):
+
     if not is_authenticated(request):
         return RedirectResponse("/", status_code=303)
 
     sold_prices, active_prices, sold_items = get_market_data(query)
 
     if not sold_prices:
-        return render_page(error="No comps found.", query=query, condition=condition)
-
-    preset_config = PRESETS.get(preset, PRESETS["balanced"])
-    profit = preset_config["profit"]
-    local_factor = preset_config["local"]
+        return render_page(error="No comps found.", query=query)
 
     analysis = analyze_market(
         sold_prices,
         active_prices,
         condition,
         profit,
-        local_factor
+        0.80
     )
-
-    fast_cash = analysis["undercut"]
-    market_price = analysis["sell_target"]
-    hold_price = round(analysis["sell_target"] * 1.15, 2)
-
-    matches = sold_items[:5] if sold_items else []
 
     return render_page(
         query=query,
         analysis=analysis,
-        fast_cash=fast_cash,
-        market_price=market_price,
-        hold_price=hold_price,
-        matches=matches,
-        condition=condition
+        sold_items=sold_items,
+        condition=condition,
+        profit=profit
     )
 
 
-def render_page(query="", analysis=None,
-                fast_cash=None, market_price=None,
-                hold_price=None, matches=None,
-                error=None,
-                condition="A"):
+# ---------------- AI ---------------- #
 
-    marketing_block = ""
-    posting_block = ""
+@app.post("/ai-enhance")
+async def ai_enhance(request: Request):
+    data = await request.json()
+    query = data.get("query", "")
+    text = data.get("text", "")
+    mode = data.get("mode", "description")
 
-    if analysis:
-        marketing_block += f"""
-        <div class="panel">
-            <h3>Market Intelligence</h3>
-            <div class="grid">
-                <div><span>Sold Median</span><b>${analysis["sold_median"]}</b></div>
-                <div><span>Active Median</span><b>${analysis["active_median"]}</b></div>
-                <div><span>Supply Ratio</span><b>{analysis["supply_ratio"]}</b></div>
-                <div><span>Market Pressure</span><b>{analysis["pressure"]}</b></div>
-                <div><span>Volatility</span><b>{analysis["volatility"]}</b></div>
-                <div><span>Confidence</span><b>{analysis["confidence"]}%</b></div>
-            </div>
-        </div>
+    try:
+        prompt = f"""
+        Improve this marketplace listing {mode}.
+        Keep it clean, high converting, platform appropriate.
+        Item: {query}
+        Current {mode}:
+        {text}
         """
 
-        if matches:
-            marketing_block += """
-            <div class="panel">
-                <h3>Confirm Item Match</h3>
-            """
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
 
-            for item in matches:
-                safe_title = item["title"].replace("'", "\\'")
-                marketing_block += f"""
-                <div class="match-card">
-                    <img src="{item['image'] or ''}">
-                    <div class="match-info">
-                        <p>{item['title']}</p>
-                        <b>Sold: ${item['price']}</b>
-                        <br><br>
-                        <button onclick="useMatch('{safe_title}')">
-                            Use This
-                        </button>
-                    </div>
-                </div>
-                """
+        return JSONResponse({"content": response.choices[0].message.content})
 
-            marketing_block += "</div>"
+    except:
+        return JSONResponse({"content": text})
 
-        posting_block = f"""
-        <div class="panel">
-            <h3>Pricing Strategy</h3>
-            <div class="bar fast">FAST CASH — ${fast_cash}</div>
-            <div class="bar market">MARKET — ${market_price}</div>
-            <div class="bar hold">HOLD MAX — ${hold_price}</div>
-        </div>
-        """
 
-    error_block = f"<div class='error'>{error}</div>" if error else ""
+# ---------------- RENDER ---------------- #
+
+def render_page(query="", analysis=None, sold_items=None,
+                error=None, condition="A", profit=0.40):
+
+    sell_price = analysis['sell_target'] if analysis else 0
+    max_buy = analysis['max_buy'] if analysis else 0
+    profit_percent = round(profit * 100, 1)
+
+    primary_image = ""
+    primary_title = ""
+    primary_link = ""
+
+    if sold_items:
+        primary_image = sold_items[0].get("image", "")
+        primary_title = sold_items[0].get("title", "")
+        primary_link = sold_items[0].get("link", "#")
+
+    error_block = f"<div style='color:#ff6b6b;margin:15px 0;'>{error}</div>" if error else ""
 
     return f"""
-    <html>
-    <head>
-        <title>CLAMS Resale Engine</title>
-        <style>
-            body {{
-                margin:0;
-                font-family:Arial;
-                color:white;
-                background:linear-gradient(rgba(0,0,0,.8), rgba(0,0,0,.9)),
-                url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1920');
-                background-size:cover;
-                background-attachment:fixed;
-                text-align:center;
-                padding:40px;
-            }}
+<html>
+<head>
+<title>CLAMS Engine</title>
 
-            h1 {{ font-size:36px; }}
+<style>
+body {{
+    margin:0;
+    font-family:Segoe UI;
+    background:linear-gradient(135deg,#1e2a33,#223544);
+    color:white;
+}}
 
-            .toggle button {{
-                padding:10px 30px;
-                border:none;
-                border-radius:6px;
-                margin:5px;
-                font-weight:bold;
-                cursor:pointer;
-                background:#333;
-                color:white;
-            }}
+.layout {{ display:flex; }}
+.main {{ width:75%; padding:40px; }}
+.sidebar {{ width:25%; background:#18242d; padding:40px; }}
 
-            .panel {{
-                background:rgba(25,25,25,.95);
-                padding:25px;
-                border-radius:12px;
-                width:750px;
-                margin:20px auto;
-                text-align:left;
-            }}
+.header {{
+    font-size:42px;
+    font-weight:900;
+    background:linear-gradient(90deg,#00cc66,#00aaff);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}}
 
-            .grid {{
-                display:grid;
-                grid-template-columns:1fr 1fr;
-                gap:15px;
-            }}
+.card {{
+    background:#1a1f26;
+    padding:20px;
+    border-radius:18px;
+    margin-bottom:25px;
+    box-shadow:0 0 20px rgba(0,0,0,0.5);
+}}
 
-            .bar {{
-                padding:15px;
-                border-radius:8px;
-                margin-top:15px;
-                font-weight:bold;
-            }}
+.toggle {{ background:#222;color:white;padding:6px 12px;margin:4px;border-radius:8px; }}
+.toggle.active {{ background:#00cc66;color:black; }}
 
-            .fast {{ background:#b02a2a; }}
-            .market {{ background:#1f5fa9; }}
-            .hold {{ background:#1e7e34; }}
+.field {{
+    background:#0f1318;
+    padding:12px;
+    border-radius:10px;
+    white-space:pre-wrap;
+    margin-top:10px;
+}}
 
-            .match-card {{
-                display:flex;
-                gap:20px;
-                align-items:center;
-                margin-bottom:20px;
-            }}
+.copyBtn {{
+    background:#00cc66;
+    color:black;
+    padding:6px 10px;
+    border-radius:8px;
+    margin:4px;
+}}
 
-            .match-card img {{
-                width:150px;
-                height:150px;
-                object-fit:cover;
-                border-radius:10px;
-            }}
+.green {{ color:#00cc66;font-weight:bold; }}
+.red {{ color:#ff4d4d;font-weight:bold; }}
+</style>
 
-            .match-info button {{
-                padding:8px 16px;
-                border:none;
-                border-radius:6px;
-                background:#00cc66;
-                font-weight:bold;
-                color:black;
-                cursor:pointer;
-            }}
+<script src="https://www.youtube.com/iframe_api"></script>
 
-            input, select {{
-                padding:10px;
-                border-radius:6px;
-                border:none;
-                margin:5px;
-            }}
+<script>
 
-            button.submit {{
-                padding:10px 25px;
-                border-radius:6px;
-                border:none;
-                background:#00cc66;
-                font-weight:bold;
-                color:black;
-            }}
+let activeMarket = "facebook";
+let activeFormat = "cell";
+let player;
 
-            .error {{ color:#ff6b6b; margin:15px; }}
-        </style>
-    </head>
+function onYouTubeIframeAPIReady() {{
+    player = new YT.Player('ytplayer');
+}}
 
-    <body>
+function toggleMute() {{
+    if (player) {{
+        if (player.isMuted()) {{
+            player.unMute();
+        }} else {{
+            player.mute();
+        }}
+    }}
+}}
 
-        <h1>CLAMS RESALE ENGINE</h1>
+function setVolume(v) {{
+    if (player) {{
+        player.setVolume(v);
+    }}
+}}
 
-        <div class="toggle">
-            <button id="marketingBtn" onclick="switchView('marketing')">MARKETING</button>
-            <button id="postingBtn" onclick="switchView('posting')">POSTING</button>
-        </div>
+function setMarket(m) {{
+    activeMarket = m;
+    document.querySelectorAll(".marketBtn")
+        .forEach(b => b.classList.remove("active"));
+    document.getElementById(m).classList.add("active");
+    generateContent();
+}}
 
-        <form method="post" action="/app" id="mainForm">
-            <input name="query" id="queryInput" value="{query}" placeholder="Search item..." required>
+function setFormat(f) {{
+    activeFormat = f;
+    document.querySelectorAll(".formatBtn")
+        .forEach(b => b.classList.remove("active"));
+    document.getElementById(f + "Btn").classList.add("active");
+    generateContent();
+}}
 
-            <select name="condition">
-                <option value="A" {"selected" if condition=="A" else ""}>A – Excellent</option>
-                <option value="B" {"selected" if condition=="B" else ""}>B – Good</option>
-                <option value="C" {"selected" if condition=="C" else ""}>C – Fair</option>
-                <option value="Parts" {"selected" if condition=="Parts" else ""}>Parts – Not Working</option>
-            </select>
+function generateContent() {{
+    let q = "{query}";
+    let price = {sell_price};
 
-            <button type="submit" class="submit">Analyze</button>
-        </form>
+    let title = q;
+    let desc = q + "\\nPrice: $" + price;
 
-        {error_block}
+    document.getElementById("titleField").innerText = title;
+    document.getElementById("descField").innerText = desc;
+}}
 
-        <div id="marketingView">{marketing_block}</div>
-        <div id="postingView" style="display:none;">{posting_block}</div>
+function enhanceField(id, mode) {{
+    fetch("/ai-enhance", {{
+        method:"POST",
+        headers:{{"Content-Type":"application/json"}},
+        body:JSON.stringify({{
+            query:"{query}",
+            text:document.getElementById(id).innerText,
+            mode:mode
+        }})
+    }})
+    .then(res=>res.json())
+    .then(data=>document.getElementById(id).innerText = data.content);
+}}
 
-        <script>
-            function switchView(view) {{
-                const m = document.getElementById("marketingView");
-                const p = document.getElementById("postingView");
-                const mb = document.getElementById("marketingBtn");
-                const pb = document.getElementById("postingBtn");
+function copyField(id) {{
+    navigator.clipboard.writeText(document.getElementById(id).innerText);
+}}
 
-                if(view === "marketing") {{
-                    m.style.display = "block";
-                    p.style.display = "none";
-                    mb.style.background = "#00cc66";
-                    mb.style.color = "black";
-                    pb.style.background = "#333";
-                    pb.style.color = "white";
-                }} else {{
-                    m.style.display = "none";
-                    p.style.display = "block";
-                    pb.style.background = "#00cc66";
-                    pb.style.color = "black";
-                    mb.style.background = "#333";
-                    mb.style.color = "white";
-                }}
+function calculateNet() {{
+    let sell = {sell_price};
+    let costPaid = parseFloat(document.getElementById("costPaid").value) || 0;
+    let realProfit = sell - costPaid;
 
-                localStorage.setItem("clamsView", view);
-            }}
+    let rp = document.getElementById("realProfit");
+    rp.innerText = realProfit.toFixed(2);
+    rp.className = realProfit >= 0 ? "green" : "red";
+}}
 
-            function useMatch(title) {{
-                document.getElementById("queryInput").value = title;
-                document.getElementById("mainForm").submit();
-            }}
+window.onload = function() {{
+    setMarket("facebook");
+    setFormat("cell");
+}};
+</script>
+</head>
 
-            window.onload = function() {{
-                const saved = localStorage.getItem("clamsView") || "marketing";
-                switchView(saved);
-            }}
-        </script>
+<body>
 
-    </body>
-    </html>
-    """
+<div class="layout">
+
+<div class="main">
+
+<div class="header">CLAMS Engine</div>
+
+<form method="post" action="/app">
+<input name="query" value="{query}" placeholder="Search item..." required>
+<input type="number" step="0.05" name="profit" value="{profit}">
+<button type="submit">Analyze</button>
+</form>
+
+{error_block}
+
+<div class="card">
+Profit Target: {profit_percent}%<br>
+Sell Target: ${sell_price}
+</div>
+
+<div class="card">
+<a href="{primary_link}" target="_blank">
+<img src="{primary_image}" style="max-width:300px;border-radius:14px;">
+</a>
+<div style="margin-top:10px;font-weight:bold;">{primary_title}</div>
+</div>
+
+<div class="card">
+<h3>Marketplace</h3>
+
+<button id="facebook" class="toggle marketBtn active" onclick="setMarket('facebook')">Facebook</button>
+<button id="ebay" class="toggle marketBtn" onclick="setMarket('ebay')">eBay</button>
+<button id="mercari" class="toggle marketBtn" onclick="setMarket('mercari')">Mercari</button>
+<button id="offerup" class="toggle marketBtn" onclick="setMarket('offerup')">OfferUp</button>
+<button id="nextdoor" class="toggle marketBtn" onclick="setMarket('nextdoor')">Nextdoor</button>
+
+<br><br>
+
+Cost Paid:
+<input type="number" id="costPaid" step="0.01" oninput="calculateNet()">
+
+<br><br>
+
+Real Profit: $<span id="realProfit">0.00</span>
+</div>
+
+<div class="card">
+<h3>Format</h3>
+
+<button id="cellBtn" class="toggle formatBtn active" onclick="setFormat('cell')">📱 Cell Friendly</button>
+<button id="fullBtn" class="toggle formatBtn" onclick="setFormat('full')">🧾 Full Professional</button>
+
+<h4>Title</h4>
+<div id="titleField" class="field"></div>
+<button class="copyBtn" onclick="copyField('titleField')">Copy Title</button>
+<button class="copyBtn" onclick="enhanceField('titleField','title')">AI Enhance Title</button>
+
+<h4>Description</h4>
+<div id="descField" class="field"></div>
+<button class="copyBtn" onclick="copyField('descField')">Copy Description</button>
+<button class="copyBtn" onclick="enhanceField('descField','description')">AI Enhance Description</button>
+
+</div>
+
+</div>
+
+<div class="sidebar">
+
+<div style="font-size:28px;font-weight:bold;margin-bottom:30px;">
+Revenue Favors Action.<br>
+Clarity Beats Emotion.<br>
+Cash Flow = Freedom.<br>
+Execute.
+</div>
+
+<div class="card" style="background:#111;">
+<h3 style="margin-top:0;">Focus Playlist</h3>
+
+<iframe id="ytplayer"
+width="100%"
+height="200"
+src="https://www.youtube.com/embed/videoseries?list=PL09-WNqi3rR43uLLwHzAj2XLfjKrwC8ru&enablejsapi=1"
+frameborder="0"
+allow="autoplay; encrypted-media"
+allowfullscreen>
+</iframe>
+
+<br>
+
+<button class="copyBtn" onclick="toggleMute()">🔇 Mute / Unmute</button>
+
+<br><br>
+
+Volume:
+<input type="range" min="0" max="100" value="50" onchange="setVolume(this.value)">
+
+</div>
+
+</div>
+
+</div>
+
+</body>
+</html>
+"""
