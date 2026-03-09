@@ -17,18 +17,16 @@ def get_token():
         },
         data={
             "grant_type": "client_credentials",
-            "scope": "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/buy.browse"
+            "scope": "https://api.ebay.com/oauth/api_scope"
         },
         auth=(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET)
     )
 
     data = response.json()
 
-    token = data.get("access_token")
-
     print("TOKEN RESPONSE:", data)
 
-    return token
+    return data.get("access_token")
 
 
 def get_market_data(query):
