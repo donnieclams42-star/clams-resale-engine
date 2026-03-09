@@ -12,9 +12,7 @@ def get_token():
 
     response = requests.post(
         TOKEN_URL,
-        headers={
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
         data={
             "grant_type": "client_credentials",
             "scope": "https://api.ebay.com/oauth/api_scope"
@@ -36,12 +34,14 @@ def get_market_data(query):
         return [], [], []
 
     headers = {
-        "Authorization": f"Bearer {token}"
+        "Authorization": f"Bearer {token}",
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US"
     }
 
     params = {
         "q": query,
-        "limit": 25
+        "limit": 30,
+        "sort": "price"
     }
 
     response = requests.get(
