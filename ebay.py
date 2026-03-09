@@ -1,6 +1,5 @@
 import os
 import requests
-from statistics import median
 
 EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
 EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
@@ -37,36 +36,42 @@ def get_market_data(query):
         return [], [], []
 
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
+        "Authorization": f"Bearer {token}"
     }
 
     params = {
         "q": query,
-        "limit": 20,
-        "filter": "soldItems"
+        "limit": 25
     }
 
-    response = requests.get(SEARCH_URL, headers=headers, params=params)
+    response = requests.get(
+        SEARCH_URL,
+        headers=headers,
+        params=params
+    )
 
     data = response.json()
 
     items = data.get("itemSummaries", [])
 
-    sold_prices = []
-    active_prices = []
-    sold_items = []
+    prices = []
+    items_out = []
 
     for item in items:
 
-        price = float(item["price"]["value"])
+        try:
 
-        sold_prices.append(price)
+            price = float(item["price"]["value"])
 
-        sold_items.append({
-            "title": item["title"],
-            "image": item["image"]["imageUrl"],
-            "link": item["itemWebUrl"]
-        })
+            prices.append(price)
 
-    return sold_prices, active_prices, sold_items
+            items_out.append({
+                "title": item.get("title"),
+                "image": item.get("image", {}).get("imageUrl"),
+                "link": item.get("itemWebUrl")
+            })
+
+        except:
+            pass
+
+    return prices, [], items_out
