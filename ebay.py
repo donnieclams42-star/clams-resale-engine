@@ -12,17 +12,23 @@ def get_token():
 
     response = requests.post(
         TOKEN_URL,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
         data={
             "grant_type": "client_credentials",
-            "scope": "https://api.ebay.com/oauth/api_scope"
+            "scope": "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/buy.browse"
         },
         auth=(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET)
     )
 
     data = response.json()
 
-    return data.get("access_token")
+    token = data.get("access_token")
+
+    print("TOKEN RESPONSE:", data)
+
+    return token
 
 
 def get_market_data(query):
@@ -30,7 +36,7 @@ def get_market_data(query):
     token = get_token()
 
     if not token:
-        print("EBAY TOKEN FAILED")
+        print("NO EBAY TOKEN")
         return [], [], []
 
     headers = {
@@ -40,8 +46,7 @@ def get_market_data(query):
 
     params = {
         "q": query,
-        "limit": 30,
-        "sort": "price"
+        "limit": 25
     }
 
     response = requests.get(
@@ -51,6 +56,8 @@ def get_market_data(query):
     )
 
     data = response.json()
+
+    print("EBAY RESPONSE:", data)
 
     items = data.get("itemSummaries", [])
 
