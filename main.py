@@ -1,7 +1,6 @@
 import os
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 from ebay import get_market_data
@@ -113,7 +112,6 @@ def login_post(password: str = Form(...)):
     if password == CLAMS_PASSWORD:
 
         response = RedirectResponse("/app", status_code=303)
-
         response.set_cookie("auth", "1")
 
         return response
@@ -143,20 +141,13 @@ def analyze(request: Request, query: str = Form(...)):
     print("RESULT COUNT:", len(sold_prices))
 
     if not sold_prices:
-
-        return HTMLResponse(render_dashboard(
-            query=query,
-            sell_target=0,
-            max_buy=0,
-            buy_score=0
-        ))
+        return HTMLResponse(render_dashboard(query=query))
 
     sold_prices.sort()
 
     median_price = sold_prices[len(sold_prices)//2]
 
     sell_target = round(median_price * 0.9, 2)
-
     max_buy = round(sell_target * 0.6, 2)
 
     buy_score = int((sell_target - max_buy) / sell_target * 100)
