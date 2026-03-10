@@ -12,38 +12,58 @@ ACCESS_TOKEN = None
 TOKEN_EXPIRES = 0
 
 
+# ==========================
+# GET EBAY ACCESS TOKEN
+# ==========================
 def get_token():
 
     global ACCESS_TOKEN
     global TOKEN_EXPIRES
 
-    # reuse token if still valid
+    # reuse token if valid
     if ACCESS_TOKEN and time.time() < TOKEN_EXPIRES:
         return ACCESS_TOKEN
 
-    response = requests.post(
-        TOKEN_URL,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data={
-            "grant_type": "client_credentials",
-            "scope": "https://api.ebay.com/oauth/api_scope"
-        },
-        auth=(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET)
-    )
+    try:
 
-    data = response.json()
+        response = requests.post(
+            TOKEN_URL,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            data={
+                "grant_type": "client_credentials",
+                "scope": "https://api.ebay.com/oauth/api_scope"
+            },
+            auth=(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET),
+            timeout=15
+        )
 
-    print("TOKEN RESPONSE:", data)
+        data = response.json()
 
-    ACCESS_TOKEN = data.get("access_token")
+        ACCESS_TOKEN = data.get("access_token")
 
-    expires_in = data.get("expires_in", 7200)
+        if not ACCESS_TOKEN:
+            print("EBAY TOKEN ERROR:", data)
+            return None
 
-    TOKEN_EXPIRES = time.time() + expires_in - 60
+        expires_in = data.get("expires_in", 7200)
 
-    return ACCESS_TOKEN
+        TOKEN_EXPIRES = time.time() + expires_in - 60
+
+        print("EBAY TOKEN OK")
+
+        return ACCESS_TOKEN
+
+    except Exception as e:
+
+        print("TOKEN REQUEST FAILED:", e)
+        return None
 
 
+# ==========================
+# MARKET DATA SEARCH
+# ==========================
 def get_market_data(query):
 
     token = get_token()
@@ -62,36 +82,48 @@ def get_market_data(query):
         "limit": 25
     }
 
-    response = requests.get(
-        SEARCH_URL,
-        headers=headers,
-        params=params
-    )
+    try:
 
-    data = response.json()
+        response = requests.get(
+            SEARCH_URL,
+            headers=headers,
+            params=params,
+            timeout=15
+        )
 
-    print("EBAY RESPONSE:", data)
+        data = response.json()
 
-    items = data.get("itemSummaries", [])
+        items = data.get("itemSummaries", [])
 
-    prices = []
-    items_out = []
+        print("EBAY ITEMS FOUND:", len(items))
 
-    for item in items:
+        prices = []
+        items_out = []
 
-        try:
+        for item in items:
 
-            price = float(item["price"]["value"])
+            try:
 
-            prices.append(price)
+                price = float(item["price"]["value"])
 
-            items_out.append({
-                "title": item.get("title"),
-                "image": item.get("image", {}).get("imageUrl"),
-                "link": item.get("itemWebUrl")
-            })
+                prices.append(price)
 
-        except:
-            pass
+                items_out.append({
+                    "title": item.get("title"),
+                    "price": price,
+                    "image": item.get("image", {}).get("imageUrl"),
+                    "link": item.get("itemWebUrl")
+                })
 
-    return prices, [], items_out
+            except Exception:
+                continue
+
+        print("VALID PRICES:", len(prices))
+
+        return prices, [], items_out
+
+    except Exception as e:
+
+        print("EBAY SEARCH FAILED:", e)
+
+        return [], [], []
