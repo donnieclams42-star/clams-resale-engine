@@ -1,0 +1,59 @@
+<html>
+<head>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>CLAMS Resale Engine</h1>
+
+<form method="post">
+
+<input name="query" placeholder="Search item..." required>
+
+<button>Analyze</button>
+
+</form>
+
+{% if data %}
+
+<div class="grid">
+
+<div class="card">
+<h3>Sell Target</h3>
+<p>${{data.sell_target}}</p>
+</div>
+
+<div class="card">
+<h3>Max Buy</h3>
+<p>${{data.max_buy}}</p>
+</div>
+
+<div class="card">
+<h3>Fast Cash</h3>
+<p>${{data.fast_cash}}</p>
+</div>
+
+<div class="card">
+<h3>Hold Price</h3>
+<p>${{data.hold_price}}</p>
+</div>
+
+</div>
+
+<div class="signals">
+
+<p>Liquidity: {{data.liquidity_label}}</p>
+<p>Risk: {{data.risk_level}}</p>
+<p>Market: {{data.market_balance}}</p>
+
+</div>
+
+{% endif %}
+
+</div>
+
+</body>
+</html>
