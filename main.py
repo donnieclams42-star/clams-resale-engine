@@ -5,14 +5,21 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from supabase import create_client
 from ebay import get_market_data
+
 from pricing import analyze_market
 from listing_generator import fb_listing, ebay_listing
 
 load_dotenv()
 
 app = FastAPI()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+INVITE_CODE = os.getenv("CLAMS_INVITE_CODE", "CLAMSFOUNDERS")
 CLAMS_PASSWORD = os.getenv("CLAMS_PASSWORD", "clams")
 STRIPE_LINK = os.getenv("STRIPE_LINK", "").strip()
 
@@ -1148,13 +1155,30 @@ def login():
 
 
 @app.post("/login")
-def login_post(password: str = Form(...)):
-    if password == CLAMS_PASSWORD:
-        resp = RedirectResponse("/app", status_code=303)
-        resp.set_cookie("auth", "1", httponly=True, samesite="lax")
-        return resp
-    return HTMLResponse("<h3 style='font-family:Arial'>Wrong password</h3>")
+def login_post(
+    email: str = Form(...),
+    password: str = Form(...),
+    invite: str = Form(...)
+):
 
+    if invite != INVITE_CODE:
+        return HTMLResponse("<h3>Invalid Invite Code</h3>")
+
+    try:
+        user = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+
+        if user:
+            resp = RedirectResponse("/app", status_code=303)
+            resp.set_cookie("auth", "1", httponly=True, samesite="lax")
+            return resp
+
+    except Exception as e:
+        return HTMLResponse(f"<h3>Login Failed</h3><p>{str(e)}</p>")
+
+    return HTMLResponse("<h3>Login Error</h3>")
 
 @app.get("/app", response_class=HTMLResponse)
 def dashboard(request: Request):
