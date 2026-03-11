@@ -6,7 +6,7 @@ print("Applying login patch...")
 
 text = MAIN_FILE.read_text(encoding="utf-8", errors="ignore")
 
-old = '<input name="password" placeholder="Password">'
+old = '<input type="password" name="password" placeholder="Password" required>'
 
 new = (
     '<input name="email" placeholder="Email" required><br>'
@@ -19,4 +19,4 @@ if old in text:
     MAIN_FILE.write_text(text, encoding="utf-8")
     print("Login form patched successfully.")
 else:
-    print("Login form already patched or pattern not found.")
+    print("Pattern not found — login may already be patched.")
