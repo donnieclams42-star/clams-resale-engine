@@ -19,7 +19,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-INVITE_CODE = os.getenv("CLAMS_INVITE_CODE", "CLAMSFOUNDERS")
+INVITE_CODE = os.getenv("CLAMS_INVITE_CODE", "CLAMTHUG1!!")
 CLAMS_PASSWORD = os.getenv("CLAMS_PASSWORD", "clams")
 STRIPE_LINK = os.getenv("STRIPE_LINK", "").strip()
 
