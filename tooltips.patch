@@ -1,0 +1,44 @@
+--- main.py
++++ main.py
+@@
+     <script>
+         async function copyText(text) {
+             try {
+                 await navigator.clipboard.writeText(text);
+                 alert("Copied");
+             } catch (err) {
+                 alert("Copy failed");
+             }
+         }
++
++        /* ===== CLAMS TOOLTIP ENGINE ===== */
++        document.addEventListener("DOMContentLoaded", function() {
++
++            const tips = {
++                "Demand": "Buyer demand based on recent sold listings volume.",
++                "Market Balance": "Ratio between active listings and sold listings.",
++                "Liquidity": "How quickly items are converting to sales.",
++                "Flip Speed": "Estimated resale speed once listed.",
++                "Consistency": "How stable the sold prices are.",
++                "Volatility": "How widely prices fluctuate across comps.",
++                "Price Spread": "Difference between lowest and highest sale.",
++                "Trend": "Market direction based on recent comps.",
++                "Risk Level": "Overall probability the flip underperforms.",
++                "Sell Target": "Projected resale value based on comps.",
++                "Max Buy": "Maximum safe purchase price for this flip.",
++                "Estimated Margin": "Expected profit if sold at target.",
++                "ROI": "Projected return on investment.",
++                "Fast Cash": "Quick-sale pricing lane for fastest turnover.",
++                "Market Price": "Balanced competitive pricing lane.",
++                "Hold Price": "Higher patience pricing lane."
++            };
++
++            document.querySelectorAll(".intel-row span, .stat-label, .band-top").forEach(el => {
++                const label = el.innerText.trim();
++                if (tips[label]) {
++                    el.style.cursor = "help";
++                    el.title = tips[label];
++                }
++            });
++
++        });

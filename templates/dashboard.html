@@ -1,6 +1,81 @@
 <html>
 <head>
+
 <link rel="stylesheet" href="/static/styles.css">
+
+<style>
+
+.container{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:15px;
+margin-top:20px;
+}
+
+.card{
+background:#f5f5f5;
+padding:15px;
+border-radius:8px;
+text-align:center;
+}
+
+.signals{
+margin-top:25px;
+font-size:16px;
+}
+
+.tooltip{
+position:relative;
+display:inline-block;
+cursor:help;
+}
+
+.tooltip .tooltiptext{
+visibility:hidden;
+width:220px;
+background:#333;
+color:#fff;
+text-align:center;
+padding:6px;
+border-radius:6px;
+
+position:absolute;
+z-index:10;
+bottom:125%;
+left:50%;
+margin-left:-110px;
+
+opacity:0;
+transition:opacity .2s;
+font-size:13px;
+}
+
+.tooltip:hover .tooltiptext{
+visibility:visible;
+opacity:1;
+}
+
+.score-meter{
+margin-top:20px;
+padding:10px;
+border-radius:6px;
+font-weight:bold;
+text-align:center;
+}
+
+.score-steal{background:#1f8b4c;color:white;}
+.score-good{background:#2b6cb0;color:white;}
+.score-risk{background:#b7791f;color:white;}
+.score-pass{background:#a53030;color:white;}
+
+</style>
+
 </head>
 
 <body>
@@ -19,25 +94,66 @@
 
 {% if data %}
 
+{% if data.buy_score %}
+
+{% if data.buy_score >= 85 %}
+<div class="score-meter score-steal">
+🔥 STEAL DEAL — Score {{data.buy_score}}
+</div>
+
+{% elif data.buy_score >= 70 %}
+<div class="score-meter score-good">
+👍 GOOD BUY — Score {{data.buy_score}}
+</div>
+
+{% elif data.buy_score >= 55 %}
+<div class="score-meter score-risk">
+⚠️ RISKY BUY — Score {{data.buy_score}}
+</div>
+
+{% else %}
+<div class="score-meter score-pass">
+❌ PASS — Score {{data.buy_score}}
+</div>
+
+{% endif %}
+{% endif %}
+
 <div class="grid">
 
 <div class="card">
-<h3>Sell Target</h3>
+<h3 class="tooltip">Sell Target
+<span class="tooltiptext">
+Estimated realistic resale price based on recent sold listings.
+</span>
+</h3>
 <p>${{data.sell_target}}</p>
 </div>
 
 <div class="card">
-<h3>Max Buy</h3>
+<h3 class="tooltip">Max Buy
+<span class="tooltiptext">
+Maximum price you should pay while maintaining your target profit margin.
+</span>
+</h3>
 <p>${{data.max_buy}}</p>
 </div>
 
 <div class="card">
-<h3>Fast Cash</h3>
+<h3 class="tooltip">Fast Cash
+<span class="tooltiptext">
+Aggressive price designed to sell quickly for fast local cash.
+</span>
+</h3>
 <p>${{data.fast_cash}}</p>
 </div>
 
 <div class="card">
-<h3>Hold Price</h3>
+<h3 class="tooltip">Hold Price
+<span class="tooltiptext">
+Higher profit price if you are willing to wait longer for a buyer.
+</span>
+</h3>
 <p>${{data.hold_price}}</p>
 </div>
 
@@ -45,9 +161,26 @@
 
 <div class="signals">
 
-<p>Liquidity: {{data.liquidity_label}}</p>
-<p>Risk: {{data.risk_level}}</p>
-<p>Market: {{data.market_balance}}</p>
+<p class="tooltip">
+Liquidity: {{data.liquidity_label}}
+<span class="tooltiptext">
+Measures how quickly items sell compared to how many are listed.
+</span>
+</p>
+
+<p class="tooltip">
+Risk: {{data.risk_level}}
+<span class="tooltiptext">
+Reflects volatility in sold listing prices.
+</span>
+</p>
+
+<p class="tooltip">
+Market: {{data.market_balance}}
+<span class="tooltiptext">
+Compares sold listings to active listings to estimate supply vs demand.
+</span>
+</p>
 
 </div>
 
