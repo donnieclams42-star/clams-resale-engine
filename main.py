@@ -1146,7 +1146,7 @@ def login():
     <form class="card" method="post" action="/login">
         <h2>CLAMS Login</h2>
         <p>Enter your password to open the resale engine.</p>
-        <input type="password" name="password" placeholder="Password" required>
+        <input name="email" placeholder="Email" required><br><input type="password" name="password" placeholder="Password" required><br><input name="invite" placeholder="Invite Code" required>
         <button type="submit">Enter</button>
     </form>
 </body>
