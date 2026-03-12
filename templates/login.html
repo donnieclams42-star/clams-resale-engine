@@ -1,22 +1,84 @@
-<html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>CLAMS Login</title>
+
+<style>
+
+body{
+    background:#071a2b;
+    font-family:Arial, Helvetica, sans-serif;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.container{
+    width:420px;
+    padding:40px;
+    background:#0b243d;
+    border-radius:16px;
+}
+
+h1{
+    margin-bottom:10px;
+}
+
+p{
+    margin-bottom:25px;
+    color:#9bb4d3;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    margin-bottom:14px;
+    border-radius:10px;
+    border:1px solid #1b3c60;
+    background:#071a2b;
+    color:white;
+    font-size:15px;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    border-radius:12px;
+    border:none;
+    background:linear-gradient(90deg,#3a7bfd,#5c9cff);
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+</style>
+
+</head>
 <body>
 
-<h2>CLAMS Login</h2>
+<div class="container">
 
-<form method="post">
+<h1>CLAMS Login</h1>
+<p>Enter your password to open the resale engine.</p>
 
-<input name="email" placeholder="Email" required>
-<br><br>
+<form method="post" action="/login">
 
-<input name="password" type="password" placeholder="Password" required>
-<br><br>
+<input type="email" name="email" placeholder="Email" required>
 
-<input name="invite" placeholder="Invite Code" required>
-<br><br>
+<input type="password" name="password" placeholder="Password" required>
 
-<button>Enter</button>
+<input type="text" name="invite_code" placeholder="Invite Code" required>
+
+<button type="submit">Enter</button>
 
 </form>
+
+</div>
 
 </body>
 </html>

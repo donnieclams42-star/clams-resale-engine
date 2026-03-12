@@ -16,6 +16,12 @@ load_dotenv()
 app = FastAPI()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+INVITE_CODE = os.getenv("INVITE_CODE")
+
+print("---- SUPABASE DEBUG ----")
+print("SUPABASE_URL =", SUPABASE_URL)
+print("SUPABASE_KEY =", SUPABASE_KEY[:20] if SUPABASE_KEY else None)
+print("------------------------")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -1143,16 +1149,41 @@ def login():
     </style>
 </head>
 <body>
-    <form class="card" method="post" action="/login">
-        <h2>CLAMS Login</h2>
-        <p>Enter your password to open the resale engine.</p>
-        <input name="email" placeholder="Email" required><br><input type="password" name="password" placeholder="Password" required><br><input name="invite" placeholder="Invite Code" required>
-        <button type="submit">Enter</button>
-    </form>
+<form class="card" method="post" action="/login">
+
+<h2>CLAMS Login</h2>
+<p>Enter your password to open the resale engine.</p>
+
+<input name="email" placeholder="Email" required><br>
+
+<input type="password" name="password" placeholder="Password" required><br>
+
+<input name="invite" placeholder="Invite Code" required><br>
+
+<button type="submit">Enter</button>
+
+<p style="text-align:center;margin-top:14px;color:#9fb0c7;font-size:14px;">
+Don't have an account?
+<a href="/signup" style="color:#5ea3ff;text-decoration:none;font-weight:bold;">
+Create one
+</a>
+</p>
+
+</form>
 </body>
 </html>
-    """
+"""
 
+
+
+
+
+@app.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request}
+    )
 
 @app.post("/login")
 def login_post(
@@ -1278,3 +1309,51 @@ def analyze(
             generated_listings=generated_listings,
         )
     )
+
+
+
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page():
+    return """
+    <html>
+    <body>
+
+   <h2>Create CLAMS Account</h2>
+
+<form method="post" action="/signup">
+
+<input name="email" placeholder="Email" required><br>
+
+<input type="password" name="password" placeholder="Password" required><br>
+
+<input name="invite" placeholder="Invite Code" required><br><br>
+
+<button>Create Account</button>
+
+</form>
+
+    </body>
+    </html>
+    """
+@app.post("/signup")
+def signup(email: str = Form(...), password: str = Form(...), invite: str = Form(...)):
+
+    if invite != INVITE_CODE:
+        return HTMLResponse("<h3>Invalid Invite Code</h3>")
+
+    try:
+
+        supabase.auth.sign_up({
+
+
+            "email": email,
+            "password": password
+        })
+
+        return HTMLResponse(
+            "<h3>Account created!</h3><p>You can now <a href='/login'>login</a>.</p>"
+        )
+
+    except Exception as e:
+        return HTMLResponse(f"<h3>Signup Failed</h3><p>{str(e)}</p>")
