@@ -326,7 +326,7 @@ def render_dashboard(
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CLAMS Resale Engine</title>
+    <title>Market Radar</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {{
@@ -914,9 +914,9 @@ def render_dashboard(
     <div class="wrap">
         <div class="topbar">
             <div class="brand">
-                <h1>CLAMS Resale Engine</h1>
-                <p>Resale intelligence built for fast flips, better buys, and cleaner decisions.</p>
-            </div>
+   		 <h1>Market Radar</h1>
+  		  <p>Powered by the CLAMS Engine</p>
+	</div>
             <div class="top-actions">
                 <div class="chip">Desktop-first</div>
                 <div class="chip">Fast-cash ready</div>
@@ -929,7 +929,7 @@ def render_dashboard(
             <h2>Search faster. Price cleaner. Buy smarter.</h2>
             <p>
                 Built to blend fast sourcing decisions, market-signal clarity, and local-flip practicality.
-                Type a product, set condition, lock your target margin, and CLAMS gives you an immediate buying lane.
+                Type a product, set condition, lock your target margin, and Market Radar gives you an immediate buying lane powered by the CLAMS Engine.
             </p>
 
             <div class="top-actions" style="margin-top:18px;">
@@ -1007,7 +1007,7 @@ def landing():
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CLAMS Resale Engine</title>
+    <title>Market Radar</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {{
@@ -1078,14 +1078,15 @@ def landing():
 <body>
     <div class="panel">
         <div class="eyebrow">FOUNDER RELEASE</div>
-        <h1>CLAMS Resale Intelligence Engine</h1>
-        <p>
-            Built for resellers who need one clean screen to decide what to buy, what to pay,
-            how fast it should move, and where the pricing lane really is.
-        </p>
+        <h1>Market Radar</h1>
+<p style="margin-top:6px;color:#9fb0c7;">Powered by the CLAMS Engine</p>
 
+<p>
+Built for resellers who need one clean screen to decide what to buy, what to pay,
+how fast it should move, and where the pricing lane really is.
+</p>
         <div class="cta-row">
-            <a class="cta-primary" href="/login">Launch CLAMS</a>
+            <a class="cta-primary" href="/login">Launch Market Radar</a>
             {stripe_button}
         </div>
     </div>
@@ -1100,7 +1101,7 @@ def login():
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CLAMS Login</title>
+    <title>Market Radar Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
@@ -1151,14 +1152,15 @@ def login():
 <body>
 <form class="card" method="post" action="/login">
 
-<h2>CLAMS Login</h2>
+<h2>Market Radar Login</h2>
+<p>Powered by the CLAMS Engine</p>
 <p>Enter your password to open the resale engine.</p>
 
-<input name="email" placeholder="Email" required><br>
+<input name="email" placeholder="Email" required><br><br>
 
-<input type="password" name="password" placeholder="Password" required><br>
+<input type="password" name="password" placeholder="Password" required><br><br>
 
-<input name="invite" placeholder="Invite Code" required><br>
+<input name="invite" placeholder="Invite Code" required><br><br>
 
 <button type="submit">Enter</button>
 
@@ -1319,19 +1321,29 @@ def signup_page():
     <html>
     <body>
 
-   <h2>Create CLAMS Account</h2>
+<h2>Create Market Radar Account</h2>
+<p style="color:#9fb0c7;">Powered by the CLAMS Engine</p>
 
 <form method="post" action="/signup">
 
-<input name="email" placeholder="Email" required><br>
+<input name="email" placeholder="Email" required>
 
-<input type="password" name="password" placeholder="Password" required><br>
+<input type="password" name="password" placeholder="Password" required>
 
-<input name="invite" placeholder="Invite Code" required><br><br>
+<input name="invite" placeholder="Invite Code" required>
 
-<button>Create Account</button>
+<button type="submit" class="cta-primary">
+Create Account
+</button>
 
 </form>
+
+<p style="margin-top:14px;">
+Already have an account? <a href="/login">Login</a>
+</p>
+
+</div>
+
 
     </body>
     </html>
