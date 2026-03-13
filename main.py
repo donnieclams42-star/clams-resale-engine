@@ -17,7 +17,7 @@ from openai import OpenAI
 app = FastAPI()
 
 
-# ---------- PATH FIX (CRITICAL FOR RENDER) ----------
+# ---------- FIXED PATHS FOR RENDER ----------
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
