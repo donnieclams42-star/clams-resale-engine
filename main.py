@@ -1,4 +1,6 @@
 from typing import List, Optional
+import os
+import base64
 
 from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
@@ -10,15 +12,24 @@ from market_analysis import analyze_market
 from listing_generator import generate_listings
 
 from openai import OpenAI
-import base64
-import os
 
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
-templates = Jinja2Templates(directory="templates")
+# ---------- PATH FIX (CRITICAL FOR RENDER) ----------
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+
+# ---------- USER STORAGE ----------
 
 users = {}
 
@@ -75,12 +86,12 @@ Return only the search phrase.
 
 @app.get("/manifest.json")
 async def manifest():
-    return FileResponse("static/manifest.json")
+    return FileResponse(os.path.join(STATIC_DIR, "manifest.json"))
 
 
 @app.get("/service-worker.js")
 async def service_worker():
-    return FileResponse("static/service-worker.js")
+    return FileResponse(os.path.join(STATIC_DIR, "service-worker.js"))
 
 
 # ---------- LANDING ----------
