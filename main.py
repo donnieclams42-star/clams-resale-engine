@@ -33,7 +33,7 @@ FREE_LIMIT = 10
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# ---------- IMAGE DETECTION (ACCURACY BOOSTED) ----------
+# ---------- IMAGE DETECTION ----------
 
 async def detect_item_from_image(photo: UploadFile):
 
@@ -49,17 +49,10 @@ async def detect_item_from_image(photo: UploadFile):
                 {
                     "type": "input_text",
                     "text": """
-You are identifying resale items for an eBay market analysis tool.
-
-Return the BEST SHORT eBay search phrase.
-
-Rules:
-- Only return the product search phrase
-- Include brand and model if visible
-- Electronics: include model + storage if visible
-- Tools: include brand and product line
-- Do not describe the photo
-- Do not add extra words
+Return the best short resale search phrase.
+Include brand and model if visible.
+Do not describe the image.
+Return only the search phrase.
 """
                 },
                 {
@@ -90,25 +83,50 @@ async def service_worker():
     return FileResponse("static/service-worker.js")
 
 
-# ---------- ROUTES ----------
-
+# ---------- LANDING ----------
 
 @app.get("/", response_class=HTMLResponse)
 async def landing(request: Request):
-    return templates.TemplateResponse("landing.html", {"request": request})
 
+    email = request.cookies.get("clams_user")
+
+    if email:
+        return RedirectResponse(f"/app?email={email}")
+
+    return templates.TemplateResponse(
+        "landing.html",
+        {"request": request}
+    )
+
+
+# ---------- LOGIN PAGE ----------
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+
+    email = request.cookies.get("clams_user")
+
+    if email:
+        return RedirectResponse(f"/app?email={email}")
+
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request}
+    )
 
 
-# ---------- SIGNUP ROUTES (ADDED) ----------
+# ---------- SIGNUP PAGE ----------
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
 
+    return templates.TemplateResponse(
+        "signup.html",
+        {"request": request}
+    )
+
+
+# ---------- SIGNUP ----------
 
 @app.post("/signup")
 async def signup(
@@ -129,7 +147,17 @@ async def signup(
         "search_count": 0
     }
 
-    return RedirectResponse(f"/app?email={email}", status_code=303)
+    response = RedirectResponse(f"/app?email={email}", status_code=303)
+
+    response.set_cookie(
+        key="clams_user",
+        value=email,
+        max_age=60 * 60 * 24 * 30,
+        httponly=True,
+        samesite="lax"
+    )
+
+    return response
 
 
 # ---------- LOGIN ----------
@@ -154,11 +182,28 @@ async def login(
     if users[email]["password"] != password:
         return {"error": "Incorrect password"}
 
-    return RedirectResponse(f"/app?email={email}", status_code=303)
+    response = RedirectResponse(f"/app?email={email}", status_code=303)
 
+    response.set_cookie(
+        key="clams_user",
+        value=email,
+        max_age=60 * 60 * 24 * 30,
+        httponly=True,
+        samesite="lax"
+    )
+
+    return response
+
+
+# ---------- APP PAGE ----------
 
 @app.get("/app", response_class=HTMLResponse)
 async def app_page(request: Request, email: str = ""):
+
+    cookie_user = request.cookies.get("clams_user")
+
+    if not email and cookie_user:
+        email = cookie_user
 
     user = users.get(email, {})
 
@@ -175,6 +220,8 @@ async def app_page(request: Request, email: str = ""):
     )
 
 
+# ---------- ANALYZE ----------
+
 @app.post("/app", response_class=HTMLResponse)
 async def analyze(
     request: Request,
@@ -188,14 +235,17 @@ async def analyze(
     photo: UploadFile = File(None)
 ):
 
+    cookie_user = request.cookies.get("clams_user")
+
+    if not email and cookie_user:
+        email = cookie_user
+
     user = users.get(email, {})
 
     if email in users:
         users[email]["search_count"] += 1
 
-    # ---------- IMAGE SEARCH ----------
     if photo and not query:
-
         try:
             query = await detect_item_from_image(photo)
         except Exception as e:
@@ -253,8 +303,15 @@ async def analyze(
     )
 
 
+# ---------- ACCOUNT ----------
+
 @app.get("/account", response_class=HTMLResponse)
 async def account_page(request: Request, email: str = ""):
+
+    cookie_user = request.cookies.get("clams_user")
+
+    if not email and cookie_user:
+        email = cookie_user
 
     user = users.get(email, {})
 
