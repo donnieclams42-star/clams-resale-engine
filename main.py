@@ -103,6 +103,37 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 
+# ---------- SIGNUP ROUTES (ADDED) ----------
+
+@app.get("/signup", response_class=HTMLResponse)
+async def signup_page(request: Request):
+    return templates.TemplateResponse("signup.html", {"request": request})
+
+
+@app.post("/signup")
+async def signup(
+    email: str = Form(...),
+    password: str = Form(...),
+    invite: str = Form(...)
+):
+
+    if invite != INVITE_CODE:
+        return {"error": "Invalid invite code"}
+
+    if email in users:
+        return {"error": "Account already exists"}
+
+    users[email] = {
+        "password": password,
+        "membership": "PRO",
+        "search_count": 0
+    }
+
+    return RedirectResponse(f"/app?email={email}", status_code=303)
+
+
+# ---------- LOGIN ----------
+
 @app.post("/login")
 async def login(
     email: str = Form(...),
