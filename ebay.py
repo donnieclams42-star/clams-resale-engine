@@ -1,276 +1,143 @@
 import os
-import time
-import json
-import sqlite3
 import requests
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
 
-EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
-EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
+CLIENT_ID = os.getenv("EBAY_CLIENT_ID")
+CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET")
 
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 
-ACCESS_TOKEN = None
-TOKEN_EXPIRES = 0
-
-# ===== RATE LIMIT PROTECTION =====
-LAST_CALL = 0
-MIN_DELAY = 2
-
-# ===== CACHE DATABASE =====
-DB_FILE = "market_cache.db"
-CACHE_TTL = 1800
-
-
-def init_cache():
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS market_cache (
-        query TEXT PRIMARY KEY,
-        sold_prices TEXT,
-        items TEXT,
-        timestamp REAL
-    )
-    """)
-
-    conn.commit()
-    conn.close()
-
-
-def get_cache(query):
-
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-
-    cur.execute(
-        "SELECT sold_prices, items, timestamp FROM market_cache WHERE query=?",
-        (query,)
-    )
-
-    row = cur.fetchone()
-    conn.close()
-
-    if not row:
-        return None
-
-    sold_prices, items, ts = row
-
-    if time.time() - ts > CACHE_TTL:
-        return None
-
-    return {
-        "sold_prices": json.loads(sold_prices),
-        "active_prices": [],
-        "items": json.loads(items),
-        "error": None
-    }
-
-
-def save_cache(query, sold_prices, items):
-
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-
-    cur.execute("""
-    INSERT OR REPLACE INTO market_cache
-    (query, sold_prices, items, timestamp)
-    VALUES (?, ?, ?, ?)
-    """, (
-        query,
-        json.dumps(sold_prices),
-        json.dumps(items),
-        time.time()
-    ))
-
-    conn.commit()
-    conn.close()
-
-
-def rate_limit():
-
-    global LAST_CALL
-
-    now = time.time()
-    wait = MIN_DELAY - (now - LAST_CALL)
-
-    if wait > 0:
-        time.sleep(wait)
-
-    LAST_CALL = time.time()
-
 
 def get_token():
 
-    global ACCESS_TOKEN
-    global TOKEN_EXPIRES
-
-    if ACCESS_TOKEN and time.time() < TOKEN_EXPIRES:
-        return ACCESS_TOKEN
-
-    try:
-
-        r = requests.post(
-            TOKEN_URL,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data={
-                "grant_type": "client_credentials",
-                "scope": "https://api.ebay.com/oauth/api_scope",
-            },
-            auth=(EBAY_CLIENT_ID, EBAY_CLIENT_SECRET),
-            timeout=20,
-        )
-
-        data = r.json()
-
-        ACCESS_TOKEN = data.get("access_token")
-
-        if not ACCESS_TOKEN:
-            print("TOKEN ERROR:", data)
-            return None
-
-        TOKEN_EXPIRES = time.time() + data.get("expires_in", 7200) - 60
-
-        print("EBAY TOKEN OK")
-
-        return ACCESS_TOKEN
-
-    except Exception as e:
-
-        print("TOKEN REQUEST FAILED:", e)
-        return None
-
-
-def extract_price(item):
-
-    try:
-        return float(item["price"]["value"])
-    except:
-        pass
-
-    try:
-        return float(item["currentBidPrice"]["value"])
-    except:
-        pass
-
-    try:
-        return float(item["discountedPrice"]["value"])
-    except:
-        pass
-
-    return None
-
-
-def empty_result(msg=None):
-
-    return {
-        "sold_prices": [],
-        "active_prices": [],
-        "items": [],
-        "error": msg
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
     }
 
+    data = {
+        "grant_type": "client_credentials",
+        "scope": "https://api.ebay.com/oauth/api_scope"
+    }
 
-def get_market_data(query):
+    r = requests.post(
+        TOKEN_URL,
+        headers=headers,
+        data=data,
+        auth=(CLIENT_ID, CLIENT_SECRET)
+    )
 
-    query = (query or "").strip().lower()
+    if r.status_code != 200:
+        print("Token request failed")
+        return None
 
-    if not query:
-        return empty_result()
+    return r.json()["access_token"]
 
-    # ===== CHECK CACHE FIRST =====
-    cached = get_cache(query)
-    if cached:
-        print("CACHE HIT:", query)
-        return cached
 
-    token = get_token()
+def clean_query(query):
 
-    if not token:
-        return empty_result("Token failure")
+    query = query.lower()
+    query = re.sub(r"[^a-z0-9 ]", "", query)
 
-    rate_limit()
+    return query.strip()
+
+
+def run_search(query, token):
 
     headers = {
-        "Authorization": f"Bearer {token}",
-        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
-        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
     }
 
     params = {
         "q": query,
-        "limit": 50
+        "limit": 50,
+        "filter": "buyingOptions:{FIXED_PRICE}"
     }
 
-    try:
+    r = requests.get(SEARCH_URL, headers=headers, params=params)
 
-        r = requests.get(
-            SEARCH_URL,
-            headers=headers,
-            params=params,
-            timeout=20
-        )
+    if r.status_code != 200:
+        return [], []
 
-        print("EBAY STATUS:", r.status_code)
+    items = r.json().get("itemSummaries", [])
 
-        if r.status_code == 429:
+    prices = []
+    titles = []
 
-            print("RATE LIMITED — waiting 5 seconds")
-            time.sleep(5)
+    for item in items:
+        try:
+            price = float(item["price"]["value"])
+            prices.append(price)
 
-            r = requests.get(
-                SEARCH_URL,
-                headers=headers,
-                params=params,
-                timeout=20
-            )
+            title = item.get("title", "")
+            titles.append(title)
 
-        data = r.json()
+        except:
+            pass
 
-        items = data.get("itemSummaries", [])
-
-        print("EBAY ITEMS RETURNED:", len(items))
-
-        sold_prices = []
-        item_list = []
-
-        for item in items:
-
-            price = extract_price(item)
-
-            if price is None:
-                continue
-
-            sold_prices.append(price)
-
-            item_list.append(
-                {
-                    "title": item.get("title"),
-                    "price": price,
-                    "image": item.get("image", {}).get("imageUrl"),
-                    "link": item.get("itemWebUrl"),
-                }
-            )
-
-        save_cache(query, sold_prices, item_list)
-
-        return {
-            "sold_prices": sold_prices,
-            "active_prices": [],
-            "items": item_list,
-            "error": None
-        }
-
-    except Exception as e:
-
-        print("SEARCH FAILED:", e)
-
-        return empty_result(str(e))
+    return prices, titles
 
 
-# initialize database automatically
-init_cache()
+def generate_suggestions(titles):
+
+    suggestions = set()
+
+    for title in titles[:15]:
+
+        words = title.lower().split()
+
+        if len(words) >= 2:
+            suggestions.add(" ".join(words[:2]))
+
+        if len(words) >= 3:
+            suggestions.add(" ".join(words[:3]))
+
+    return list(suggestions)[:5]
+
+
+def search_ebay(query):
+
+    token = get_token()
+
+    if not token:
+        print("No eBay token found")
+        return [], [], []
+
+    query = clean_query(query)
+
+    prices, titles = run_search(query, token)
+
+    if prices:
+        suggestions = generate_suggestions(titles)
+        return prices, prices, suggestions
+
+    print("Primary search empty — trying fallback")
+
+    words = query.split()
+
+    if len(words) > 2:
+
+        relaxed = " ".join(words[:2])
+
+        prices, titles = run_search(relaxed, token)
+
+        if prices:
+            suggestions = generate_suggestions(titles)
+            return prices, prices, suggestions
+
+    if len(words) > 1:
+
+        relaxed = words[0]
+
+        prices, titles = run_search(relaxed, token)
+
+        if prices:
+            suggestions = generate_suggestions(titles)
+            return prices, prices, suggestions
+
+    print("No results after fallback")
+
+    return [], [], []

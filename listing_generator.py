@@ -1,59 +1,30 @@
-def clean_title(query: str) -> str:
-    query = (query or "").strip()
-    if not query:
-        return "Item"
-    return " ".join(word.capitalize() for word in query.split())
+def generate_listings(item, condition, fast_cash_price, market_price):
 
+    facebook = {
+        "title": f"{item} - {condition}",
+        "price": round(fast_cash_price, 2),
+        "description": f"""{item}
 
-def clean_condition(condition: str) -> str:
-    condition_map = {
-        "A": "Excellent",
-        "B": "Good",
-        "C": "Fair",
-        "Parts": "For Parts / Repair",
-    }
-    return condition_map.get(condition, condition or "Used")
+Condition: {condition}
 
-
-def fb_listing(query: str, condition: str, price: float) -> dict:
-    base_title = clean_title(query)
-    condition_text = clean_condition(condition)
-
-    title = f"{base_title} - {condition_text}"
-
-    description = (
-        f"{base_title}\n\n"
-        f"Condition: {condition_text}\n\n"
-        f"Fully tested and working.\n"
-        f"Pickup available.\n"
-        f"Shipping available."
-    )
-
-    return {
-        "platform": "Facebook Marketplace",
-        "title": title[:100],
-        "price": round(float(price), 2),
-        "description": description.strip(),
+Fully tested and working.
+Pickup available.
+Shipping available."""
     }
 
+    ebay = {
+        "title": f"{item} | {condition} | Tested",
+        "price": round(market_price, 2),
+        "description": f"""{item}
 
-def ebay_listing(query: str, condition: str, price: float) -> dict:
-    base_title = clean_title(query)
-    condition_text = clean_condition(condition)
+Condition: {condition}
 
-    title = f"{base_title} | {condition_text} | Tested"
-
-    description = (
-        f"{base_title}\n\n"
-        f"Condition: {condition_text}\n\n"
-        f"Tested and fully functional.\n"
-        f"Ships fast.\n"
-        f"Shipping available."
-    )
+Tested and fully functional.
+Ships fast.
+Shipping available."""
+    }
 
     return {
-        "platform": "eBay",
-        "title": title[:80],
-        "price": round(float(price), 2),
-        "description": description.strip(),
+        "facebook": facebook,
+        "ebay": ebay
     }

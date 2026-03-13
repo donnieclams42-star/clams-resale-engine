@@ -1,192 +1,221 @@
+<!DOCTYPE html>
 <html>
+
 <head>
-
+<title>CLAMS Market Analyzer</title>
 <link rel="stylesheet" href="/static/styles.css">
-
-<style>
-
-.container{
-max-width:900px;
-margin:auto;
-padding:20px;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:15px;
-margin-top:20px;
-}
-
-.card{
-background:#f5f5f5;
-padding:15px;
-border-radius:8px;
-text-align:center;
-}
-
-.signals{
-margin-top:25px;
-font-size:16px;
-}
-
-.tooltip{
-position:relative;
-display:inline-block;
-cursor:help;
-}
-
-.tooltip .tooltiptext{
-visibility:hidden;
-width:220px;
-background:#333;
-color:#fff;
-text-align:center;
-padding:6px;
-border-radius:6px;
-
-position:absolute;
-z-index:10;
-bottom:125%;
-left:50%;
-margin-left:-110px;
-
-opacity:0;
-transition:opacity .2s;
-font-size:13px;
-}
-
-.tooltip:hover .tooltiptext{
-visibility:visible;
-opacity:1;
-}
-
-.score-meter{
-margin-top:20px;
-padding:10px;
-border-radius:6px;
-font-weight:bold;
-text-align:center;
-}
-
-.score-steal{background:#1f8b4c;color:white;}
-.score-good{background:#2b6cb0;color:white;}
-.score-risk{background:#b7791f;color:white;}
-.score-pass{background:#a53030;color:white;}
-
-</style>
-
 </head>
 
 <body>
 
-<div class="container">
+<div class="navbar">
 
-<h1>CLAMS Resale Engine</h1>
+<div class="nav-title">CLAMS</div>
 
-<form method="post">
+<div class="nav-links">
+<a href="/app">Analyzer</a>
+<a href="#">Radar</a>
+<a href="#">Listings</a>
+<a href="#">Account</a>
+</div>
 
-<input name="query" placeholder="Search item..." required>
+</div>
 
-<button>Analyze</button>
+<div class="app-container">
+
+<h1>Market Analyzer</h1>
+
+<form method="post" action="/app">
+
+<div class="search-bar">
+
+<input type="text" name="query" placeholder="Search item (ex: iPhone 12)" required>
+
+<select name="condition">
+<option value="A">A - Excellent</option>
+<option value="B">B - Good</option>
+<option value="C">C - Fair</option>
+<option value="P">Parts</option>
+</select>
+
+<input type="number" name="profit" value="40">
+
+<input type="number" name="local_factor" value="80">
+
+<input type="number" name="asking_price" placeholder="Asking Price">
+
+<button type="submit">Analyze</button>
+
+</div>
 
 </form>
 
+{% if suggestions %}
+
+<div class="suggestions">
+
+<p>Did you mean:</p>
+
+{% for s in suggestions %}
+
+<form method="post" action="/app" style="display:inline;">
+
+<input type="hidden" name="query" value="{{s}}">
+<input type="hidden" name="condition" value="A">
+<input type="hidden" name="profit" value="40">
+<input type="hidden" name="local_factor" value="80">
+
+<button class="suggest-btn">{{s}}</button>
+
+</form>
+
+{% endfor %}
+
+</div>
+
+{% endif %}
+
 {% if data %}
 
-{% if data.buy_score %}
+<h2>Market Results</h2>
 
-{% if data.buy_score >= 85 %}
-<div class="score-meter score-steal">
-🔥 STEAL DEAL — Score {{data.buy_score}}
-</div>
+<div class="pricing-grid">
 
-{% elif data.buy_score >= 70 %}
-<div class="score-meter score-good">
-👍 GOOD BUY — Score {{data.buy_score}}
-</div>
-
-{% elif data.buy_score >= 55 %}
-<div class="score-meter score-risk">
-⚠️ RISKY BUY — Score {{data.buy_score}}
-</div>
-
-{% else %}
-<div class="score-meter score-pass">
-❌ PASS — Score {{data.buy_score}}
-</div>
-
-{% endif %}
-{% endif %}
-
-<div class="grid">
-
-<div class="card">
-<h3 class="tooltip">Sell Target
-<span class="tooltiptext">
-Estimated realistic resale price based on recent sold listings.
-</span>
-</h3>
-<p>${{data.sell_target}}</p>
-</div>
-
-<div class="card">
-<h3 class="tooltip">Max Buy
-<span class="tooltiptext">
-Maximum price you should pay while maintaining your target profit margin.
-</span>
-</h3>
-<p>${{data.max_buy}}</p>
-</div>
-
-<div class="card">
-<h3 class="tooltip">Fast Cash
-<span class="tooltiptext">
-Aggressive price designed to sell quickly for fast local cash.
-</span>
-</h3>
+<div class="price-card fast">
+<h3>FAST CASH</h3>
 <p>${{data.fast_cash}}</p>
 </div>
 
-<div class="card">
-<h3 class="tooltip">Hold Price
-<span class="tooltiptext">
-Higher profit price if you are willing to wait longer for a buyer.
-</span>
-</h3>
+<div class="price-card market">
+<h3>MARKET PRICE</h3>
+<p>${{data.market_price}}</p>
+</div>
+
+<div class="price-card hold">
+<h3>HOLD PRICE</h3>
 <p>${{data.hold_price}}</p>
 </div>
 
 </div>
 
-<div class="signals">
-
-<p class="tooltip">
-Liquidity: {{data.liquidity_label}}
-<span class="tooltiptext">
-Measures how quickly items sell compared to how many are listed.
-</span>
+<p class="deal-score">
+Deal Score: {{data.deal_score}}% — {{data.deal_decision}}
 </p>
 
-<p class="tooltip">
-Risk: {{data.risk_level}}
-<span class="tooltiptext">
-Reflects volatility in sold listing prices.
-</span>
+<button onclick="toggleAdvanced()">Advanced Market Intelligence</button>
+
+<div id="advancedPanel" class="advanced-panel">
+
+<div class="advanced-grid">
+
+<div class="advanced-card">
+<h4>Market Health</h4>
+<p>Demand: {{data.demand}}</p>
+<p>Liquidity: {{data.liquidity}}</p>
+<p>Sell Through: {{data.sell_through}}%</p>
+</div>
+
+<div class="advanced-card">
+<h4>Price Behavior</h4>
+<p>Volatility: {{data.volatility}}</p>
+<p>Price Deviation: ${{data.volatility_value}}</p>
+</div>
+
+<div class="advanced-card">
+<h4>Market Comps</h4>
+<p>Sold Listings: {{data.sold_count}}</p>
+<p>Active Listings: {{data.active_count}}</p>
+<p>Supply Ratio: {{data.supply_ratio}}</p>
+</div>
+
+<div class="advanced-card">
+<h4>Market Distribution</h4>
+<p>Median Price: ${{data.median_price}}</p>
+<p>Quick Flip (P25): ${{data.p25_price}}</p>
+<p>Hold Target (P75): ${{data.p75_price}}</p>
+</div>
+
+</div>
+
+</div>
+
+<h2>Listing Generator</h2>
+
+<div class="listing-box">
+
+<h3>Facebook Marketplace</h3>
+
+<p class="listing-title">
+{{generated_listings.facebook.title}}
 </p>
 
-<p class="tooltip">
-Market: {{data.market_balance}}
-<span class="tooltiptext">
-Compares sold listings to active listings to estimate supply vs demand.
-</span>
+<p>Price: ${{generated_listings.facebook.price}}</p>
+
+<p>
+{{generated_listings.facebook.description}}
 </p>
+
+<button onclick="copyText(`{{generated_listings.facebook.title}}`)">
+Copy Title
+</button>
+
+</div>
+
+<div class="listing-box">
+
+<h3>eBay</h3>
+
+<p class="listing-title">
+{{generated_listings.ebay.title}}
+</p>
+
+<p>Price: ${{generated_listings.ebay.price}}</p>
+
+<p>
+{{generated_listings.ebay.description}}
+</p>
+
+<button onclick="copyText(`{{generated_listings.ebay.title}}`)">
+Copy Title
+</button>
 
 </div>
 
 {% endif %}
 
+<div class="footer">
+CLAMS v1.0 • Market Intelligence for Resellers
 </div>
+
+</div>
+
+<script>
+
+function toggleAdvanced(){
+
+let panel = document.getElementById("advancedPanel")
+
+if(panel.style.display === "none" || panel.style.display === ""){
+
+panel.style.display = "block"
+
+}else{
+
+panel.style.display = "none"
+
+}
+
+}
+
+function copyText(text){
+
+navigator.clipboard.writeText(text)
+
+alert("Copied!")
+
+}
+
+</script>
 
 </body>
 </html>
