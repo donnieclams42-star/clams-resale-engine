@@ -60,25 +60,37 @@ def run_search(query, token):
     r = requests.get(SEARCH_URL, headers=headers, params=params)
 
     if r.status_code != 200:
-        return [], []
+        return [], [], None
 
     items = r.json().get("itemSummaries", [])
 
     prices = []
     titles = []
+    verified_listing = None
 
     for item in items:
-        try:
-            price = float(item["price"]["value"])
-            prices.append(price)
 
+        try:
+
+            price = float(item["price"]["value"])
             title = item.get("title", "")
+
+            prices.append(price)
             titles.append(title)
+
+            if verified_listing is None:
+
+                verified_listing = {
+                    "title": title,
+                    "price": price,
+                    "image": item.get("image", {}).get("imageUrl", ""),
+                    "url": item.get("itemWebUrl", "")
+                }
 
         except:
             pass
 
-    return prices, titles
+    return prices, titles, verified_listing
 
 
 def generate_suggestions(titles):
@@ -103,41 +115,26 @@ def search_ebay(query):
     token = get_token()
 
     if not token:
-        print("No eBay token found")
-        return [], [], []
+        return [], [], [], None
 
     query = clean_query(query)
 
-    prices, titles = run_search(query, token)
+    prices, titles, listing = run_search(query, token)
 
     if prices:
         suggestions = generate_suggestions(titles)
-        return prices, prices, suggestions
-
-    print("Primary search empty — trying fallback")
+        return prices, prices, suggestions, listing
 
     words = query.split()
-
-    if len(words) > 2:
-
-        relaxed = " ".join(words[:2])
-
-        prices, titles = run_search(relaxed, token)
-
-        if prices:
-            suggestions = generate_suggestions(titles)
-            return prices, prices, suggestions
 
     if len(words) > 1:
 
         relaxed = words[0]
 
-        prices, titles = run_search(relaxed, token)
+        prices, titles, listing = run_search(relaxed, token)
 
         if prices:
             suggestions = generate_suggestions(titles)
-            return prices, prices, suggestions
+            return prices, prices, suggestions, listing
 
-    print("No results after fallback")
-
-    return [], [], []
+    return [], [], [], None

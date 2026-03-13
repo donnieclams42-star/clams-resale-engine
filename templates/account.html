@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>CLAMS Account</title>
+<link rel="stylesheet" href="/static/styles.css">
+
+<style>
+
+.account-wrap{
+max-width:1100px;
+margin:auto;
+padding:40px;
+}
+
+.account-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:20px;
+margin-bottom:30px;
+flex-wrap:wrap;
+}
+
+.account-title h1{
+margin:0 0 8px 0;
+}
+
+.account-title p{
+margin:0;
+opacity:.8;
+}
+
+.membership-pill{
+display:inline-block;
+padding:10px 16px;
+border-radius:999px;
+font-size:13px;
+font-weight:800;
+letter-spacing:.4px;
+background:rgba(59,130,246,.18);
+color:#93c5fd;
+border:1px solid rgba(59,130,246,.35);
+}
+
+.account-grid{
+display:grid;
+grid-template-columns:repeat(2, 1fr);
+gap:20px;
+}
+
+.account-card{
+background:#0b244f;
+padding:24px;
+border-radius:14px;
+box-shadow:0 0 10px rgba(0,0,0,.3);
+}
+
+.account-card h3{
+margin-top:0;
+margin-bottom:14px;
+font-size:18px;
+}
+
+.account-row{
+display:flex;
+justify-content:space-between;
+gap:20px;
+padding:10px 0;
+border-bottom:1px solid rgba(255,255,255,.08);
+font-size:14px;
+}
+
+.account-row:last-child{
+border-bottom:none;
+padding-bottom:0;
+}
+
+.account-label{
+opacity:.75;
+}
+
+.account-value{
+font-weight:700;
+text-align:right;
+}
+
+.mode-box{
+margin-top:16px;
+padding:16px;
+border-radius:12px;
+background:rgba(255,255,255,.04);
+border:1px solid rgba(255,255,255,.08);
+}
+
+.mode-box h4{
+margin:0 0 10px 0;
+font-size:15px;
+}
+
+.mode-box p{
+margin:0;
+font-size:14px;
+line-height:1.6;
+opacity:.92;
+}
+
+.feature-list{
+margin:12px 0 0 0;
+padding-left:18px;
+line-height:1.8;
+font-size:14px;
+}
+
+.account-actions{
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:18px;
+}
+
+.secondary-btn{
+background:#1e40af;
+}
+
+.upgrade-box{
+margin-top:16px;
+padding:16px;
+border-radius:12px;
+background:rgba(168,85,247,.12);
+border:1px solid rgba(168,85,247,.28);
+}
+
+.upgrade-box h4{
+margin:0 0 10px 0;
+}
+
+.upgrade-box p{
+margin:0 0 12px 0;
+line-height:1.6;
+font-size:14px;
+opacity:.95;
+}
+
+.note-text{
+margin-top:12px;
+font-size:12px;
+opacity:.65;
+line-height:1.6;
+}
+
+@media (max-width: 900px){
+.account-grid{
+grid-template-columns:1fr;
+}
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+
+<div class="nav-title">CLAMS</div>
+
+<div class="nav-links">
+<a href="/app">Analyzer</a>
+<a href="/account">Account</a>
+</div>
+
+</div>
+
+<div class="account-wrap">
+
+<div class="account-header">
+<div class="account-title">
+<h1>Account Settings</h1>
+<p>Manage your CLAMS membership, AI access, and default analyzer preferences.</p>
+</div>
+
+<div class="membership-pill">
+{{ membership_tier }}
+</div>
+</div>
+
+<div class="account-grid">
+
+<div class="account-card">
+<h3>Account Overview</h3>
+
+<div class="account-row">
+<div class="account-label">User</div>
+<div class="account-value">{{ email }}</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Membership</div>
+<div class="account-value">{{ membership_tier }}</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">AI Access</div>
+<div class="account-value">{{ ai_access }}</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Status</div>
+<div class="account-value">Active</div>
+</div>
+
+<div class="account-actions">
+<a href="/app"><button type="button">Back to Analyzer</button></a>
+<a href="/login"><button type="button" class="secondary-btn">Logout</button></a>
+</div>
+</div>
+
+<div class="account-card">
+<h3>AI Listing Modes</h3>
+
+<div class="mode-box">
+<h4>Assist Mode — Included in Free</h4>
+<p>
+Assist Mode improves your listing workflow using CLAMS defaults.
+It helps with title cleanup, category guidance, and stronger descriptions,
+while keeping the app lightweight for standard users.
+</p>
+<ul class="feature-list">
+<li>Title improvement</li>
+<li>Category suggestion</li>
+<li>Description cleanup</li>
+<li>Template-assisted posting</li>
+</ul>
+</div>
+
+<div class="mode-box">
+<h4>Full Generation — Pro Only</h4>
+<p>
+Full Generation creates a full platform-ready listing package with
+title, price, description, and category recommendations using your paid AI layer.
+This is the premium posting system.
+</p>
+<ul class="feature-list">
+<li>Full AI title generation</li>
+<li>Full AI description generation</li>
+<li>Category recommendation</li>
+<li>Best-platform posting support</li>
+</ul>
+</div>
+</div>
+
+<div class="account-card">
+<h3>Analyzer Defaults</h3>
+
+<div class="account-row">
+<div class="account-label">Default Target Profit %</div>
+<div class="account-value">{{ default_profit }}%</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Default Local Market Factor</div>
+<div class="account-value">{{ default_local_factor }}%</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Default Condition</div>
+<div class="account-value">{{ default_condition }}</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Currency</div>
+<div class="account-value">USD</div>
+</div>
+
+<p class="note-text">
+These are your current CLAMS default settings for the analyzer experience.
+Persistent saving can be wired in next once we attach settings storage.
+</p>
+</div>
+
+<div class="account-card">
+<h3>Posting Defaults</h3>
+
+<div class="account-row">
+<div class="account-label">Default Facebook Posting</div>
+<div class="account-value">Enabled</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Default eBay Posting</div>
+<div class="account-value">Enabled</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Shipping Available</div>
+<div class="account-value">Enabled</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Preferred AI Mode</div>
+<div class="account-value">{{ preferred_ai_mode }}</div>
+</div>
+
+<div class="upgrade-box">
+<h4>Upgrade Path</h4>
+<p>
+Free users get Assist Mode. Pro members unlock Full Generation for
+complete AI-written listing output with title, price, description, and category support.
+</p>
+<button type="button">Upgrade to Pro</button>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</body>
+</html>

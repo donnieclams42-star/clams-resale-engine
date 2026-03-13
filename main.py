@@ -1,11 +1,18 @@
-from fastapi import FastAPI, Request, Form
+from typing import List, Optional
+
+from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from ebay import search_ebay
-from pricing import analyze_market
+from market_analysis import analyze_market
 from listing_generator import generate_listings
+
+from openai import OpenAI
+import base64
+import os
+
 
 app = FastAPI()
 
@@ -16,6 +23,79 @@ templates = Jinja2Templates(directory="templates")
 users = {}
 
 INVITE_CODE = "betatesting123"
+
+BETA_MODE = True
+FREE_LIMIT = 10
+
+
+# ---------- OPENAI CLIENT ----------
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+# ---------- IMAGE DETECTION (ACCURACY BOOSTED) ----------
+
+async def detect_item_from_image(photo: UploadFile):
+
+    image_bytes = await photo.read()
+
+    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    response = client.responses.create(
+        model="gpt-4.1",  # stronger vision model
+        input=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": """
+You are identifying resale items for an eBay market analysis tool.
+
+Look carefully at the product in the image and return the BEST SHORT eBay search phrase.
+
+Rules:
+- Return ONLY the product search phrase
+- Include brand and model if visible
+- Electronics: include model and storage if visible
+- Tools: include brand and product line
+- Collectibles: include item name
+- DO NOT describe the photo
+- DO NOT add extra text
+- DO NOT explain anything
+- Output should be something a reseller would type into eBay search
+
+Examples:
+
+Image: Milwaukee drill
+Output: Milwaukee M18 Fuel Drill
+
+Image: iPhone
+Output: Apple iPhone 12 128GB
+
+Image: Nintendo controller
+Output: Nintendo GameCube Controller
+
+Image: Bosch radio
+Output: Bosch Jobsite Radio
+"""
+                },
+                {
+                    "type": "input_image",
+                    "image_url": f"data:image/jpeg;base64,{image_b64}"
+                }
+            ]
+        }]
+    )
+
+    try:
+        detected = response.output_text.strip()
+    except:
+        detected = ""
+
+    return detected
+
+
+# ---------- ROUTES ----------
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -39,43 +119,32 @@ async def login(
         return {"error": "Invalid invite code"}
 
     if email not in users:
-        users[email] = {"password": password}
+        users[email] = {
+            "password": password,
+            "membership": "PRO",
+            "search_count": 0
+        }
 
     if users[email]["password"] != password:
         return {"error": "Incorrect password"}
 
-    return RedirectResponse("/app", status_code=303)
-
-
-@app.get("/signup", response_class=HTMLResponse)
-async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
-
-
-@app.post("/signup")
-async def signup(
-    email: str = Form(...),
-    password: str = Form(...),
-    invite: str = Form(...)
-):
-
-    if invite != INVITE_CODE:
-        return {"error": "Invalid invite code"}
-
-    users[email] = {"password": password}
-
-    return RedirectResponse("/login", status_code=303)
+    return RedirectResponse(f"/app?email={email}", status_code=303)
 
 
 @app.get("/app", response_class=HTMLResponse)
-async def app_page(request: Request):
+async def app_page(request: Request, email: str = ""):
+
+    user = users.get(email, {})
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
             "data": None,
             "generated_listings": None,
-            "suggestions": []
+            "listing": None,
+            "email": email,
+            "search_count": user.get("search_count", 0)
         },
     )
 
@@ -83,14 +152,52 @@ async def app_page(request: Request):
 @app.post("/app", response_class=HTMLResponse)
 async def analyze(
     request: Request,
-    query: str = Form(...),
+    query: str = Form(""),
     condition: str = Form(...),
     profit: float = Form(...),
     local_factor: float = Form(...),
-    asking_price: float = Form(None)
+    asking_price: Optional[float] = Form(None),
+    email: str = Form(""),
+    platforms: Optional[List[str]] = Form(None),
+    photo: UploadFile = File(None)
 ):
 
-    sold_prices, active_prices, suggestions = search_ebay(query)
+    user = users.get(email, {})
+
+    if email in users:
+        users[email]["search_count"] += 1
+
+
+    # ---------- IMAGE SEARCH ----------
+    if photo and not query:
+
+        try:
+            query = await detect_item_from_image(photo)
+        except Exception as e:
+            print("Image detection failed:", e)
+
+
+    if not query:
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {
+                "request": request,
+                "data": None,
+                "generated_listings": None,
+                "listing": None,
+                "email": email,
+                "search_count": user.get("search_count", 0),
+                "error": "No search query detected"
+            },
+        )
+
+
+    if not platforms:
+        platforms = ["facebook", "ebay"]
+
+
+    sold_prices, active_prices, suggestions, listing = search_ebay(query)
+
 
     data = analyze_market(
         sold_prices,
@@ -98,10 +205,12 @@ async def analyze(
         condition,
         profit / 100,
         local_factor / 100,
-        asking_price,
+        asking_price
     )
 
+
     generated_listings = None
+
 
     if data:
         generated_listings = generate_listings(
@@ -109,7 +218,9 @@ async def analyze(
             condition,
             data["fast_cash"],
             data["market_price"],
+            platforms
         )
+
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -117,6 +228,23 @@ async def analyze(
             "request": request,
             "data": data,
             "generated_listings": generated_listings,
-            "suggestions": suggestions,
+            "listing": listing,
+            "email": email,
+            "search_count": user.get("search_count", 0)
         },
+    )
+
+
+@app.get("/account", response_class=HTMLResponse)
+async def account_page(request: Request, email: str = ""):
+
+    user = users.get(email, {})
+
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "email": email,
+            "user": user
+        }
     )
