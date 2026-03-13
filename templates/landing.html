@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/static/styles.css">
 
 <!-- PWA Manifest -->
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="/static/manifest.json">
 
 <!-- Theme Color -->
 <meta name="theme-color" content="#0c0f1a">
@@ -21,7 +21,7 @@
 <meta name="apple-mobile-web-app-title" content="Market Radar">
 
 <!-- App Icons -->
-<link rel="apple-touch-icon" href="/static/icon-512.png">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
 <link rel="icon" type="image/png" href="/static/icon-192.png">
 
 </head>
@@ -59,7 +59,7 @@ if ("serviceWorker" in navigator) {
 
 window.addEventListener("load", function() {
 
-navigator.serviceWorker.register("/service-worker.js")
+navigator.serviceWorker.register("/static/service-worker.js")
 .then(function(registration) {
 
 console.log("Service Worker registered:", registration.scope);
