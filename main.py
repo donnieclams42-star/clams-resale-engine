@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from fastapi import FastAPI, Request, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -42,7 +42,7 @@ async def detect_item_from_image(photo: UploadFile):
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
     response = client.responses.create(
-        model="gpt-4.1",  # stronger vision model
+        model="gpt-4.1",
         input=[{
             "role": "user",
             "content": [
@@ -51,32 +51,15 @@ async def detect_item_from_image(photo: UploadFile):
                     "text": """
 You are identifying resale items for an eBay market analysis tool.
 
-Look carefully at the product in the image and return the BEST SHORT eBay search phrase.
+Return the BEST SHORT eBay search phrase.
 
 Rules:
-- Return ONLY the product search phrase
+- Only return the product search phrase
 - Include brand and model if visible
-- Electronics: include model and storage if visible
+- Electronics: include model + storage if visible
 - Tools: include brand and product line
-- Collectibles: include item name
-- DO NOT describe the photo
-- DO NOT add extra text
-- DO NOT explain anything
-- Output should be something a reseller would type into eBay search
-
-Examples:
-
-Image: Milwaukee drill
-Output: Milwaukee M18 Fuel Drill
-
-Image: iPhone
-Output: Apple iPhone 12 128GB
-
-Image: Nintendo controller
-Output: Nintendo GameCube Controller
-
-Image: Bosch radio
-Output: Bosch Jobsite Radio
+- Do not describe the photo
+- Do not add extra words
 """
                 },
                 {
@@ -93,6 +76,18 @@ Output: Bosch Jobsite Radio
         detected = ""
 
     return detected
+
+
+# ---------- PWA ROUTES ----------
+
+@app.get("/manifest.json")
+async def manifest():
+    return FileResponse("static/manifest.json")
+
+
+@app.get("/service-worker.js")
+async def service_worker():
+    return FileResponse("static/service-worker.js")
 
 
 # ---------- ROUTES ----------
@@ -167,7 +162,6 @@ async def analyze(
     if email in users:
         users[email]["search_count"] += 1
 
-
     # ---------- IMAGE SEARCH ----------
     if photo and not query:
 
@@ -175,7 +169,6 @@ async def analyze(
             query = await detect_item_from_image(photo)
         except Exception as e:
             print("Image detection failed:", e)
-
 
     if not query:
         return templates.TemplateResponse(
@@ -191,13 +184,10 @@ async def analyze(
             },
         )
 
-
     if not platforms:
         platforms = ["facebook", "ebay"]
 
-
     sold_prices, active_prices, suggestions, listing = search_ebay(query)
-
 
     data = analyze_market(
         sold_prices,
@@ -208,9 +198,7 @@ async def analyze(
         asking_price
     )
 
-
     generated_listings = None
-
 
     if data:
         generated_listings = generate_listings(
@@ -220,7 +208,6 @@ async def analyze(
             data["market_price"],
             platforms
         )
-
 
     return templates.TemplateResponse(
         "dashboard.html",

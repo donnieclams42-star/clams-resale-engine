@@ -3,7 +3,7 @@
 
 <head>
 
-<title>CLAMS Market Analyzer</title>
+<title>Market Radar | CLAMS Intelligence</title>
 <link rel="stylesheet" href="/static/styles.css">
 
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
@@ -29,8 +29,27 @@ border-bottom:1px solid #1e293b;
 }
 
 .logo{
+display:flex;
+flex-direction:column;
+line-height:1.2;
+}
+
+.logo-main{
 font-size:20px;
 font-weight:bold;
+}
+
+.logo-sub{
+font-size:12px;
+opacity:.72;
+margin-top:2px;
+}
+
+.logo-quote{
+font-size:11px;
+opacity:.55;
+font-style:italic;
+margin-top:3px;
 }
 
 .nav-links a{
@@ -242,7 +261,9 @@ scanner.style.display="none"
 <div class="header">
 
 <div class="logo">
-CLAMS Engine
+<div class="logo-main">Market Radar</div>
+<div class="logo-sub">Powered by CLAMS Intelligence</div>
+<div class="logo-quote">See opportunity before the market does.</div>
 </div>
 
 <div class="nav-links">
