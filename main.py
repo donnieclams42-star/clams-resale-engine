@@ -59,6 +59,7 @@ def build_default_settings():
 
 
 def ensure_user_settings(user: dict):
+
     if "settings" not in user or not isinstance(user["settings"], dict):
         user["settings"] = build_default_settings()
 
@@ -80,6 +81,7 @@ def ensure_user_settings(user: dict):
 
 
 def ensure_user_exists(email: str):
+
     if email not in users:
         users[email] = {
             "password": "",
@@ -87,7 +89,9 @@ def ensure_user_exists(email: str):
             "search_count": 0,
             "settings": build_default_settings()
         }
+
     ensure_user_settings(users[email])
+
     return users[email]
 
 
@@ -106,24 +110,32 @@ async def detect_item_from_image(photo: UploadFile):
 
     response = client.responses.create(
         model="gpt-4.1",
-        input=[{
-            "role": "user",
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": """
-Return the best short resale search phrase.
-Include brand and model if visible.
-Do not describe the image.
+        input=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": """
+Identify the product in this image.
+
+Return a short resale search phrase including brand and model if visible.
+
+Examples:
+Apple iPhone 12
+Sony PlayStation 4 console
+Milwaukee M18 cordless drill
+
 Return only the search phrase.
 """
-                },
-                {
-                    "type": "input_image",
-                    "image_url": f"data:image/jpeg;base64,{image_b64}"
-                }
-            ]
-        }]
+                    },
+                    {
+                        "type": "input_image",
+                        "image_url": f"data:image/jpeg;base64,{image_b64}"
+                    }
+                ]
+            }
+        ]
     )
 
     try:
@@ -311,9 +323,15 @@ async def analyze(
 
     user["search_count"] += 1
 
-    if photo and not query:
+    # ---------- IMAGE AI ALWAYS RUNS IF PHOTO EXISTS ----------
+
+    if photo:
         try:
-            query = await detect_item_from_image(photo)
+            detected = await detect_item_from_image(photo)
+
+            if detected:
+                query = detected
+
         except Exception as e:
             print("Image detection failed:", e)
 
