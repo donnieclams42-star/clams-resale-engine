@@ -99,14 +99,21 @@ h1{
 margin-bottom:25px;
 }
 
-/* SEARCH / ANALYZER ROW */
+/* ----------------------------- */
+/* ANALYZER ROW (FIXED VERSION) */
+/* ----------------------------- */
 
 .search-bar{
-display:flex;
+display:flex !important;
+flex-wrap:wrap !important;
 gap:10px;
-flex-wrap:wrap;
 margin-bottom:25px;
 align-items:flex-end;
+}
+
+.search-bar .form-group{
+flex:1 1 180px;
+min-width:160px;
 }
 
 .search-bar input,
@@ -117,10 +124,17 @@ border:none;
 font-size:14px;
 background:#ffffff;
 color:#111;
+width:100%;
+box-sizing:border-box;
 }
 
 .search-bar input[type="text"]{
-width:280px;
+min-width:240px;
+}
+
+.search-bar button{
+height:40px;
+padding:0 16px;
 }
 
 /* PRICE GRID */
@@ -254,10 +268,8 @@ font-size:13px;
 padding:18px;
 }
 
-/* FORCE ANALYZER CONTROLS STACK */
-
 .search-bar{
-flex-direction:column;
+flex-direction:column !important;
 align-items:stretch;
 }
 
@@ -268,20 +280,14 @@ font-size:16px;
 padding:12px;
 }
 
-/* BUTTON FULL WIDTH */
-
 .search-bar button{
 width:100%;
 margin-top:5px;
 }
 
-/* STACK PRICE CARDS */
-
 .pricing-grid{
 grid-template-columns:1fr;
 }
-
-/* STACK ADVANCED GRID */
 
 .advanced-grid{
 grid-template-columns:1fr;
@@ -289,9 +295,7 @@ grid-template-columns:1fr;
 
 }
 
-/* ---------------- */
 /* SMALL PHONE FIX */
-/* ---------------- */
 
 @media (max-width:480px){
 
