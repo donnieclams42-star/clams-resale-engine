@@ -8,22 +8,22 @@
 .account-wrap{
 max-width:1100px;
 margin:auto;
-padding:30px 20px 110px;
+padding:30px 25px 110px;
 }
 .account-header{
 display:flex;
 justify-content:space-between;
-align-items:center;
-gap:20px;
+align-items:flex-start;
+gap:16px;
 margin-bottom:24px;
-flex-wrap:wrap;
 }
 .account-title h1{
 margin:0 0 8px 0;
 }
 .account-title p{
 margin:0;
-opacity:.8;
+opacity:.82;
+line-height:1.6;
 }
 .membership-pill{
 display:inline-block;
@@ -149,11 +149,13 @@ grid-template-columns:1fr;
 .account-wrap{
 padding:24px 16px 95px;
 }
+.account-header{
+flex-direction:column;
+}
 }
 </style>
 </head>
 <body>
-
 <div class="header">
     <div class="logo">
         <div class="logo-main">Market Radar</div>
@@ -169,20 +171,22 @@ padding:24px 16px 95px;
 </div>
 
 <div class="account-wrap">
-
     <div class="account-header">
         <div class="account-title">
             <h1>Account</h1>
             <p>Membership, access, and launch-day billing controls all live here now.</p>
         </div>
-
-        <div class="membership-pill">
-            {{ membership_tier }}
-        </div>
+        <div class="membership-pill">{{ membership_tier }}</div>
     </div>
 
-    <div class="account-grid">
+    {% if error %}
+    <div class="error-box">{{ error }}</div>
+    {% endif %}
+    {% if notice %}
+    <div class="success-box">{{ notice }}</div>
+    {% endif %}
 
+    <div class="account-grid">
         <div class="account-card">
             <h3>Account Overview</h3>
 
@@ -199,6 +203,17 @@ padding:24px 16px 95px;
             <div class="account-row">
                 <div class="account-label">AI Access</div>
                 <div class="account-value">{{ ai_access }}</div>
+            </div>
+
+            <div class="account-row">
+                <div class="account-label">Daily Usage</div>
+                <div class="account-value">
+                    {% if plan_info.daily_limit is none %}
+                    Unlimited
+                    {% else %}
+                    {{ user.search_count }} / {{ plan_info.daily_limit }}
+                    {% endif %}
+                </div>
             </div>
 
             <div class="account-row">
@@ -266,9 +281,7 @@ padding:24px 16px 95px;
             </div>
             {% endif %}
         </div>
-
     </div>
-
 </div>
 
 <div class="mobile-nav">
@@ -276,6 +289,5 @@ padding:24px 16px 95px;
     <a href="/settings?email={{email}}"><span>Settings</span></a>
     <a href="/account?email={{email}}"><span>Account</span></a>
 </div>
-
 </body>
 </html>

@@ -1,90 +1,153 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Market Radar | CLAMS Intelligence</title>
 <link rel="stylesheet" href="/static/styles.css">
-
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
-
 <script>
 let scannerRunning = false;
+let lastDetectedCode = "";
 
 function toggleAdvanced(){
-    let section = document.getElementById("advanced");
-
-    if(section.classList.contains("hidden")){
-        section.classList.remove("hidden");
-    } else {
-        section.classList.add("hidden");
+    const section = document.getElementById("advanced");
+    if(!section){
+        return;
     }
+    section.classList.toggle("hidden");
 }
 
 function stopScanner(){
-    if(scannerRunning){
-        Quagga.stop();
-        scannerRunning = false;
+    if (window.Quagga && scannerRunning) {
+        try {
+            Quagga.stop();
+        } catch (e) {
+            console.log("Scanner stop issue:", e);
+        }
     }
 
-    let scanner = document.getElementById("scanner");
+    scannerRunning = false;
+    const scanner = document.getElementById("scanner");
+    const status = document.getElementById("scanner-status");
+
     if(scanner){
         scanner.style.display = "none";
         scanner.innerHTML = "";
     }
+
+    if(status){
+        status.textContent = "Scanner off.";
+    }
 }
 
 function startScanner(){
+    const scanner = document.getElementById("scanner");
+    const status = document.getElementById("scanner-status");
+    const queryInput = document.getElementById("query");
+
+    if(!scanner || !queryInput){
+        return;
+    }
+
+    if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+        if(status){
+            status.textContent = "Camera scanning needs HTTPS or localhost.";
+        }
+        return;
+    }
+
+    if(typeof Quagga === "undefined"){
+        if(status){
+            status.textContent = "Scanner library did not load. Refresh and try again.";
+        }
+        return;
+    }
+
     if(scannerRunning){
         return;
     }
 
-    let scanner = document.getElementById("scanner");
+    lastDetectedCode = "";
     scanner.style.display = "block";
+    if(status){
+        status.textContent = "Starting camera scanner...";
+    }
+
+    Quagga.offDetected();
 
     Quagga.init({
-        inputStream:{
-            name:"Live",
-            type:"LiveStream",
-            target:scanner,
-            constraints:{
-                facingMode:"environment"
-            }
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: scanner,
+            constraints: {
+                facingMode: { ideal: "environment" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            area: {
+                top: "10%",
+                right: "5%",
+                left: "5%",
+                bottom: "10%"
+            },
+            singleChannel: false
         },
-        locator:{
-            patchSize:"medium",
-            halfSample:true
+        locator: {
+            patchSize: "large",
+            halfSample: false
         },
-        decoder:{
-            readers:["ean_reader","upc_reader","upc_e_reader","code_128_reader"]
+        numOfWorkers: 0,
+        locate: true,
+        frequency: 10,
+        decoder: {
+            readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "upc_reader",
+                "upc_e_reader",
+                "code_128_reader",
+                "code_39_reader"
+            ],
+            multiple: false
         }
     }, function(err){
         if(err){
             console.log(err);
+            if(status){
+                status.textContent = "Unable to start barcode scanner. Check camera permission and try again.";
+            }
+            scanner.style.display = "none";
             return;
         }
 
         scannerRunning = true;
         Quagga.start();
+        if(status){
+            status.textContent = "Scanner live. Hold the barcode steady in the frame.";
+        }
     });
 
-    Quagga.offDetected();
     Quagga.onDetected(function(data){
-        let code = data.codeResult.code;
-        document.getElementById("query").value = code;
+        const code = data && data.codeResult ? data.codeResult.code : "";
+        if(!code || code === lastDetectedCode){
+            return;
+        }
+
+        lastDetectedCode = code;
+        queryInput.value = code;
+        if(status){
+            status.textContent = "Barcode captured: " + code;
+        }
         stopScanner();
     });
 }
+
+window.addEventListener("beforeunload", stopScanner);
 </script>
-
 </head>
-
 <body>
-
 <div class="header">
-
     <div class="logo">
         <div class="logo-main">Market Radar</div>
         <div class="logo-sub">Powered by CLAMS Intelligence</div>
@@ -96,11 +159,9 @@ function startScanner(){
         <a href="/settings?email={{email}}">Settings</a>
         <a href="/account?email={{email}}">Account</a>
     </div>
-
 </div>
 
 <div class="app-container">
-
     <h1>Market Analyzer</h1>
 
     {% if error %}
@@ -123,11 +184,9 @@ function startScanner(){
     </div>
 
     <form method="post" action="/app" enctype="multipart/form-data">
-
         <input type="hidden" name="email" value="{{email}}">
 
         <div class="search-bar">
-
             <div class="form-group search-item">
                 <label>Search Item</label>
                 <input id="query" type="text" name="query" placeholder="iPhone 12">
@@ -149,18 +208,28 @@ function startScanner(){
             </div>
 
             <div class="form-group">
+                <label>Local Market Factor %</label>
+                <input type="number" name="local_factor" value="{{ user_settings.local_factor }}">
+            </div>
+
+            <div class="form-group">
                 <label>Seller Asking Price</label>
-                <input type="number" name="asking_price">
+                <input type="number" name="asking_price" step="0.01">
             </div>
 
             <button class="analyze-btn" type="submit">Analyze</button>
+        </div>
 
+        <div class="platform-pills">
+            {% for platform in user_settings.platforms %}
+            <span class="platform-pill">{{ platform|capitalize }}</span>
+            <input type="hidden" name="platforms" value="{{ platform }}">
+            {% endfor %}
         </div>
 
         <div class="upload-section">
-
             <label>Upload / Take Photo</label>
-            <input type="file" name="photo" accept="image/*">
+            <input type="file" name="photo" accept="image/*" capture="environment">
 
             <div class="upload-note">
                 {% if plan_info.ai_photo_enabled %}
@@ -171,49 +240,41 @@ function startScanner(){
             </div>
 
             <button type="button" onclick="startScanner()">Scan Barcode</button>
+            <button type="button" class="secondary-scan-btn" onclick="stopScanner()">Stop Scanner</button>
 
             <div class="scanner-help">
                 Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame.
             </div>
-
+            <div id="scanner-status" class="scanner-status">Scanner off.</div>
             <div id="scanner"></div>
-
         </div>
-
     </form>
 
     {% if listing %}
-
     <div class="listing-preview">
-
-        <img src="{{ listing.image }}">
-
+        <img src="{{ listing.image }}" alt="Matched item preview">
         <div>
-
-            <div class="listing-preview-title">
-                {{ listing.title }}
-            </div>
-
-            <div class="listing-preview-price">
-                ${{ listing.price }}
-            </div>
-
-            <a href="{{ listing.url }}" target="_blank">
-                View Listing
-            </a>
-
+            <div class="listing-preview-title">{{ listing.title }}</div>
+            <div class="listing-preview-price">${{ listing.price }}</div>
+            <a href="{{ listing.url }}" target="_blank">View Listing</a>
         </div>
-
     </div>
-
     {% endif %}
 
     {% if data %}
+    <div class="search-used-box">
+        Search used: <strong>{{ data.query_used }}</strong>
+        {% if data.suggestions %}
+        <div class="suggestion-row">
+            {% for suggestion in data.suggestions %}
+            <span class="suggestion-pill">{{ suggestion }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
 
     <h2>Pricing</h2>
-
     <div class="price-grid">
-
         <div class="price-card fast">
             <h3>FAST CASH</h3>
             <p>${{data.fast_cash}}</p>
@@ -228,7 +289,16 @@ function startScanner(){
             <h3>HOLD PRICE</h3>
             <p>${{data.hold_price}}</p>
         </div>
+    </div>
 
+    <div class="best-platform-box">
+        <div class="best-platform-title">Best Platform</div>
+        <div class="best-platform-main">{{ data.best_platform }}</div>
+        <div class="best-platform-sub">
+            {% for platform_name, platform_score in data.platform_ranking %}
+            <span>{{ platform_name }}: {{ platform_score }}</span>
+            {% endfor %}
+        </div>
     </div>
 
     {% if data.profit_delta is not none %}
@@ -255,7 +325,6 @@ function startScanner(){
     {% endif %}
 
     <h2>Generated Listings</h2>
-
     {% if generated_listings %}
         {% for platform, listing in generated_listings.items() %}
         <div class="listing-card">
@@ -276,11 +345,8 @@ function startScanner(){
     </label>
 
     <div id="advanced" class="hidden">
-
         <h2>Advanced Market Intelligence</h2>
-
         <div class="metric-grid">
-
             <div class="metric-card {{ data.deal_score_class }}">
                 <h3>Deal Score</h3>
                 <p>{{data.deal_score_ui}} / 100</p>
@@ -297,7 +363,6 @@ function startScanner(){
             </div>
 
             {% if plan_info.advanced_enabled %}
-
             <div class="metric-card">
                 <h3>Median Price</h3>
                 <p>${{data.median_price}}</p>
@@ -327,41 +392,14 @@ function startScanner(){
                 <h3>Listings</h3>
                 <p>{{data.sold_count}} sold / {{data.active_count}} active</p>
             </div>
-
             {% else %}
-
-            <div class="metric-card locked-card">
-                <h3>Median Price</h3>
-                <p>🔒 Reseller</p>
-            </div>
-
-            <div class="metric-card locked-card">
-                <h3>Sell Through</h3>
-                <p>🔒 Reseller</p>
-            </div>
-
-            <div class="metric-card locked-card">
-                <h3>Volatility</h3>
-                <p>🔒 Reseller</p>
-            </div>
-
-            <div class="metric-card locked-card">
-                <h3>Liquidity</h3>
-                <p>🔒 Reseller</p>
-            </div>
-
-            <div class="metric-card locked-card">
-                <h3>Risk</h3>
-                <p>🔒 Reseller</p>
-            </div>
-
-            <div class="metric-card locked-card">
-                <h3>Listings</h3>
-                <p>🔒 Reseller</p>
-            </div>
-
+            <div class="metric-card locked-card"><h3>Median Price</h3><p>🔒 Reseller</p></div>
+            <div class="metric-card locked-card"><h3>Sell Through</h3><p>🔒 Reseller</p></div>
+            <div class="metric-card locked-card"><h3>Volatility</h3><p>🔒 Reseller</p></div>
+            <div class="metric-card locked-card"><h3>Liquidity</h3><p>🔒 Reseller</p></div>
+            <div class="metric-card locked-card"><h3>Risk</h3><p>🔒 Reseller</p></div>
+            <div class="metric-card locked-card"><h3>Listings</h3><p>🔒 Reseller</p></div>
             {% endif %}
-
         </div>
 
         {% if not plan_info.advanced_enabled %}
@@ -370,11 +408,8 @@ function startScanner(){
             <a href="/upgrade/reseller?email={{email}}">Unlock Reseller</a>
         </div>
         {% endif %}
-
     </div>
-
     {% endif %}
-
 </div>
 
 <div class="mobile-nav">
@@ -382,6 +417,5 @@ function startScanner(){
     <a href="/settings?email={{email}}"><span>Settings</span></a>
     <a href="/account?email={{email}}"><span>Account</span></a>
 </div>
-
 </body>
 </html>

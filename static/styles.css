@@ -6,6 +6,14 @@ margin:0;
 -webkit-text-size-adjust:100%;
 }
 
+*{
+box-sizing:border-box;
+}
+
+a{
+color:inherit;
+}
+
 /* HEADER */
 
 .header{
@@ -15,6 +23,7 @@ align-items:center;
 padding:18px 30px;
 background:#05122b;
 border-bottom:1px solid rgba(255,255,255,0.08);
+gap:16px;
 }
 
 .logo-main{
@@ -33,8 +42,13 @@ font-size:11px;
 opacity:.55;
 }
 
+.nav-links{
+display:flex;
+flex-wrap:wrap;
+gap:18px;
+}
+
 .nav-links a{
-margin-left:20px;
 color:white;
 text-decoration:none;
 opacity:.85;
@@ -74,92 +88,6 @@ opacity:.82;
 margin-bottom:22px;
 }
 
-/* MEMBERSHIP */
-
-.membership-section{
-margin-top:34px;
-}
-
-.membership-banner{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:18px;
-padding:18px 20px;
-border-radius:16px;
-background:linear-gradient(135deg,#0b244f,#102d63);
-box-shadow:0 10px 28px rgba(0,0,0,0.35);
-margin-bottom:20px;
-}
-
-.membership-plan{
-font-size:16px;
-font-weight:600;
-}
-
-.membership-sub{
-font-size:13px;
-opacity:.8;
-margin-top:4px;
-}
-
-.membership-actions{
-display:flex;
-gap:12px;
-flex-wrap:wrap;
-}
-
-.tier-btn{
-display:inline-block;
-text-decoration:none;
-padding:12px 16px;
-border-radius:12px;
-font-weight:700;
-font-size:14px;
-}
-
-.pro-tier{
-background:#2563eb;
-color:white;
-}
-
-.reseller-tier{
-background:#7c3aed;
-color:white;
-}
-
-.tier-grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:18px;
-margin-bottom:28px;
-}
-
-.tier-card{
-background:#0b244f;
-padding:22px;
-border-radius:16px;
-box-shadow:0 8px 24px rgba(0,0,0,0.32);
-border:1px solid rgba(255,255,255,0.05);
-}
-
-.featured-tier{
-border:1px solid rgba(59,130,246,0.55);
-box-shadow:0 10px 30px rgba(37,99,235,0.25);
-}
-
-.tier-card h3{
-margin-top:0;
-margin-bottom:6px;
-font-size:18px;
-}
-
-.tier-price{
-font-size:28px;
-font-weight:800;
-margin-bottom:10px;
-}
-
 /* SEARCH BAR */
 
 .search-bar{
@@ -168,7 +96,7 @@ gap:16px;
 flex-wrap:wrap;
 align-items:flex-end;
 justify-content:center;
-margin-bottom:30px;
+margin-bottom:18px;
 }
 
 .form-group{
@@ -199,6 +127,7 @@ font-size:16px;
 background:#ffffff;
 color:#111;
 box-shadow:0 2px 4px rgba(0,0,0,0.1);
+width:100%;
 }
 
 .form-group input:focus,
@@ -225,6 +154,25 @@ box-shadow:0 8px 18px rgba(37,99,235,0.3);
 transform:translateY(-1px);
 }
 
+.platform-pills{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+justify-content:center;
+margin-bottom:24px;
+}
+
+.platform-pill{
+padding:8px 12px;
+border-radius:999px;
+background:rgba(59,130,246,0.18);
+border:1px solid rgba(59,130,246,0.35);
+color:#bfdbfe;
+font-size:12px;
+font-weight:800;
+letter-spacing:.35px;
+}
+
 /* UPLOAD */
 
 .upload-section{
@@ -243,6 +191,11 @@ font-weight:700;
 cursor:pointer;
 }
 
+.secondary-scan-btn{
+background:#1e3a8a !important;
+margin-left:10px;
+}
+
 .upload-note{
 margin-top:10px;
 font-size:13px;
@@ -253,6 +206,13 @@ opacity:.8;
 margin-top:10px;
 font-size:13px;
 opacity:.78;
+}
+
+.scanner-status{
+margin-top:10px;
+font-size:13px;
+opacity:.9;
+color:#bfdbfe;
 }
 
 #scanner{
@@ -281,6 +241,66 @@ font-size:13px;
 background:rgba(2,6,23,0.55);
 color:white;
 pointer-events:none;
+}
+
+/* SEARCH USED / SUGGESTIONS */
+
+.search-used-box,
+.best-platform-box,
+.dashboard-status-bar,
+.success-box,
+.error-box{
+box-shadow:0 10px 24px rgba(0,0,0,0.28);
+}
+
+.search-used-box{
+margin-bottom:22px;
+padding:16px 18px;
+border-radius:16px;
+background:linear-gradient(135deg,#0b244f,#0f2f63);
+}
+
+.suggestion-row{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-top:12px;
+}
+
+.suggestion-pill{
+padding:8px 12px;
+border-radius:999px;
+background:rgba(255,255,255,0.08);
+border:1px solid rgba(255,255,255,0.08);
+font-size:12px;
+}
+
+.best-platform-box{
+margin-top:22px;
+background:linear-gradient(135deg,#0a2342,#0d325e);
+border:1px solid rgba(59,130,246,0.18);
+padding:22px;
+border-radius:18px;
+}
+
+.best-platform-title{
+font-size:13px;
+opacity:.8;
+margin-bottom:8px;
+}
+
+.best-platform-main{
+font-size:28px;
+font-weight:800;
+margin-bottom:8px;
+}
+
+.best-platform-sub{
+display:flex;
+flex-wrap:wrap;
+gap:10px 16px;
+font-size:14px;
+opacity:.86;
 }
 
 /* LISTING PREVIEW */
@@ -487,6 +507,15 @@ border-radius:10px;
 margin-bottom:18px;
 }
 
+.success-box{
+background:#14532d;
+border:1px solid #16a34a;
+padding:12px 14px;
+border-radius:10px;
+margin-bottom:18px;
+font-size:14px;
+}
+
 /* MOBILE NAV */
 
 .mobile-nav{
@@ -508,80 +537,6 @@ color:#cbd5f5;
 text-decoration:none;
 }
 
-/* MOBILE */
-
-@media (max-width:900px){
-
-.header{
-flex-direction:column;
-align-items:flex-start;
-gap:10px;
-}
-
-.nav-links{
-display:none;
-}
-
-.app-container{
-padding:24px 16px 95px;
-}
-
-.membership-banner{
-flex-direction:column;
-align-items:flex-start;
-}
-
-.membership-actions{
-width:100%;
-}
-
-.tier-grid{
-grid-template-columns:1fr;
-}
-
-.search-bar{
-flex-direction:column;
-align-items:center;
-}
-
-.form-group,
-.search-item{
-width:100%;
-max-width:420px;
-}
-
-.analyze-btn{
-width:100%;
-max-width:420px;
-}
-
-.price-grid{
-grid-template-columns:1fr;
-}
-
-.metric-grid{
-grid-template-columns:1fr;
-}
-
-.mobile-nav{
-display:flex;
-}
-
-.listing-preview{
-flex-direction:row;
-align-items:flex-start;
-}
-
-.profit-main{
-font-size:30px;
-}
-
-.metric-card p{
-font-size:26px;
-}
-
-}
-
 /* STATUS BAR */
 
 .dashboard-status-bar{
@@ -589,7 +544,6 @@ margin-bottom:22px;
 padding:16px 18px;
 border-radius:16px;
 background:linear-gradient(135deg,#0b244f,#0f2f63);
-box-shadow:0 10px 24px rgba(0,0,0,0.28);
 }
 
 .dashboard-status-pill{
@@ -672,6 +626,7 @@ font-size:16px;
 background:#ffffff;
 color:#111;
 box-shadow:0 2px 4px rgba(0,0,0,0.1);
+width:100%;
 }
 
 .login-card input:focus{
@@ -697,6 +652,11 @@ background:#1e40af !important;
 color:white;
 }
 
+.ghost-btn{
+background:#0f172a !important;
+border:1px solid rgba(255,255,255,0.08) !important;
+}
+
 .hero-actions{
 display:flex;
 flex-direction:column;
@@ -704,7 +664,75 @@ gap:12px;
 margin-top:18px;
 }
 
+.compact-actions{
+margin-top:16px;
+}
+
+/* MOBILE */
+
 @media (max-width:900px){
+.header{
+flex-direction:column;
+align-items:flex-start;
+gap:10px;
+}
+
+.nav-links{
+display:none;
+}
+
+.app-container{
+padding:24px 16px 95px;
+}
+
+.search-bar{
+flex-direction:column;
+align-items:center;
+}
+
+.form-group,
+.search-item{
+width:100%;
+max-width:420px;
+}
+
+.analyze-btn{
+width:100%;
+max-width:420px;
+}
+
+.secondary-scan-btn{
+margin-left:0;
+}
+
+.price-grid,
+.metric-grid{
+grid-template-columns:1fr;
+}
+
+.mobile-nav{
+display:flex;
+}
+
+.listing-preview{
+flex-direction:row;
+align-items:flex-start;
+}
+
+.profit-main{
+font-size:30px;
+}
+
+.metric-card p{
+font-size:26px;
+}
+
+.best-platform-sub,
+.suggestion-row,
+.platform-pills{
+justify-content:flex-start;
+}
+
 .landing-card,
 .login-card{
 max-width:100%;

@@ -1,49 +1,42 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Market Radar Login</title>
 <link rel="stylesheet" href="/static/styles.css">
-
 </head>
-
 <body class="center-screen">
-
 <div class="login-card">
-
 <h1>Market Radar</h1>
-
 <p>Powered by CLAMS Intelligence</p>
-
 <p style="font-style:italic;opacity:.8;">
 See opportunity before the market does.
 </p>
 
-<form method="post" action="/login">
+{% if error %}
+<div class="error-box">{{ error }}</div>
+{% endif %}
+{% if notice %}
+<div class="success-box">{{ notice }}</div>
+{% endif %}
 
+<form method="post" action="/login">
 <label>Email</label>
-<input type="text" name="email" required>
+<input type="email" name="email" value="{{ prefill_email or '' }}" required autocomplete="email">
 
 <label>Password</label>
-<input type="password" name="password" required>
+<input type="password" name="password" required autocomplete="current-password">
 
 <label>Invite Code</label>
-<input type="text" name="invite" required>
+<input type="text" name="invite" required autocomplete="off">
 
 <button type="submit">Login</button>
-
 </form>
 
-<br>
-
-<a href="/signup">
-<button>Create Account</button>
-</a>
-
+<div class="hero-actions compact-actions">
+<a href="/signup{% if prefill_email %}?email={{ prefill_email }}{% endif %}"><button type="button" class="secondary-btn">Create Account</button></a>
+<a href="/"><button type="button" class="secondary-btn ghost-btn">Back</button></a>
 </div>
-
+</div>
 </body>
 </html>
