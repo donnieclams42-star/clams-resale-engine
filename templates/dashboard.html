@@ -95,6 +95,23 @@ scanner.style.display="none"
 <div class="error-box">{{ error }}</div>
 {% endif %}
 
+<div class="membership-banner">
+
+<strong>Plan:</strong> {{ user.membership }}
+
+{% if user.membership == "FREE" %}
+<span class="limit-warning">
+Free plan limit approaching. Upgrade for unlimited scans.
+</span>
+
+<a class="upgrade-btn" href="/account?email={{email}}">
+Upgrade
+</a>
+
+{% endif %}
+
+</div>
+
 <form method="post" action="/app" enctype="multipart/form-data">
 
 <input type="hidden" name="email" value="{{email}}">
@@ -239,7 +256,14 @@ Show Advanced Market Intelligence
 
 <div class="metric-card">
 <h3>Quick Flip Score</h3>
-<p>{{data.flip_score}} / 100</p>
+
+{% set flip = data.flip_score %}
+{% if flip < 0 %}
+{% set flip = 0 %}
+{% endif %}
+
+<p>{{flip}} / 100</p>
+
 </div>
 
 <div class="metric-card">
