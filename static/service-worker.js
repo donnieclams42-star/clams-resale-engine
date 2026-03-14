@@ -1,22 +1,31 @@
-const CACHE_NAME = "clams-cache-v1";
+const CACHE_NAME = "clams-cache-v2";
 
 const urlsToCache = [
-  "/",
-  "/static/styles.css"
+  "/static/styles.css",
+  "/static/icon-192.png",
+  "/static/icon-512.png"
 ];
 
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
   );
 });
 
 self.addEventListener("fetch", event => {
+
+  // Never cache HTML pages
+  if (event.request.headers.get("accept")?.includes("text/html")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        return response || fetch(event.request);
-      })
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
   );
+
 });
