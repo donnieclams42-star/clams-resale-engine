@@ -17,6 +17,7 @@ background:#0f172a;
 color:white;
 font-family:Arial;
 margin:0;
+padding-bottom:80px;
 }
 
 /* ---------- HEADER ---------- */
@@ -64,7 +65,7 @@ font-size:14px;
 /* ---------- APP ---------- */
 
 .app-container{
-max-width:1100px;
+max-width:900px;
 margin:auto;
 padding:25px;
 }
@@ -74,7 +75,7 @@ padding:25px;
 .search-bar{
 display:flex;
 flex-wrap:wrap;
-gap:10px;
+gap:12px;
 margin-bottom:20px;
 align-items:flex-end;
 }
@@ -89,19 +90,22 @@ min-width:160px;
 
 .form-group input,
 .form-group select{
-height:40px;
-border-radius:8px;
+height:48px;
+border-radius:10px;
 border:none;
-padding:0 10px;
+padding:0 12px;
+font-size:16px;
 }
 
 button{
-padding:10px 14px;
+padding:12px 16px;
 border:none;
-border-radius:6px;
+border-radius:8px;
 cursor:pointer;
 background:#2563eb;
 color:white;
+font-size:15px;
+font-weight:600;
 }
 
 /* PRICING */
@@ -116,7 +120,7 @@ margin-top:25px;
 .price-card{
 background:#020617;
 padding:25px;
-border-radius:10px;
+border-radius:12px;
 text-align:center;
 }
 
@@ -136,15 +140,15 @@ border-radius:10px;
 text-align:center;
 }
 
-/* NEW SMALL LISTING CARD */
+/* LISTING CARD */
 
 .listing-card{
 background:#020617;
-padding:12px;
-border-radius:8px;
-margin-bottom:10px;
+padding:14px;
+border-radius:10px;
+margin-bottom:12px;
 font-size:13px;
-line-height:1.4;
+line-height:1.5;
 }
 
 .listing-card h3{
@@ -200,6 +204,31 @@ max-width:400px;
 margin-top:10px;
 }
 
+/* ---------- MOBILE NAV ---------- */
+
+.mobile-nav{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#020617;
+border-top:1px solid #1e293b;
+display:none;
+justify-content:space-around;
+padding:10px 0;
+z-index:999;
+}
+
+.mobile-nav a{
+text-decoration:none;
+color:white;
+font-size:12px;
+display:flex;
+flex-direction:column;
+align-items:center;
+opacity:.9;
+}
+
 /* MOBILE */
 
 @media (max-width:900px){
@@ -229,6 +258,10 @@ margin-top:10px;
 .listing-preview{
 flex-direction:column;
 align-items:flex-start;
+}
+
+.mobile-nav{
+display:flex;
 }
 
 }
@@ -536,6 +569,22 @@ View Listing
 </div>
 
 {% endif %}
+
+</div>
+
+<div class="mobile-nav">
+
+<a href="/app?email={{email}}">
+<span>Analyze</span>
+</a>
+
+<a href="/settings?email={{email}}">
+<span>Settings</span>
+</a>
+
+<a href="/account?email={{email}}">
+<span>Account</span>
+</a>
 
 </div>
 
