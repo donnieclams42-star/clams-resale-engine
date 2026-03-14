@@ -239,12 +239,18 @@ async def analyze(
     query: str = Form(""),
     condition: str = Form(...),
     profit: float = Form(...),
-    local_factor: float = Form(...),
+    local_factor: Optional[float] = Form(None),
     asking_price: Optional[float] = Form(None),
     email: str = Form(""),
     platforms: Optional[List[str]] = Form(None),
     photo: UploadFile = File(None)
 ):
+
+    # ---------- DEFAULT FALLBACKS ----------
+
+    if local_factor is None:
+        local_factor = 80
+
 
     cookie_user = request.cookies.get("clams_user")
 
