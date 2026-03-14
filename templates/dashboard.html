@@ -104,6 +104,8 @@ background:#2563eb;
 color:white;
 }
 
+/* PRICING */
+
 .price-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -118,6 +120,8 @@ border-radius:10px;
 text-align:center;
 }
 
+/* METRICS */
+
 .metric-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -131,6 +135,24 @@ padding:18px;
 border-radius:10px;
 text-align:center;
 }
+
+/* NEW SMALL LISTING CARD */
+
+.listing-card{
+background:#020617;
+padding:12px;
+border-radius:8px;
+margin-bottom:10px;
+font-size:13px;
+line-height:1.4;
+}
+
+.listing-card h3{
+margin:0 0 4px 0;
+font-size:14px;
+}
+
+/* UTILITIES */
 
 .hidden{
 display:none;
@@ -168,6 +190,8 @@ width:100%;
 max-width:400px;
 margin-top:10px;
 }
+
+/* MOBILE */
 
 @media (max-width:900px){
 
@@ -264,8 +288,6 @@ scanner.style.display="none"
 
 <body>
 
-<!-- HEADER -->
-
 <div class="header">
 
 <div class="logo">
@@ -287,7 +309,6 @@ scanner.style.display="none"
 <div class="app-container">
 
 <h1>Market Analyzer</h1>
-
 
 <form method="post" action="/app" enctype="multipart/form-data">
 
@@ -324,12 +345,11 @@ scanner.style.display="none"
 
 </div>
 
-<!-- IMAGE / CAMERA -->
-
 <div style="margin-bottom:20px">
 
 <label>Upload / Take Photo</label>
-<input type="file" name="photo" accept="image/*" capture="environment">
+
+<input type="file" name="photo" accept="image/*">
 
 <br><br>
 
@@ -396,7 +416,7 @@ View Listing
 
 {% for platform, listing in generated_listings.items() %}
 
-<div class="metric-card">
+<div class="listing-card">
 
 <h3>{{platform|capitalize}}</h3>
 
