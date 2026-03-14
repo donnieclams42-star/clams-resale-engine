@@ -8,6 +8,7 @@
 <script>
 let scannerRunning = false;
 let lastDetectedCode = "";
+let scannerCooldown = false;
 
 function toggleAdvanced(){
     const section = document.getElementById("advanced");
@@ -18,15 +19,14 @@ function toggleAdvanced(){
 }
 
 function stopScanner(){
-    if (window.Quagga && scannerRunning) {
-        try {
-            Quagga.stop();
-        } catch (e) {
-            console.log("Scanner stop issue:", e);
-        }
+    if (window.Quagga) {
+        try { Quagga.offDetected(); } catch (e) {}
+        try { Quagga.stop(); } catch (e) {}
     }
 
     scannerRunning = false;
+    scannerCooldown = false;
+
     const scanner = document.getElementById("scanner");
     const status = document.getElementById("scanner-status");
 
@@ -40,12 +40,39 @@ function stopScanner(){
     }
 }
 
+function handleDetectedBarcode(code){
+    const queryInput = document.getElementById("query");
+    const status = document.getElementById("scanner-status");
+
+    if(!code || scannerCooldown){
+        return;
+    }
+
+    if(code === lastDetectedCode){
+        return;
+    }
+
+    lastDetectedCode = code;
+    scannerCooldown = true;
+
+    if(queryInput){
+        queryInput.value = code;
+    }
+
+    if(status){
+        status.textContent = "Barcode captured: " + code;
+    }
+
+    setTimeout(() => {
+        stopScanner();
+    }, 300);
+}
+
 function startScanner(){
     const scanner = document.getElementById("scanner");
     const status = document.getElementById("scanner-status");
-    const queryInput = document.getElementById("query");
 
-    if(!scanner || !queryInput){
+    if(!scanner){
         return;
     }
 
@@ -64,16 +91,21 @@ function startScanner(){
     }
 
     if(scannerRunning){
+        if(status){
+            status.textContent = "Scanner already running.";
+        }
         return;
     }
 
     lastDetectedCode = "";
+    scannerCooldown = false;
     scanner.style.display = "block";
+
     if(status){
         status.textContent = "Starting camera scanner...";
     }
 
-    Quagga.offDetected();
+    try { Quagga.offDetected(); } catch (e) {}
 
     Quagga.init({
         inputStream: {
@@ -81,33 +113,33 @@ function startScanner(){
             type: "LiveStream",
             target: scanner,
             constraints: {
-                facingMode: { ideal: "environment" },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+                facingMode: "environment",
+                width: { min: 640, ideal: 1280 },
+                height: { min: 480, ideal: 720 },
+                aspectRatio: { ideal: 1.7777778 }
             },
             area: {
-                top: "10%",
+                top: "15%",
                 right: "5%",
                 left: "5%",
-                bottom: "10%"
+                bottom: "15%"
             },
             singleChannel: false
         },
         locator: {
-            patchSize: "large",
-            halfSample: false
+            patchSize: "medium",
+            halfSample: true
         },
         numOfWorkers: 0,
         locate: true,
-        frequency: 10,
+        frequency: 15,
         decoder: {
             readers: [
                 "ean_reader",
                 "ean_8_reader",
                 "upc_reader",
                 "upc_e_reader",
-                "code_128_reader",
-                "code_39_reader"
+                "code_128_reader"
             ],
             multiple: false
         }
@@ -130,17 +162,44 @@ function startScanner(){
 
     Quagga.onDetected(function(data){
         const code = data && data.codeResult ? data.codeResult.code : "";
-        if(!code || code === lastDetectedCode){
+        if(!code || code.length < 8){
             return;
         }
-
-        lastDetectedCode = code;
-        queryInput.value = code;
-        if(status){
-            status.textContent = "Barcode captured: " + code;
-        }
-        stopScanner();
+        handleDetectedBarcode(code);
     });
+}
+
+function handlePhotoSelected(event){
+    const file = event.target.files && event.target.files[0];
+    const previewWrap = document.getElementById("photo-preview-wrap");
+    const previewImg = document.getElementById("photo-preview");
+    const status = document.getElementById("photo-status");
+    const analyzeButton = document.getElementById("analyze-btn");
+
+    if(!file){
+        if(previewWrap){ previewWrap.style.display = "none"; }
+        if(status){ status.textContent = ""; }
+        if(analyzeButton){ analyzeButton.textContent = "Analyze"; }
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e){
+        if(previewImg){
+            previewImg.src = e.target.result;
+        }
+        if(previewWrap){
+            previewWrap.style.display = "block";
+        }
+    };
+    reader.readAsDataURL(file);
+
+    if(status){
+        status.textContent = "Photo attached. Tap Analyze to run image detection or combine it with a typed search.";
+    }
+    if(analyzeButton){
+        analyzeButton.textContent = "Analyze Photo";
+    }
 }
 
 window.addEventListener("beforeunload", stopScanner);
@@ -208,16 +267,11 @@ window.addEventListener("beforeunload", stopScanner);
             </div>
 
             <div class="form-group">
-                <label>Local Market Factor %</label>
-                <input type="number" name="local_factor" value="{{ user_settings.local_factor }}">
-            </div>
-
-            <div class="form-group">
                 <label>Seller Asking Price</label>
                 <input type="number" name="asking_price" step="0.01">
             </div>
 
-            <button class="analyze-btn" type="submit">Analyze</button>
+            <button id="analyze-btn" class="analyze-btn" type="submit">Analyze</button>
         </div>
 
         <div class="platform-pills">
@@ -229,7 +283,12 @@ window.addEventListener("beforeunload", stopScanner);
 
         <div class="upload-section">
             <label>Upload / Take Photo</label>
-            <input type="file" name="photo" accept="image/*" capture="environment">
+            <input id="photo-input" type="file" name="photo" accept="image/*" capture="environment" onchange="handlePhotoSelected(event)">
+
+            <div id="photo-status" class="upload-note"></div>
+            <div id="photo-preview-wrap" class="photo-preview-wrap" style="display:none;">
+                <img id="photo-preview" src="" alt="Selected photo preview">
+            </div>
 
             <div class="upload-note">
                 {% if plan_info.ai_photo_enabled %}
@@ -275,6 +334,10 @@ window.addEventListener("beforeunload", stopScanner);
 
     <h2>Pricing</h2>
     <div class="price-grid">
+        <div class="price-card local">
+            <h3>LOCAL VALUE</h3>
+            <p>${{data.local_market_value}}</p>
+        </div>
         <div class="price-card fast">
             <h3>FAST CASH</h3>
             <p>${{data.fast_cash}}</p>
@@ -302,6 +365,12 @@ window.addEventListener("beforeunload", stopScanner);
     </div>
 
     {% if data.profit_delta is not none %}
+    <div class="deal-temperature-box {{ data.deal_temperature_class }}">
+        <div class="deal-temperature-label">Deal Signal</div>
+        <div class="deal-temperature-main">{{ data.deal_temperature }}</div>
+        <div class="deal-temperature-sub">Max buy target: ${{ data.max_buy }}</div>
+    </div>
+
     <div class="profit-opportunity-card">
         <div class="profit-headline">Profit Opportunity</div>
         <div class="profit-main">

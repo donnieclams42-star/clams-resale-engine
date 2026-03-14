@@ -281,7 +281,41 @@ flex-direction:column;
             </div>
             {% endif %}
         </div>
-    </div>
+    
+        <div class="account-card">
+            <h3>Market Preferences</h3>
+            <div class="membership-intro">
+                Your local market adjustment now lives here so the analyzer stays clean and fast.
+            </div>
+
+            <form method="post" action="/account/preferences">
+                <input type="hidden" name="email" value="{{email}}">
+
+                <div class="form-group">
+                    <label>Local Market Adjustment %</label>
+                    <input type="number" name="local_factor" min="40" max="120" step="1" value="{{ user.settings.local_factor }}">
+                </div>
+
+                <div class="upload-note">
+                    80 is a strong default for local deals. Raise it if your area moves fast. Lower it if buyers are slower.
+                </div>
+
+                <div class="account-row">
+                    <div class="account-label">Default Profit Target</div>
+                    <div class="account-value">{{ user.settings.default_profit }}%</div>
+                </div>
+
+                <div class="account-row">
+                    <div class="account-label">Platforms</div>
+                    <div class="account-value">{{ user.settings.platforms|join(', ') }}</div>
+                </div>
+
+                <div class="account-actions">
+                    <button type="submit">Save Market Preferences</button>
+                </div>
+            </form>
+        </div>
+
 </div>
 
 <div class="mobile-nav">

@@ -26,9 +26,11 @@ def deal_score(market_price, max_buy, sold_count=0, active_count=0, volatility=0
     score = max(0, min(score, 100))
 
     if score >= 70:
-        decision = "BUY"
+        decision = "HOT DEAL"
     elif score >= 45:
-        decision = "WATCH"
+        decision = "WARM DEAL"
+    elif score >= 25:
+        decision = "COOL DEAL"
     else:
         decision = "PASS"
 

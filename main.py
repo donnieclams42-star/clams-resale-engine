@@ -312,6 +312,30 @@ def deal_score_class(score):
     return "score-weak"
 
 
+def deal_temperature_class(label: str):
+    label = (label or "").upper()
+    if label == "HOT DEAL":
+        return "deal-hot"
+    if label == "WARM DEAL":
+        return "deal-warm"
+    if label == "COOL DEAL":
+        return "deal-cool"
+    return "deal-pass"
+
+
+def normalize_local_factor(value) -> int:
+    try:
+        number = int(round(float(value)))
+    except Exception:
+        return DEFAULT_USER_SETTINGS["local_factor"]
+
+    if number < 40:
+        number = 40
+    if number > 120:
+        number = 120
+    return number
+
+
 def get_plan_ui_context(user: dict):
     plan_info = get_membership_limits(user)
     membership_tier = plan_info["membership"]
@@ -687,6 +711,8 @@ async def analyze(
     if local_factor is None:
         local_factor = settings["local_factor"]
 
+    local_factor = normalize_local_factor(local_factor)
+
     if not platforms:
         platforms = settings["platforms"]
 
@@ -782,19 +808,12 @@ async def analyze(
     data["flip_score_ui"] = clamp_score(data.get("flip_score", 0))
     data["deal_score_class"] = deal_score_class(data["deal_score_ui"])
     data["flip_score_class"] = deal_score_class(data["flip_score_ui"])
+    data["deal_temperature"] = data.get("deal_temperature", "PASS")
+    data["deal_temperature_class"] = deal_temperature_class(data["deal_temperature"])
     data["query_used"] = query
     data["suggestions"] = suggestions or []
 
-    if asking_price is not None:
-        try:
-            market_price = float(data.get("market_price", 0))
-            profit_delta = round(market_price - float(asking_price), 2)
-            data["profit_delta"] = profit_delta
-            data["profit_margin_percent"] = round((profit_delta / float(asking_price)) * 100, 1) if float(asking_price) > 0 else 0
-        except Exception:
-            data["profit_delta"] = None
-            data["profit_margin_percent"] = None
-    else:
+    if asking_price is None:
         data["profit_delta"] = None
         data["profit_margin_percent"] = None
 
@@ -879,6 +898,26 @@ async def save_settings(
             "success": "Settings saved successfully.",
         },
     )
+
+
+# ---------- ACCOUNT PREFERENCES ----------
+
+@app.post("/account/preferences")
+async def save_account_preferences(
+    request: Request,
+    email: str = Form(""),
+    local_factor: float = Form(80),
+):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
+    user = ensure_user_exists(email)
+    settings = user["settings"]
+    settings["local_factor"] = normalize_local_factor(local_factor)
+    update_user_record(email, {"settings": settings})
+
+    return RedirectResponse(f"/account?email={email}&notice=Market+preferences+saved", status_code=303)
 
 
 # ---------- ACCOUNT ----------
