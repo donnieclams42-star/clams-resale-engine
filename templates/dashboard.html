@@ -185,6 +185,15 @@ color:#22c55e;
 font-size:15px;
 }
 
+.error-box{
+background:#7f1d1d;
+border:1px solid #b91c1c;
+padding:12px 14px;
+border-radius:10px;
+margin-bottom:18px;
+font-size:14px;
+}
+
 #scanner{
 width:100%;
 max-width:400px;
@@ -299,6 +308,7 @@ scanner.style.display="none"
 <div class="nav-links">
 
 <a href="/app?email={{email}}">Analyze</a>
+<a href="/settings?email={{email}}">Settings</a>
 <a href="/account?email={{email}}">Account</a>
 
 </div>
@@ -309,6 +319,10 @@ scanner.style.display="none"
 <div class="app-container">
 
 <h1>Market Analyzer</h1>
+
+{% if error %}
+<div class="error-box">{{ error }}</div>
+{% endif %}
 
 <form method="post" action="/app" enctype="multipart/form-data">
 
@@ -333,7 +347,7 @@ scanner.style.display="none"
 
 <div class="form-group">
 <label>Target Profit %</label>
-<input type="number" name="profit" value="40">
+<input type="number" name="profit" value="{{ user_settings.default_profit }}">
 </div>
 
 <div class="form-group">
@@ -443,14 +457,7 @@ View Listing
 
 <div id="advanced" class="hidden">
 
-<h2>Advanced Settings</h2>
-
-<div class="form-group" style="max-width:200px;margin-bottom:20px;">
-<label>Local Market Factor %</label>
-<input type="number" name="local_factor" value="80">
-</div>
-
-<h2>Deal Metrics</h2>
+<h2>Advanced Market Intelligence</h2>
 
 <div class="metric-grid">
 

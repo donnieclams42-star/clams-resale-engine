@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Settings | Market Radar</title>
+<link rel="stylesheet" href="/static/styles.css">
+
+<style>
+
+body{
+background:#0f172a;
+color:white;
+font-family:Arial;
+margin:0;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:15px 25px;
+background:#020617;
+border-bottom:1px solid #1e293b;
+}
+
+.logo{
+display:flex;
+flex-direction:column;
+line-height:1.2;
+}
+
+.logo-main{
+font-size:20px;
+font-weight:bold;
+}
+
+.logo-sub{
+font-size:12px;
+opacity:.72;
+margin-top:2px;
+}
+
+.logo-quote{
+font-size:11px;
+opacity:.55;
+font-style:italic;
+margin-top:3px;
+}
+
+.nav-links a{
+color:white;
+text-decoration:none;
+margin-left:20px;
+font-size:14px;
+}
+
+.settings-wrap{
+max-width:900px;
+margin:auto;
+padding:25px;
+}
+
+.settings-card{
+background:#020617;
+padding:22px;
+border-radius:12px;
+margin-bottom:20px;
+}
+
+.settings-card h2{
+margin-top:0;
+margin-bottom:16px;
+}
+
+.form-group{
+display:flex;
+flex-direction:column;
+font-size:14px;
+margin-bottom:16px;
+}
+
+.form-group input,
+.form-group select{
+height:42px;
+border-radius:8px;
+border:none;
+padding:0 12px;
+}
+
+.settings-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:16px;
+}
+
+.checkbox-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+margin-top:10px;
+}
+
+.checkbox-item{
+background:#0b1220;
+padding:12px;
+border-radius:10px;
+display:flex;
+align-items:center;
+gap:10px;
+font-size:14px;
+}
+
+.checkbox-item input{
+width:18px;
+height:18px;
+}
+
+button{
+padding:12px 16px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+background:#2563eb;
+color:white;
+font-weight:700;
+}
+
+.success-box{
+background:#14532d;
+border:1px solid #16a34a;
+padding:12px 14px;
+border-radius:10px;
+margin-bottom:18px;
+font-size:14px;
+}
+
+.note-box{
+background:#172554;
+border:1px solid #1d4ed8;
+padding:12px 14px;
+border-radius:10px;
+font-size:13px;
+line-height:1.5;
+margin-top:12px;
+}
+
+@media (max-width:900px){
+
+.header{
+flex-direction:column;
+align-items:flex-start;
+}
+
+.nav-links{
+margin-top:10px;
+}
+
+.settings-grid{
+grid-template-columns:1fr;
+}
+
+.checkbox-grid{
+grid-template-columns:1fr;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+<div class="logo">
+<div class="logo-main">Market Radar</div>
+<div class="logo-sub">Powered by CLAMS Intelligence</div>
+<div class="logo-quote">See opportunity before the market does.</div>
+</div>
+
+<div class="nav-links">
+<a href="/app?email={{email}}">Analyze</a>
+<a href="/settings?email={{email}}">Settings</a>
+<a href="/account?email={{email}}">Account</a>
+</div>
+
+</div>
+
+<div class="settings-wrap">
+
+<h1>Settings</h1>
+
+{% if success %}
+<div class="success-box">{{ success }}</div>
+{% endif %}
+
+<form method="post" action="/settings">
+
+<input type="hidden" name="email" value="{{email}}">
+
+<div class="settings-card">
+<h2>User Mode</h2>
+
+<div class="form-group">
+<label>Mode</label>
+<select name="mode">
+<option value="simple" {% if user_settings.mode == "simple" %}selected{% endif %}>Simple</option>
+<option value="advanced" {% if user_settings.mode == "advanced" %}selected{% endif %}>Advanced</option>
+</select>
+</div>
+
+<div class="note-box">
+Simple keeps the analyzer clean. Advanced keeps power-user defaults saved to your account.
+</div>
+</div>
+
+<div class="settings-card">
+<h2>Posting Platforms</h2>
+
+<div class="checkbox-grid">
+
+<label class="checkbox-item">
+<input type="checkbox" name="platforms" value="facebook" {% if "facebook" in user_settings.platforms %}checked{% endif %}>
+<span>Facebook Marketplace</span>
+</label>
+
+<label class="checkbox-item">
+<input type="checkbox" name="platforms" value="ebay" {% if "ebay" in user_settings.platforms %}checked{% endif %}>
+<span>eBay</span>
+</label>
+
+<label class="checkbox-item">
+<input type="checkbox" name="platforms" value="mercari" {% if "mercari" in user_settings.platforms %}checked{% endif %}>
+<span>Mercari</span>
+</label>
+
+<label class="checkbox-item">
+<input type="checkbox" name="platforms" value="offerup" {% if "offerup" in user_settings.platforms %}checked{% endif %}>
+<span>OfferUp</span>
+</label>
+
+<label class="checkbox-item">
+<input type="checkbox" name="platforms" value="craigslist" {% if "craigslist" in user_settings.platforms %}checked{% endif %}>
+<span>Craigslist</span>
+</label>
+
+<label class="checkbox-item">
+<input type="checkbox" name="platforms" value="nextdoor" {% if "nextdoor" in user_settings.platforms %}checked{% endif %}>
+<span>Nextdoor</span>
+</label>
+
+</div>
+</div>
+
+<div class="settings-card">
+<h2>Analyzer Defaults</h2>
+
+<div class="settings-grid">
+
+<div class="form-group">
+<label>Default Profit %</label>
+<input type="number" name="default_profit" value="{{ user_settings.default_profit }}">
+</div>
+
+<div class="form-group">
+<label>Local Market Factor %</label>
+<input type="number" name="local_factor" value="{{ user_settings.local_factor }}">
+</div>
+
+</div>
+
+<div class="note-box">
+These values are now saved to the logged-in user account and used automatically by the analyzer.
+</div>
+</div>
+
+<button type="submit">Save Settings</button>
+
+</form>
+
+</div>
+
+</body>
+</html>

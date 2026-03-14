@@ -39,6 +39,46 @@ BETA_MODE = True
 FREE_LIMIT = 10
 
 
+# ---------- DEFAULT SETTINGS ----------
+
+DEFAULT_USER_SETTINGS = {
+    "platforms": ["facebook", "ebay"],
+    "default_profit": 40,
+    "local_factor": 80,
+    "mode": "simple"
+}
+
+
+def build_default_settings():
+    return {
+        "platforms": DEFAULT_USER_SETTINGS["platforms"][:],
+        "default_profit": DEFAULT_USER_SETTINGS["default_profit"],
+        "local_factor": DEFAULT_USER_SETTINGS["local_factor"],
+        "mode": DEFAULT_USER_SETTINGS["mode"]
+    }
+
+
+def ensure_user_settings(user: dict):
+    if "settings" not in user or not isinstance(user["settings"], dict):
+        user["settings"] = build_default_settings()
+
+    settings = user["settings"]
+
+    if "platforms" not in settings or not settings["platforms"]:
+        settings["platforms"] = DEFAULT_USER_SETTINGS["platforms"][:]
+
+    if "default_profit" not in settings:
+        settings["default_profit"] = DEFAULT_USER_SETTINGS["default_profit"]
+
+    if "local_factor" not in settings:
+        settings["local_factor"] = DEFAULT_USER_SETTINGS["local_factor"]
+
+    if "mode" not in settings:
+        settings["mode"] = DEFAULT_USER_SETTINGS["mode"]
+
+    return settings
+
+
 # ---------- OPENAI CLIENT ----------
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -155,7 +195,8 @@ async def signup(
     users[email] = {
         "password": password,
         "membership": "PRO",
-        "search_count": 0
+        "search_count": 0,
+        "settings": build_default_settings()
     }
 
     response = RedirectResponse(f"/app?email={email}", status_code=303)
@@ -187,8 +228,11 @@ async def login(
         users[email] = {
             "password": password,
             "membership": "PRO",
-            "search_count": 0
+            "search_count": 0,
+            "settings": build_default_settings()
         }
+
+    ensure_user_settings(users[email])
 
     if users[email]["password"] != password:
         return {"error": "Incorrect password"}
@@ -217,6 +261,7 @@ async def app_page(request: Request, email: str = ""):
         email = cookie_user
 
     user = users.get(email, {})
+    user_settings = ensure_user_settings(user) if user else build_default_settings()
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -226,7 +271,8 @@ async def app_page(request: Request, email: str = ""):
             "generated_listings": None,
             "listing": None,
             "email": email,
-            "search_count": user.get("search_count", 0)
+            "search_count": user.get("search_count", 0),
+            "user_settings": user_settings
         },
     )
 
@@ -238,7 +284,7 @@ async def analyze(
     request: Request,
     query: str = Form(""),
     condition: str = Form(...),
-    profit: float = Form(...),
+    profit: Optional[float] = Form(None),
     local_factor: Optional[float] = Form(None),
     asking_price: Optional[float] = Form(None),
     email: str = Form(""),
@@ -246,18 +292,24 @@ async def analyze(
     photo: UploadFile = File(None)
 ):
 
-    # ---------- DEFAULT FALLBACKS ----------
-
-    if local_factor is None:
-        local_factor = 80
-
-
     cookie_user = request.cookies.get("clams_user")
 
     if not email and cookie_user:
         email = cookie_user
 
     user = users.get(email, {})
+    user_settings = ensure_user_settings(user) if user else build_default_settings()
+
+    # ---------- DEFAULT FALLBACKS ----------
+
+    if profit is None:
+        profit = user_settings.get("default_profit", 40)
+
+    if local_factor is None:
+        local_factor = user_settings.get("local_factor", 80)
+
+    if not platforms:
+        platforms = user_settings.get("platforms", ["facebook", "ebay"])
 
     if email in users:
         users[email]["search_count"] += 1
@@ -278,12 +330,10 @@ async def analyze(
                 "listing": None,
                 "email": email,
                 "search_count": user.get("search_count", 0),
+                "user_settings": user_settings,
                 "error": "No search query detected"
             },
         )
-
-    if not platforms:
-        platforms = ["facebook", "ebay"]
 
     sold_prices, active_prices, suggestions, listing = search_ebay(query)
 
@@ -315,8 +365,82 @@ async def analyze(
             "generated_listings": generated_listings,
             "listing": listing,
             "email": email,
-            "search_count": user.get("search_count", 0)
+            "search_count": user.get("search_count", 0),
+            "user_settings": user_settings
         },
+    )
+
+
+# ---------- SETTINGS PAGE ----------
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request, email: str = ""):
+
+    cookie_user = request.cookies.get("clams_user")
+
+    if not email and cookie_user:
+        email = cookie_user
+
+    user = users.get(email, {})
+
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    user_settings = ensure_user_settings(user)
+
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "email": email,
+            "user": user,
+            "user_settings": user_settings,
+            "success": None
+        }
+    )
+
+
+# ---------- SAVE SETTINGS ----------
+
+@app.post("/settings", response_class=HTMLResponse)
+async def save_settings(
+    request: Request,
+    email: str = Form(""),
+    mode: str = Form("simple"),
+    default_profit: float = Form(40),
+    local_factor: float = Form(80),
+    platforms: Optional[List[str]] = Form(None)
+):
+
+    cookie_user = request.cookies.get("clams_user")
+
+    if not email and cookie_user:
+        email = cookie_user
+
+    user = users.get(email, {})
+
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    if not platforms:
+        platforms = ["facebook", "ebay"]
+
+    user_settings = ensure_user_settings(user)
+
+    user_settings["mode"] = mode
+    user_settings["default_profit"] = default_profit
+    user_settings["local_factor"] = local_factor
+    user_settings["platforms"] = platforms
+
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "email": email,
+            "user": user,
+            "user_settings": user_settings,
+            "success": "Settings saved successfully."
+        }
     )
 
 
