@@ -67,17 +67,22 @@ margin:auto;
 padding:25px;
 }
 
+/* FIXED ANALYZER LAYOUT */
+
 .search-bar{
-display:grid;
-grid-template-columns:2fr 1fr 1fr 1fr auto;
+display:flex;
+flex-wrap:wrap;
 gap:10px;
 margin-bottom:20px;
+align-items:flex-end;
 }
 
 .form-group{
 display:flex;
 flex-direction:column;
 font-size:13px;
+flex:1 1 180px;
+min-width:160px;
 }
 
 .form-group input,
@@ -165,7 +170,8 @@ margin-top:10px;
 @media (max-width:900px){
 
 .search-bar{
-grid-template-columns:1fr;
+flex-direction:column;
+align-items:stretch;
 }
 
 .price-grid{
@@ -333,7 +339,6 @@ scanner.style.display="none"
 
 </form>
 
-
 {% if listing %}
 
 <div class="listing-preview">
@@ -360,7 +365,6 @@ View Listing
 
 {% endif %}
 
-
 {% if data %}
 
 <h2>Pricing</h2>
@@ -383,7 +387,6 @@ View Listing
 </div>
 
 </div>
-
 
 <h2>Generated Listings</h2>
 
@@ -409,14 +412,12 @@ View Listing
 
 {% endif %}
 
-
 <br>
 
 <label style="cursor:pointer">
 <input type="checkbox" onclick="toggleAdvanced()">
  Show Advanced Market Intelligence
 </label>
-
 
 <div id="advanced" class="hidden">
 
@@ -426,7 +427,6 @@ View Listing
 <label>Local Market Factor %</label>
 <input type="number" name="local_factor" value="80">
 </div>
-
 
 <h2>Deal Metrics</h2>
 
@@ -448,7 +448,6 @@ View Listing
 </div>
 
 </div>
-
 
 <h2>Market Intelligence</h2>
 
@@ -486,13 +485,11 @@ View Listing
 
 </div>
 
-
 <h2>Best Platform</h2>
 
 <div class="metric-card">
 <strong>{{data.best_platform}}</strong>
 </div>
-
 
 <h2>Platform Ranking</h2>
 
