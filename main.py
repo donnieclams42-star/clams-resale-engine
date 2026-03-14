@@ -8,7 +8,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSON
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from auth import logout_response
 from ebay import search_ebay
 from market_analysis import analyze_market
 from listing_generator import generate_listings
@@ -112,6 +111,27 @@ def is_admin_email(email: str) -> bool:
     return (email or "").strip().lower() in ADMIN_EMAILS
 
 
+def get_request_email(request: Request, email: str = "") -> str:
+    cookie_user = request.cookies.get("clams_user", "")
+
+    if cookie_user:
+        return cookie_user.strip().lower()
+
+    return (email or "").strip().lower()
+
+
+def set_user_cookie(response: RedirectResponse, email: str):
+    response.set_cookie(
+        key="clams_user",
+        value=(email or "").strip().lower(),
+        max_age=60 * 60 * 24 * 30,
+        httponly=True,
+        samesite="lax"
+    )
+    return response
+
+
+
 def normalize_user(user: dict):
     user = dict(user)
     user_email = str(user.get("email", "") or "").strip().lower()
@@ -122,6 +142,7 @@ def normalize_user(user: dict):
     user["search_reset_date"] = str(user.get("search_reset_date") or str(date.today()))
     user["is_admin"] = is_admin_email(user_email)
     return user
+
 
 
 def get_user(email: str):
@@ -141,9 +162,21 @@ def get_user(email: str):
 
     return None
 
+    if supabase:
+        result = supabase.table("users").select("*").eq("email", email).limit(1).execute()
+        if result.data:
+            return normalize_user(result.data[0])
+        return None
+
+    if email in users:
+        return normalize_user(users[email])
+
+    return None
+
+
 
 def create_user_record(email: str, password: str = ""):
-    # email handled by get_request_email
+    email = (email or "").strip().lower()
 
     user_record = {
         "email": email,
@@ -164,11 +197,25 @@ def create_user_record(email: str, password: str = ""):
     return normalize_user(user_record)
 
 
+
 def update_user_record(email: str, updates: dict):
     if not email:
         return None
 
     email = email.strip().lower()
+
+    if "settings" in updates:
+        updates["settings"] = normalize_settings(updates["settings"])
+
+    if supabase:
+        supabase.table("users").update(updates).eq("email", email).execute()
+        return get_user(email)
+
+    if email in users:
+        users[email].update(updates)
+        return normalize_user(users[email])
+
+    return None
 
     if "settings" in updates:
         updates["settings"] = normalize_settings(updates["settings"])
@@ -208,6 +255,7 @@ def ensure_daily_reset(user: dict):
     return user
 
 
+
 def get_membership_limits(user: dict):
     membership = user.get("membership", "FREE").upper()
     is_admin = user.get("is_admin", False)
@@ -218,7 +266,7 @@ def get_membership_limits(user: dict):
             "daily_limit": None,
             "advanced_enabled": True,
             "ai_photo_enabled": True,
-            "is_admin": True,
+            "is_admin": True
         }
 
     if membership == "FREE":
@@ -227,7 +275,7 @@ def get_membership_limits(user: dict):
             "daily_limit": FREE_LIMIT,
             "advanced_enabled": False,
             "ai_photo_enabled": False,
-            "is_admin": False,
+            "is_admin": False
         }
 
     if membership == "PRO":
@@ -236,7 +284,7 @@ def get_membership_limits(user: dict):
             "daily_limit": None,
             "advanced_enabled": False,
             "ai_photo_enabled": True,
-            "is_admin": False,
+            "is_admin": False
         }
 
     return {
@@ -244,7 +292,7 @@ def get_membership_limits(user: dict):
         "daily_limit": None,
         "advanced_enabled": True,
         "ai_photo_enabled": True,
-        "is_admin": False,
+        "is_admin": False
     }
 
 
@@ -269,26 +317,6 @@ def deal_score_class(score):
     if score >= 60:
         return "score-medium"
     return "score-weak"
-
-
-def get_request_email(request: Request, email: str = "") -> str:
-    cookie_user = request.cookies.get("clams_user", "")
-
-    if cookie_user:
-        return cookie_user.strip().lower()
-
-    return (email or "").strip().lower()
-
-
-def set_user_cookie(response: RedirectResponse, email: str):
-    response.set_cookie(
-        key="clams_user",
-        value=email,
-        max_age=60 * 60 * 24 * 30,
-        httponly=True,
-        samesite="lax"
-    )
-    return response
 
 
 # ---------- OPENAI CLIENT ----------
@@ -386,7 +414,11 @@ async def login_page(request: Request):
 
 @app.get("/logout")
 async def logout():
-    return logout_response("/")
+    response = RedirectResponse("/", status_code=303)
+    response.delete_cookie("clams_user")
+    response.delete_cookie("clams_auth")
+    response.delete_cookie("clams_premium")
+    return response
 
 
 # ---------- SIGNUP PAGE ----------
@@ -401,13 +433,14 @@ async def signup_page(request: Request):
 
 # ---------- SIGNUP ----------
 
+
 @app.post("/signup")
 async def signup(
     email: str = Form(...),
     password: str = Form(...),
     invite: str = Form(...)
 ):
-    # email handled by get_request_email
+    email = (email or "").strip().lower()
 
     if invite != INVITE_CODE:
         return JSONResponse({"error": "Invalid invite code"}, status_code=400)
@@ -426,13 +459,14 @@ async def signup(
 
 # ---------- LOGIN ----------
 
+
 @app.post("/login")
 async def login(
     email: str = Form(...),
     password: str = Form(...),
     invite: str = Form(...)
 ):
-    # email handled by get_request_email
+    email = (email or "").strip().lower()
 
     if invite != INVITE_CODE:
         return JSONResponse({"error": "Invalid invite code"}, status_code=400)
@@ -452,21 +486,21 @@ async def login(
 
 # ---------- BILLING / STRIPE ----------
 
+
 @app.get("/upgrade/{plan}")
 async def upgrade_plan(request: Request, plan: str, email: str = ""):
     email = get_request_email(request, email)
-    # email handled by get_request_email
 
     if not email:
         return RedirectResponse("/login", status_code=303)
 
     if plan not in ["pro", "reseller"]:
-        return RedirectResponse(f"/app?email={email}", status_code=303)
+        return RedirectResponse(f"/account?email={email}", status_code=303)
 
-    price_id = STRIPE_PRO_PRICE_ID if plan == "pro" else STRIPE_RESELLER_PRICE_ID
+    price_id = STRIPE_PRO_PRICE_ID.strip() if plan == "pro" else STRIPE_RESELLER_PRICE_ID.strip()
 
     if not price_id:
-        return RedirectResponse(f"/app?email={email}", status_code=303)
+        return RedirectResponse(f"/account?email={email}", status_code=303)
 
     checkout_session = stripe.checkout.Session.create(
         mode="subscription",
@@ -485,7 +519,7 @@ async def upgrade_plan(request: Request, plan: str, email: str = ""):
 
 @app.get("/billing/success")
 async def billing_success(session_id: str = "", email: str = ""):
-    # email handled by get_request_email
+    email = (email or "").strip().lower()
 
     if session_id and stripe.api_key:
         try:
@@ -495,15 +529,16 @@ async def billing_success(session_id: str = "", email: str = ""):
             account_email = (metadata.get("email") or email or "").strip().lower()
             stripe_customer_id = session.get("customer")
 
-            if account_email and plan in ["PRO", "RESELLER"]:
-                update_user_record(
-                    account_email,
-                    {
-                        "membership": plan,
-                        "stripe_customer_id": stripe_customer_id
-                    }
-                )
-                return RedirectResponse(f"/app?email={account_email}", status_code=303)
+            if account_email:
+                if plan in ["PRO", "RESELLER"]:
+                    update_user_record(
+                        account_email,
+                        {
+                            "membership": plan,
+                            "stripe_customer_id": stripe_customer_id
+                        }
+                    )
+                    return RedirectResponse(f"/app?email={account_email}", status_code=303)
         except Exception as e:
             print("Billing success verification failed:", e)
 
@@ -512,8 +547,8 @@ async def billing_success(session_id: str = "", email: str = ""):
 
 @app.get("/billing/cancel")
 async def billing_cancel(email: str = ""):
-    # email handled by get_request_email
-    return RedirectResponse(f"/app?email={email}", status_code=303)
+    email = (email or "").strip().lower()
+    return RedirectResponse(f"/account?email={email}", status_code=303)
 
 
 @app.post("/stripe-webhook")
@@ -538,7 +573,10 @@ async def stripe_webhook(request: Request):
     event_object = event["data"]["object"]
 
     if event_type == "checkout.session.completed":
+        email = None
+        plan = None
         stripe_customer_id = event_object.get("customer")
+
         metadata = event_object.get("metadata") or {}
         email = (metadata.get("email") or event_object.get("customer_email") or "").strip().lower()
         plan = str(metadata.get("plan", "")).upper()
@@ -655,7 +693,7 @@ async def analyze(
             },
         )
 
-    photo_uploaded = photo is not None and bool(getattr(photo, "filename", ""))
+    photo_uploaded = photo is not None and getattr(photo, "filename", None)
 
     if photo_uploaded and plan_info["ai_photo_enabled"]:
         try:
@@ -718,7 +756,6 @@ async def analyze(
         data["flip_score_ui"] = clamp_score(data.get("flip_score", 0))
         data["deal_score_class"] = deal_score_class(data["deal_score_ui"])
         data["flip_score_class"] = deal_score_class(data["flip_score_ui"])
-        data["suggestions"] = suggestions
 
         if asking_price is not None:
             try:
@@ -840,28 +877,12 @@ async def account_page(request: Request, email: str = ""):
 
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
-    plan_info = get_membership_limits(user)
-
-    if plan_info["membership"] == "ADMIN":
-        membership_tier = "ADMIN"
-        ai_access = "Full Access"
-    elif plan_info["membership"] == "PRO":
-        membership_tier = "PRO"
-        ai_access = "Photo AI Enabled"
-    elif plan_info["membership"] == "RESELLER":
-        membership_tier = "RESELLER"
-        ai_access = "Advanced + Photo AI Enabled"
-    else:
-        membership_tier = "FREE"
-        ai_access = "Upgrade Required"
 
     return templates.TemplateResponse(
         "account.html",
         {
             "request": request,
             "email": email,
-            "user": user,
-            "membership_tier": membership_tier,
-            "ai_access": ai_access,
+            "user": user
         }
     )

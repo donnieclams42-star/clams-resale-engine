@@ -2,35 +2,29 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CLAMS Account</title>
+<title>Market Radar Account</title>
 <link rel="stylesheet" href="/static/styles.css">
-
 <style>
-
 .account-wrap{
 max-width:1100px;
 margin:auto;
-padding:40px;
+padding:30px 20px 110px;
 }
-
 .account-header{
 display:flex;
 justify-content:space-between;
 align-items:center;
 gap:20px;
-margin-bottom:30px;
+margin-bottom:24px;
 flex-wrap:wrap;
 }
-
 .account-title h1{
 margin:0 0 8px 0;
 }
-
 .account-title p{
 margin:0;
 opacity:.8;
 }
-
 .membership-pill{
 display:inline-block;
 padding:10px 16px;
@@ -42,26 +36,23 @@ background:rgba(59,130,246,.18);
 color:#93c5fd;
 border:1px solid rgba(59,130,246,.35);
 }
-
 .account-grid{
 display:grid;
 grid-template-columns:repeat(2, 1fr);
 gap:20px;
 }
-
 .account-card{
 background:#0b244f;
 padding:24px;
-border-radius:14px;
-box-shadow:0 0 10px rgba(0,0,0,.3);
+border-radius:16px;
+box-shadow:0 10px 24px rgba(0,0,0,.28);
+border:1px solid rgba(255,255,255,.06);
 }
-
 .account-card h3{
 margin-top:0;
 margin-bottom:14px;
 font-size:18px;
 }
-
 .account-row{
 display:flex;
 justify-content:space-between;
@@ -70,127 +61,220 @@ padding:10px 0;
 border-bottom:1px solid rgba(255,255,255,.08);
 font-size:14px;
 }
-
 .account-row:last-child{
 border-bottom:none;
 padding-bottom:0;
 }
-
 .account-label{
 opacity:.75;
 }
-
 .account-value{
 font-weight:700;
 text-align:right;
 }
-
 .account-actions{
 display:flex;
 gap:12px;
 flex-wrap:wrap;
 margin-top:18px;
 }
-
 .secondary-btn{
 background:#1e40af;
 }
-
-.upgrade-box{
-margin-top:20px;
+.membership-section{
+margin-top:22px;
+}
+.membership-intro{
+font-size:14px;
+line-height:1.6;
+opacity:.9;
+margin-bottom:14px;
+}
+.membership-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:16px;
+margin-top:16px;
+}
+.membership-card{
+background:rgba(255,255,255,.04);
+border:1px solid rgba(255,255,255,.08);
+border-radius:14px;
 padding:18px;
+}
+.membership-card h4{
+margin:0 0 6px 0;
+font-size:18px;
+}
+.membership-price{
+font-size:28px;
+font-weight:800;
+margin-bottom:10px;
+}
+.membership-note{
+font-size:13px;
+opacity:.78;
+margin-bottom:14px;
+}
+.membership-list{
+margin:0;
+padding-left:18px;
+line-height:1.8;
+font-size:14px;
+}
+.plan-current{
+border:1px solid rgba(34,197,94,.45);
+box-shadow:0 10px 24px rgba(34,197,94,.12);
+}
+.admin-box{
+margin-top:16px;
+padding:16px;
 border-radius:12px;
-background:rgba(168,85,247,.12);
-border:1px solid rgba(168,85,247,.28);
+background:rgba(34,197,94,.12);
+border:1px solid rgba(34,197,94,.28);
+font-size:14px;
+line-height:1.6;
 }
-
-.upgrade-box h4{
-margin:0 0 8px 0;
-}
-
 .upgrade-btn{
-padding:10px 16px;
-background:#7c3aed;
-border:none;
-border-radius:8px;
-color:white;
-font-weight:700;
-cursor:pointer;
+margin-top:16px;
+width:100%;
 }
-
+@media (max-width:900px){
+.account-grid{
+grid-template-columns:1fr;
+}
+.membership-grid{
+grid-template-columns:1fr;
+}
+.account-wrap{
+padding:24px 16px 95px;
+}
+}
 </style>
 </head>
-
 <body>
 
-<div class="navbar">
-<div class="nav-title">CLAMS</div>
+<div class="header">
+    <div class="logo">
+        <div class="logo-main">Market Radar</div>
+        <div class="logo-sub">Powered by CLAMS Intelligence</div>
+        <div class="logo-quote">See opportunity before the market does.</div>
+    </div>
 
-<div class="nav-links">
-<a href="/app?email={{email}}">Analyzer</a>
-<a href="/settings?email={{email}}">Settings</a>
-<a href="/account?email={{email}}">Account</a>
-</div>
+    <div class="nav-links">
+        <a href="/app?email={{email}}">Analyze</a>
+        <a href="/settings?email={{email}}">Settings</a>
+        <a href="/account?email={{email}}">Account</a>
+    </div>
 </div>
 
 <div class="account-wrap">
 
-<div class="account-header">
-<div class="account-title">
-<h1>Account Settings</h1>
-<p>Manage your CLAMS membership and AI access.</p>
+    <div class="account-header">
+        <div class="account-title">
+            <h1>Account</h1>
+            <p>Membership, access, and launch-day billing controls all live here now.</p>
+        </div>
+
+        <div class="membership-pill">
+            {{ membership_tier }}
+        </div>
+    </div>
+
+    <div class="account-grid">
+
+        <div class="account-card">
+            <h3>Account Overview</h3>
+
+            <div class="account-row">
+                <div class="account-label">User</div>
+                <div class="account-value">{{ email }}</div>
+            </div>
+
+            <div class="account-row">
+                <div class="account-label">Membership</div>
+                <div class="account-value">{{ membership_tier }}</div>
+            </div>
+
+            <div class="account-row">
+                <div class="account-label">AI Access</div>
+                <div class="account-value">{{ ai_access }}</div>
+            </div>
+
+            <div class="account-row">
+                <div class="account-label">Status</div>
+                <div class="account-value">Active</div>
+            </div>
+
+            {% if plan_info.membership == "ADMIN" %}
+            <div class="admin-box">
+                <strong>Admin mode is active.</strong><br>
+                Unlimited scans, AI photo tools, and advanced intelligence are fully unlocked for your account.
+            </div>
+            {% endif %}
+
+            <div class="account-actions">
+                <a href="/app?email={{email}}"><button type="button">Back to Analyzer</button></a>
+                <a href="/settings?email={{email}}"><button type="button" class="secondary-btn">Settings</button></a>
+                <a href="/logout"><button type="button" class="secondary-btn">Logout</button></a>
+            </div>
+        </div>
+
+        <div class="account-card membership-section">
+            <h3>Membership</h3>
+            <div class="membership-intro">
+                Billing has been moved into this account page so the analyzer stays clean and focused on flips.
+            </div>
+
+            {% if plan_info.membership == "ADMIN" %}
+            <div class="admin-box">
+                Membership pricing is hidden from admin use because your account already has full internal access.
+            </div>
+            {% else %}
+            <div class="membership-grid">
+                <div class="membership-card {% if membership_tier == 'PRO' %}plan-current{% endif %}">
+                    <h4>Pro</h4>
+                    <div class="membership-price">${{ pro_price }}/mo</div>
+                    <div class="membership-note">Unlimited scans + photo AI access</div>
+                    <ul class="membership-list">
+                        <li>Unlimited analyzer use</li>
+                        <li>AI photo item detection</li>
+                        <li>Generated listings</li>
+                    </ul>
+                    {% if membership_tier == "PRO" %}
+                    <button type="button" class="upgrade-btn secondary-btn">Current Plan</button>
+                    {% else %}
+                    <a href="/upgrade/pro?email={{email}}"><button type="button" class="upgrade-btn">Choose Pro</button></a>
+                    {% endif %}
+                </div>
+
+                <div class="membership-card {% if membership_tier == 'RESELLER' %}plan-current{% endif %}">
+                    <h4>Reseller</h4>
+                    <div class="membership-price">${{ reseller_price }}/mo</div>
+                    <div class="membership-note">Everything in Pro + advanced intelligence</div>
+                    <ul class="membership-list">
+                        <li>Advanced market intelligence</li>
+                        <li>Unlimited scans</li>
+                        <li>Best fit for serious flipping</li>
+                    </ul>
+                    {% if membership_tier == "RESELLER" %}
+                    <button type="button" class="upgrade-btn secondary-btn">Current Plan</button>
+                    {% else %}
+                    <a href="/upgrade/reseller?email={{email}}"><button type="button" class="upgrade-btn">Choose Reseller</button></a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
 </div>
 
-<div class="membership-pill">
-{{ membership_tier }}
-</div>
-</div>
-
-<div class="account-grid">
-
-<div class="account-card">
-<h3>Account Overview</h3>
-
-<div class="account-row">
-<div class="account-label">User</div>
-<div class="account-value">{{ email }}</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">Membership</div>
-<div class="account-value">{{ membership_tier }}</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">AI Access</div>
-<div class="account-value">{{ ai_access }}</div>
-</div>
-
-<div class="account-actions">
-<a href="/app?email={{email}}"><button type="button">Back to Analyzer</button></a>
-<a href="/logout"><button type="button" class="secondary-btn">Logout</button></a>
-</div>
-
-<div class="upgrade-box">
-<h4>Upgrade Membership</h4>
-<p>Unlock AI photo detection and unlimited analysis.</p>
-
-<div class="account-actions">
-<a href="/upgrade/pro?email={{email}}">
-<button class="upgrade-btn">Upgrade to Pro ($19/mo)</button>
-</a>
-
-<a href="/upgrade/reseller?email={{email}}">
-<button class="upgrade-btn">Upgrade to Reseller ($49/mo)</button>
-</a>
-</div>
-
-</div>
-
-</div>
-
-</div>
-
+<div class="mobile-nav">
+    <a href="/app?email={{email}}"><span>Analyze</span></a>
+    <a href="/settings?email={{email}}"><span>Settings</span></a>
+    <a href="/account?email={{email}}"><span>Account</span></a>
 </div>
 
 </body>

@@ -111,6 +111,17 @@ function startScanner(){
         Analyze an item, compare likely resale value, and spot strong flips fast.
     </div>
 
+    <div class="dashboard-status-bar">
+        <div class="dashboard-status-pill">Plan: {{ plan_info.membership }}</div>
+        {% if plan_info.membership == "FREE" %}
+        <div class="dashboard-status-sub">{{ search_count }}/{{ free_limit }} scans used today · Membership options are now inside Account</div>
+        {% elif plan_info.membership == "ADMIN" %}
+        <div class="dashboard-status-sub">Admin mode active · Unlimited access enabled</div>
+        {% else %}
+        <div class="dashboard-status-sub">Membership options are now inside Account</div>
+        {% endif %}
+    </div>
+
     <form method="post" action="/app" enctype="multipart/form-data">
 
         <input type="hidden" name="email" value="{{email}}">
@@ -363,63 +374,6 @@ function startScanner(){
     </div>
 
     {% endif %}
-
-    <div class="membership-section">
-        <h2>Membership & Access</h2>
-
-        <div class="membership-banner">
-            <div class="membership-left">
-                <div class="membership-plan">Current Plan: <strong>{{ plan_info.membership }}</strong></div>
-                {% if plan_info.membership == "FREE" %}
-                <div class="membership-sub">
-                    {{ search_count }}/{{ free_limit }} scans used today
-                </div>
-                {% elif plan_info.membership == "PRO" %}
-                <div class="membership-sub">
-                    AI photo detection unlocked · Unlimited scans
-                </div>
-                {% else %}
-                <div class="membership-sub">
-                    Advanced intelligence unlocked · Unlimited scans
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="membership-actions">
-                {% if plan_info.membership == "FREE" %}
-                <a class="tier-btn pro-tier" href="/upgrade/pro?email={{email}}">Upgrade to Pro · ${{ pro_price }}/mo</a>
-                <a class="tier-btn reseller-tier" href="/upgrade/reseller?email={{email}}">Reseller · ${{ reseller_price }}/mo</a>
-                {% elif plan_info.membership == "PRO" %}
-                <a class="tier-btn reseller-tier" href="/upgrade/reseller?email={{email}}">Upgrade to Reseller · ${{ reseller_price }}/mo</a>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="tier-grid">
-            <div class="tier-card">
-                <h3>Free</h3>
-                <div class="tier-price">$0</div>
-                <p>5 scans/day</p>
-                <p>Basic pricing view</p>
-            </div>
-
-            <div class="tier-card featured-tier">
-                <h3>Pro</h3>
-                <div class="tier-price">${{ pro_price }}/mo</div>
-                <p>Unlimited scans</p>
-                <p>AI photo detection</p>
-                <p>Generated listings</p>
-            </div>
-
-            <div class="tier-card">
-                <h3>Reseller</h3>
-                <div class="tier-price">${{ reseller_price }}/mo</div>
-                <p>Unlimited scans</p>
-                <p>Advanced intelligence</p>
-                <p>Built for serious sellers</p>
-            </div>
-        </div>
-    </div>
 
 </div>
 
