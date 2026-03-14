@@ -1,10 +1,7 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>CLAMS Account</title>
 <link rel="stylesheet" href="/static/styles.css">
 
@@ -88,33 +85,6 @@ font-weight:700;
 text-align:right;
 }
 
-.mode-box{
-margin-top:16px;
-padding:16px;
-border-radius:12px;
-background:rgba(255,255,255,.04);
-border:1px solid rgba(255,255,255,.08);
-}
-
-.mode-box h4{
-margin:0 0 10px 0;
-font-size:15px;
-}
-
-.mode-box p{
-margin:0;
-font-size:14px;
-line-height:1.6;
-opacity:.92;
-}
-
-.feature-list{
-margin:12px 0 0 0;
-padding-left:18px;
-line-height:1.8;
-font-size:14px;
-}
-
 .account-actions{
 display:flex;
 gap:12px;
@@ -127,17 +97,25 @@ background:#1e40af;
 }
 
 .upgrade-box{
-margin-top:16px;
-padding:16px;
+margin-top:20px;
+padding:18px;
 border-radius:12px;
 background:rgba(168,85,247,.12);
 border:1px solid rgba(168,85,247,.28);
 }
 
-@media (max-width:900px){
-.account-grid{
-grid-template-columns:1fr;
+.upgrade-box h4{
+margin:0 0 8px 0;
 }
+
+.upgrade-btn{
+padding:10px 16px;
+background:#7c3aed;
+border:none;
+border-radius:8px;
+color:white;
+font-weight:700;
+cursor:pointer;
 }
 
 </style>
@@ -146,7 +124,6 @@ grid-template-columns:1fr;
 <body>
 
 <div class="navbar">
-
 <div class="nav-title">CLAMS</div>
 
 <div class="nav-links">
@@ -154,7 +131,6 @@ grid-template-columns:1fr;
 <a href="/settings?email={{email}}">Settings</a>
 <a href="/account?email={{email}}">Account</a>
 </div>
-
 </div>
 
 <div class="account-wrap">
@@ -162,7 +138,7 @@ grid-template-columns:1fr;
 <div class="account-header">
 <div class="account-title">
 <h1>Account Settings</h1>
-<p>Manage your CLAMS membership, AI access, and default analyzer preferences.</p>
+<p>Manage your CLAMS membership and AI access.</p>
 </div>
 
 <div class="membership-pill">
@@ -190,14 +166,25 @@ grid-template-columns:1fr;
 <div class="account-value">{{ ai_access }}</div>
 </div>
 
-<div class="account-row">
-<div class="account-label">Status</div>
-<div class="account-value">Active</div>
-</div>
-
 <div class="account-actions">
 <a href="/app?email={{email}}"><button type="button">Back to Analyzer</button></a>
 <a href="/logout"><button type="button" class="secondary-btn">Logout</button></a>
+</div>
+
+<div class="upgrade-box">
+<h4>Upgrade Membership</h4>
+<p>Unlock AI photo detection and unlimited analysis.</p>
+
+<div class="account-actions">
+<a href="/upgrade/pro?email={{email}}">
+<button class="upgrade-btn">Upgrade to Pro ($19/mo)</button>
+</a>
+
+<a href="/upgrade/reseller?email={{email}}">
+<button class="upgrade-btn">Upgrade to Reseller ($49/mo)</button>
+</a>
+</div>
+
 </div>
 
 </div>
