@@ -143,7 +143,7 @@ def get_user(email: str):
 
 
 def create_user_record(email: str, password: str = ""):
-    email = (email or "").strip().lower()
+    # email handled by get_request_email
 
     user_record = {
         "email": email,
@@ -407,7 +407,7 @@ async def signup(
     password: str = Form(...),
     invite: str = Form(...)
 ):
-    email = (email or "").strip().lower()
+    # email handled by get_request_email
 
     if invite != INVITE_CODE:
         return JSONResponse({"error": "Invalid invite code"}, status_code=400)
@@ -432,7 +432,7 @@ async def login(
     password: str = Form(...),
     invite: str = Form(...)
 ):
-    email = (email or "").strip().lower()
+    # email handled by get_request_email
 
     if invite != INVITE_CODE:
         return JSONResponse({"error": "Invalid invite code"}, status_code=400)
@@ -453,8 +453,9 @@ async def login(
 # ---------- BILLING / STRIPE ----------
 
 @app.get("/upgrade/{plan}")
-async def upgrade_plan(plan: str, email: str = ""):
-    email = (email or "").strip().lower()
+async def upgrade_plan(request: Request, plan: str, email: str = ""):
+    email = get_request_email(request, email)
+    # email handled by get_request_email
 
     if not email:
         return RedirectResponse("/login", status_code=303)
@@ -484,7 +485,7 @@ async def upgrade_plan(plan: str, email: str = ""):
 
 @app.get("/billing/success")
 async def billing_success(session_id: str = "", email: str = ""):
-    email = (email or "").strip().lower()
+    # email handled by get_request_email
 
     if session_id and stripe.api_key:
         try:
@@ -511,7 +512,7 @@ async def billing_success(session_id: str = "", email: str = ""):
 
 @app.get("/billing/cancel")
 async def billing_cancel(email: str = ""):
-    email = (email or "").strip().lower()
+    # email handled by get_request_email
     return RedirectResponse(f"/app?email={email}", status_code=303)
 
 
