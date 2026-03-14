@@ -79,6 +79,18 @@ def ensure_user_settings(user: dict):
     return settings
 
 
+def ensure_user_exists(email: str):
+    if email not in users:
+        users[email] = {
+            "password": "",
+            "membership": "PRO",
+            "search_count": 0,
+            "settings": build_default_settings()
+        }
+    ensure_user_settings(users[email])
+    return users[email]
+
+
 # ---------- OPENAI CLIENT ----------
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -189,9 +201,6 @@ async def signup(
     if invite != INVITE_CODE:
         return {"error": "Invalid invite code"}
 
-    if email in users:
-        return {"error": "Account already exists"}
-
     users[email] = {
         "password": password,
         "membership": "PRO",
@@ -224,17 +233,9 @@ async def login(
     if invite != INVITE_CODE:
         return {"error": "Invalid invite code"}
 
-    if email not in users:
-        users[email] = {
-            "password": password,
-            "membership": "PRO",
-            "search_count": 0,
-            "settings": build_default_settings()
-        }
+    user = ensure_user_exists(email)
 
-    ensure_user_settings(users[email])
-
-    if users[email]["password"] != password:
+    if user["password"] and user["password"] != password:
         return {"error": "Incorrect password"}
 
     response = RedirectResponse(f"/app?email={email}", status_code=303)
@@ -260,8 +261,7 @@ async def app_page(request: Request, email: str = ""):
     if not email and cookie_user:
         email = cookie_user
 
-    user = users.get(email, {})
-    user_settings = ensure_user_settings(user) if user else build_default_settings()
+    user = ensure_user_exists(email)
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -272,7 +272,7 @@ async def app_page(request: Request, email: str = ""):
             "listing": None,
             "email": email,
             "search_count": user.get("search_count", 0),
-            "user_settings": user_settings
+            "user_settings": user["settings"]
         },
     )
 
@@ -297,22 +297,19 @@ async def analyze(
     if not email and cookie_user:
         email = cookie_user
 
-    user = users.get(email, {})
-    user_settings = ensure_user_settings(user) if user else build_default_settings()
-
-    # ---------- DEFAULT FALLBACKS ----------
+    user = ensure_user_exists(email)
+    settings = user["settings"]
 
     if profit is None:
-        profit = user_settings.get("default_profit", 40)
+        profit = settings["default_profit"]
 
     if local_factor is None:
-        local_factor = user_settings.get("local_factor", 80)
+        local_factor = settings["local_factor"]
 
     if not platforms:
-        platforms = user_settings.get("platforms", ["facebook", "ebay"])
+        platforms = settings["platforms"]
 
-    if email in users:
-        users[email]["search_count"] += 1
+    user["search_count"] += 1
 
     if photo and not query:
         try:
@@ -329,8 +326,8 @@ async def analyze(
                 "generated_listings": None,
                 "listing": None,
                 "email": email,
-                "search_count": user.get("search_count", 0),
-                "user_settings": user_settings,
+                "search_count": user["search_count"],
+                "user_settings": settings,
                 "error": "No search query detected"
             },
         )
@@ -365,8 +362,8 @@ async def analyze(
             "generated_listings": generated_listings,
             "listing": listing,
             "email": email,
-            "search_count": user.get("search_count", 0),
-            "user_settings": user_settings
+            "search_count": user["search_count"],
+            "user_settings": settings
         },
     )
 
@@ -381,12 +378,7 @@ async def settings_page(request: Request, email: str = ""):
     if not email and cookie_user:
         email = cookie_user
 
-    user = users.get(email, {})
-
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-
-    user_settings = ensure_user_settings(user)
+    user = ensure_user_exists(email)
 
     return templates.TemplateResponse(
         "settings.html",
@@ -394,7 +386,7 @@ async def settings_page(request: Request, email: str = ""):
             "request": request,
             "email": email,
             "user": user,
-            "user_settings": user_settings,
+            "user_settings": user["settings"],
             "success": None
         }
     )
@@ -417,20 +409,17 @@ async def save_settings(
     if not email and cookie_user:
         email = cookie_user
 
-    user = users.get(email, {})
-
-    if not user:
-        return RedirectResponse("/login", status_code=303)
+    user = ensure_user_exists(email)
 
     if not platforms:
         platforms = ["facebook", "ebay"]
 
-    user_settings = ensure_user_settings(user)
+    settings = user["settings"]
 
-    user_settings["mode"] = mode
-    user_settings["default_profit"] = default_profit
-    user_settings["local_factor"] = local_factor
-    user_settings["platforms"] = platforms
+    settings["mode"] = mode
+    settings["default_profit"] = default_profit
+    settings["local_factor"] = local_factor
+    settings["platforms"] = platforms
 
     return templates.TemplateResponse(
         "settings.html",
@@ -438,7 +427,7 @@ async def save_settings(
             "request": request,
             "email": email,
             "user": user,
-            "user_settings": user_settings,
+            "user_settings": settings,
             "success": "Settings saved successfully."
         }
     )
@@ -454,7 +443,7 @@ async def account_page(request: Request, email: str = ""):
     if not email and cookie_user:
         email = cookie_user
 
-    user = users.get(email, {})
+    user = ensure_user_exists(email)
 
     return templates.TemplateResponse(
         "account.html",

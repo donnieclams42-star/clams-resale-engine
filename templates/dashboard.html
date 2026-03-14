@@ -70,8 +70,6 @@ margin:auto;
 padding:25px;
 }
 
-/* FIXED ANALYZER LAYOUT */
-
 .search-bar{
 display:flex;
 flex-wrap:wrap;
@@ -327,7 +325,6 @@ scanner.style.display="none"
 
 </head>
 
-
 <body>
 
 <div class="header">
@@ -347,7 +344,6 @@ scanner.style.display="none"
 </div>
 
 </div>
-
 
 <div class="app-container">
 
@@ -396,7 +392,7 @@ scanner.style.display="none"
 
 <label>Upload / Take Photo</label>
 
-<input type="file" name="photo" accept="image/*">
+<input type="file" name="photo" accept="image/*" capture="environment">
 
 <br><br>
 

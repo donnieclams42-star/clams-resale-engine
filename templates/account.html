@@ -2,6 +2,9 @@
 <html>
 
 <head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>CLAMS Account</title>
 <link rel="stylesheet" href="/static/styles.css">
 
@@ -131,25 +134,7 @@ background:rgba(168,85,247,.12);
 border:1px solid rgba(168,85,247,.28);
 }
 
-.upgrade-box h4{
-margin:0 0 10px 0;
-}
-
-.upgrade-box p{
-margin:0 0 12px 0;
-line-height:1.6;
-font-size:14px;
-opacity:.95;
-}
-
-.note-text{
-margin-top:12px;
-font-size:12px;
-opacity:.65;
-line-height:1.6;
-}
-
-@media (max-width: 900px){
+@media (max-width:900px){
 .account-grid{
 grid-template-columns:1fr;
 }
@@ -165,8 +150,9 @@ grid-template-columns:1fr;
 <div class="nav-title">CLAMS</div>
 
 <div class="nav-links">
-<a href="/app">Analyzer</a>
-<a href="/account">Account</a>
+<a href="/app?email={{email}}">Analyzer</a>
+<a href="/settings?email={{email}}">Settings</a>
+<a href="/account?email={{email}}">Account</a>
 </div>
 
 </div>
@@ -210,105 +196,10 @@ grid-template-columns:1fr;
 </div>
 
 <div class="account-actions">
-<a href="/app"><button type="button">Back to Analyzer</button></a>
+<a href="/app?email={{email}}"><button type="button">Back to Analyzer</button></a>
 <a href="/login"><button type="button" class="secondary-btn">Logout</button></a>
 </div>
-</div>
 
-<div class="account-card">
-<h3>AI Listing Modes</h3>
-
-<div class="mode-box">
-<h4>Assist Mode — Included in Free</h4>
-<p>
-Assist Mode improves your listing workflow using CLAMS defaults.
-It helps with title cleanup, category guidance, and stronger descriptions,
-while keeping the app lightweight for standard users.
-</p>
-<ul class="feature-list">
-<li>Title improvement</li>
-<li>Category suggestion</li>
-<li>Description cleanup</li>
-<li>Template-assisted posting</li>
-</ul>
-</div>
-
-<div class="mode-box">
-<h4>Full Generation — Pro Only</h4>
-<p>
-Full Generation creates a full platform-ready listing package with
-title, price, description, and category recommendations using your paid AI layer.
-This is the premium posting system.
-</p>
-<ul class="feature-list">
-<li>Full AI title generation</li>
-<li>Full AI description generation</li>
-<li>Category recommendation</li>
-<li>Best-platform posting support</li>
-</ul>
-</div>
-</div>
-
-<div class="account-card">
-<h3>Analyzer Defaults</h3>
-
-<div class="account-row">
-<div class="account-label">Default Target Profit %</div>
-<div class="account-value">{{ default_profit }}%</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">Default Local Market Factor</div>
-<div class="account-value">{{ default_local_factor }}%</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">Default Condition</div>
-<div class="account-value">{{ default_condition }}</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">Currency</div>
-<div class="account-value">USD</div>
-</div>
-
-<p class="note-text">
-These are your current CLAMS default settings for the analyzer experience.
-Persistent saving can be wired in next once we attach settings storage.
-</p>
-</div>
-
-<div class="account-card">
-<h3>Posting Defaults</h3>
-
-<div class="account-row">
-<div class="account-label">Default Facebook Posting</div>
-<div class="account-value">Enabled</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">Default eBay Posting</div>
-<div class="account-value">Enabled</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">Shipping Available</div>
-<div class="account-value">Enabled</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">Preferred AI Mode</div>
-<div class="account-value">{{ preferred_ai_mode }}</div>
-</div>
-
-<div class="upgrade-box">
-<h4>Upgrade Path</h4>
-<p>
-Free users get Assist Mode. Pro members unlock Full Generation for
-complete AI-written listing output with title, price, description, and category support.
-</p>
-<button type="button">Upgrade to Pro</button>
-</div>
 </div>
 
 </div>
