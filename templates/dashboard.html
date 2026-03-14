@@ -69,7 +69,7 @@ padding:25px;
 
 .search-bar{
 display:grid;
-grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;
+grid-template-columns:2fr 1fr 1fr 1fr auto;
 gap:10px;
 margin-bottom:20px;
 }
@@ -308,11 +308,6 @@ scanner.style.display="none"
 </div>
 
 <div class="form-group">
-<label>Local Market Factor %</label>
-<input type="number" name="local_factor" value="80">
-</div>
-
-<div class="form-group">
 <label>Seller Asking Price</label>
 <input type="number" name="asking_price">
 </div>
@@ -424,6 +419,14 @@ View Listing
 
 
 <div id="advanced" class="hidden">
+
+<h2>Advanced Settings</h2>
+
+<div class="form-group" style="max-width:200px;margin-bottom:20px;">
+<label>Local Market Factor %</label>
+<input type="number" name="local_factor" value="80">
+</div>
+
 
 <h2>Deal Metrics</h2>
 
