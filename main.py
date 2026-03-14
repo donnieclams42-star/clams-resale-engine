@@ -1,6 +1,7 @@
 from typing import List, Optional
 import os
 import base64
+from datetime import date
 
 from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
@@ -12,6 +13,7 @@ from market_analysis import analyze_market
 from listing_generator import generate_listings
 
 from openai import OpenAI
+import stripe
 
 
 app = FastAPI()
@@ -36,7 +38,19 @@ users = {}
 INVITE_CODE = "betatesting123"
 
 BETA_MODE = True
-FREE_LIMIT = 10
+FREE_LIMIT = 5
+
+PRO_PRICE = 19
+RESELLER_PRICE = 49
+
+
+# ---------- STRIPE ----------
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+STRIPE_PRO_PRICE_ID = os.getenv("STRIPE_PRO_PRICE_ID", "")
+STRIPE_RESELLER_PRICE_ID = os.getenv("STRIPE_RESELLER_PRICE_ID", "")
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
 
 
 # ---------- DEFAULT SETTINGS ----------
@@ -80,19 +94,81 @@ def ensure_user_settings(user: dict):
     return settings
 
 
+def ensure_daily_reset(user: dict):
+    today = str(date.today())
+
+    if user.get("search_reset_date") != today:
+        user["search_reset_date"] = today
+        user["search_count"] = 0
+
+    return user
+
+
 def ensure_user_exists(email: str):
 
     if email not in users:
         users[email] = {
             "password": "",
-            "membership": "PRO",
+            "membership": "FREE",
             "search_count": 0,
+            "search_reset_date": str(date.today()),
             "settings": build_default_settings()
         }
 
     ensure_user_settings(users[email])
+    ensure_daily_reset(users[email])
 
     return users[email]
+
+
+def get_membership_limits(user: dict):
+    membership = user.get("membership", "FREE").upper()
+
+    if membership == "FREE":
+        return {
+            "membership": "FREE",
+            "daily_limit": FREE_LIMIT,
+            "advanced_enabled": False,
+            "ai_photo_enabled": False
+        }
+
+    if membership == "PRO":
+        return {
+            "membership": "PRO",
+            "daily_limit": None,
+            "advanced_enabled": False,
+            "ai_photo_enabled": True
+        }
+
+    return {
+        "membership": "RESELLER",
+        "daily_limit": None,
+        "advanced_enabled": True,
+        "ai_photo_enabled": True
+    }
+
+
+def clamp_score(value):
+    try:
+        number = int(round(float(value)))
+    except Exception:
+        return 0
+
+    if number < 0:
+        return 0
+    if number > 100:
+        return 100
+    return number
+
+
+def deal_score_class(score):
+    score = clamp_score(score)
+
+    if score >= 80:
+        return "score-strong"
+    if score >= 60:
+        return "score-medium"
+    return "score-weak"
 
 
 # ---------- OPENAI CLIENT ----------
@@ -105,7 +181,6 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 async def detect_item_from_image(photo: UploadFile):
 
     image_bytes = await photo.read()
-
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
     response = client.responses.create(
@@ -140,7 +215,7 @@ Return only the search phrase.
 
     try:
         detected = response.output_text.strip()
-    except:
+    except Exception:
         detected = ""
 
     return detected
@@ -215,8 +290,9 @@ async def signup(
 
     users[email] = {
         "password": password,
-        "membership": "PRO",
+        "membership": "FREE",
         "search_count": 0,
+        "search_reset_date": str(date.today()),
         "settings": build_default_settings()
     }
 
@@ -263,6 +339,51 @@ async def login(
     return response
 
 
+# ---------- BILLING / STRIPE ----------
+
+@app.get("/upgrade/{plan}")
+async def upgrade_plan(plan: str, email: str = ""):
+
+    if plan not in ["pro", "reseller"]:
+        return RedirectResponse(f"/app?email={email}", status_code=303)
+
+    price_id = STRIPE_PRO_PRICE_ID if plan == "pro" else STRIPE_RESELLER_PRICE_ID
+
+    if not price_id:
+        return RedirectResponse(f"/app?email={email}", status_code=303)
+
+    checkout_session = stripe.checkout.Session.create(
+        mode="subscription",
+        line_items=[{"price": price_id, "quantity": 1}],
+        success_url=f"{APP_BASE_URL}/billing/success?email={email}&plan={plan}",
+        cancel_url=f"{APP_BASE_URL}/billing/cancel?email={email}",
+        metadata={
+            "email": email,
+            "plan": plan.upper()
+        }
+    )
+
+    return RedirectResponse(checkout_session.url, status_code=303)
+
+
+@app.get("/billing/success")
+async def billing_success(email: str = "", plan: str = ""):
+
+    user = ensure_user_exists(email)
+
+    if plan.lower() == "pro":
+        user["membership"] = "PRO"
+    elif plan.lower() == "reseller":
+        user["membership"] = "RESELLER"
+
+    return RedirectResponse(f"/app?email={email}", status_code=303)
+
+
+@app.get("/billing/cancel")
+async def billing_cancel(email: str = ""):
+    return RedirectResponse(f"/app?email={email}", status_code=303)
+
+
 # ---------- APP PAGE ----------
 
 @app.get("/app", response_class=HTMLResponse)
@@ -274,6 +395,7 @@ async def app_page(request: Request, email: str = ""):
         email = cookie_user
 
     user = ensure_user_exists(email)
+    plan_info = get_membership_limits(user)
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -284,7 +406,12 @@ async def app_page(request: Request, email: str = ""):
             "listing": None,
             "email": email,
             "search_count": user.get("search_count", 0),
-            "user_settings": user["settings"]
+            "user_settings": user["settings"],
+            "user": user,
+            "plan_info": plan_info,
+            "free_limit": FREE_LIMIT,
+            "pro_price": PRO_PRICE,
+            "reseller_price": RESELLER_PRICE
         },
     )
 
@@ -311,6 +438,7 @@ async def analyze(
 
     user = ensure_user_exists(email)
     settings = user["settings"]
+    plan_info = get_membership_limits(user)
 
     if profit is None:
         profit = settings["default_profit"]
@@ -321,17 +449,33 @@ async def analyze(
     if not platforms:
         platforms = settings["platforms"]
 
+    if plan_info["daily_limit"] is not None and user["search_count"] >= plan_info["daily_limit"]:
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {
+                "request": request,
+                "data": None,
+                "generated_listings": None,
+                "listing": None,
+                "email": email,
+                "search_count": user["search_count"],
+                "user_settings": settings,
+                "user": user,
+                "plan_info": plan_info,
+                "free_limit": FREE_LIMIT,
+                "pro_price": PRO_PRICE,
+                "reseller_price": RESELLER_PRICE,
+                "error": f"Free plan limit reached for today. Upgrade to Pro or Reseller for more scans."
+            },
+        )
+
     user["search_count"] += 1
 
-    # ---------- IMAGE AI ALWAYS RUNS IF PHOTO EXISTS ----------
-
-    if photo:
+    if photo and plan_info["ai_photo_enabled"]:
         try:
             detected = await detect_item_from_image(photo)
-
             if detected:
                 query = detected
-
         except Exception as e:
             print("Image detection failed:", e)
 
@@ -346,6 +490,11 @@ async def analyze(
                 "email": email,
                 "search_count": user["search_count"],
                 "user_settings": settings,
+                "user": user,
+                "plan_info": plan_info,
+                "free_limit": FREE_LIMIT,
+                "pro_price": PRO_PRICE,
+                "reseller_price": RESELLER_PRICE,
                 "error": "No search query detected"
             },
         )
@@ -364,6 +513,28 @@ async def analyze(
     generated_listings = None
 
     if data:
+        data["deal_score_ui"] = clamp_score(data.get("deal_score", 0))
+        data["flip_score_ui"] = clamp_score(data.get("flip_score", 0))
+        data["deal_score_class"] = deal_score_class(data["deal_score_ui"])
+        data["flip_score_class"] = deal_score_class(data["flip_score_ui"])
+
+        if asking_price is not None:
+            try:
+                market_price = float(data.get("market_price", 0))
+                profit_delta = round(market_price - float(asking_price), 2)
+                data["profit_delta"] = profit_delta
+
+                if float(asking_price) > 0:
+                    data["profit_margin_percent"] = round((profit_delta / float(asking_price)) * 100, 1)
+                else:
+                    data["profit_margin_percent"] = 0
+            except Exception:
+                data["profit_delta"] = None
+                data["profit_margin_percent"] = None
+        else:
+            data["profit_delta"] = None
+            data["profit_margin_percent"] = None
+
         generated_listings = generate_listings(
             query,
             condition,
@@ -381,7 +552,12 @@ async def analyze(
             "listing": listing,
             "email": email,
             "search_count": user["search_count"],
-            "user_settings": settings
+            "user_settings": settings,
+            "user": user,
+            "plan_info": plan_info,
+            "free_limit": FREE_LIMIT,
+            "pro_price": PRO_PRICE,
+            "reseller_price": RESELLER_PRICE
         },
     )
 

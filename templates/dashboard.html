@@ -11,60 +11,44 @@
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
 
 <script>
-
 function toggleAdvanced(){
+    let section = document.getElementById("advanced");
 
-let section = document.getElementById("advanced")
-
-if(section.classList.contains("hidden")){
-section.classList.remove("hidden")
-}
-else{
-section.classList.add("hidden")
-}
-
+    if(section.classList.contains("hidden")){
+        section.classList.remove("hidden");
+    } else {
+        section.classList.add("hidden");
+    }
 }
 
 function startScanner(){
+    let scanner = document.getElementById("scanner");
+    scanner.style.display = "block";
 
-let scanner = document.getElementById("scanner")
+    Quagga.init({
+        inputStream:{
+            name:"Live",
+            type:"LiveStream",
+            target:scanner
+        },
+        decoder:{
+            readers:["ean_reader","upc_reader","code_128_reader"]
+        }
+    }, function(err){
+        if(err){
+            console.log(err);
+            return;
+        }
+        Quagga.start();
+    });
 
-scanner.style.display="block"
-
-Quagga.init({
-inputStream:{
-name:"Live",
-type:"LiveStream",
-target:scanner
-},
-decoder:{
-readers:["ean_reader","upc_reader","code_128_reader"]
+    Quagga.onDetected(function(data){
+        let code = data.codeResult.code;
+        document.getElementById("query").value = code;
+        Quagga.stop();
+        scanner.style.display = "none";
+    });
 }
-},function(err){
-
-if(err){
-console.log(err)
-return
-}
-
-Quagga.start()
-
-})
-
-Quagga.onDetected(function(data){
-
-let code=data.codeResult.code
-
-document.getElementById("query").value=code
-
-Quagga.stop()
-
-scanner.style.display="none"
-
-})
-
-}
-
 </script>
 
 </head>
@@ -73,256 +57,300 @@ scanner.style.display="none"
 
 <div class="header">
 
-<div class="logo">
-<div class="logo-main">Market Radar</div>
-<div class="logo-sub">Powered by CLAMS Intelligence</div>
-<div class="logo-quote">See opportunity before the market does.</div>
-</div>
+    <div class="logo">
+        <div class="logo-main">Market Radar</div>
+        <div class="logo-sub">Powered by CLAMS Intelligence</div>
+        <div class="logo-quote">See opportunity before the market does.</div>
+    </div>
 
-<div class="nav-links">
-<a href="/app?email={{email}}">Analyze</a>
-<a href="/settings?email={{email}}">Settings</a>
-<a href="/account?email={{email}}">Account</a>
-</div>
+    <div class="nav-links">
+        <a href="/app?email={{email}}">Analyze</a>
+        <a href="/settings?email={{email}}">Settings</a>
+        <a href="/account?email={{email}}">Account</a>
+    </div>
 
 </div>
 
 <div class="app-container">
 
-<h1>Market Analyzer</h1>
+    <h1>Market Analyzer</h1>
+
+    {% if error %}
+    <div class="error-box">{{ error }}</div>
+    {% endif %}
+
+    <div class="membership-banner">
+        <div class="membership-left">
+            <div class="membership-plan">Current Plan: <strong>{{ plan_info.membership }}</strong></div>
+            {% if plan_info.membership == "FREE" %}
+            <div class="membership-sub">
+                {{ search_count }}/{{ free_limit }} scans used today
+            </div>
+            {% elif plan_info.membership == "PRO" %}
+            <div class="membership-sub">
+                AI photo detection unlocked · Unlimited scans
+            </div>
+            {% else %}
+            <div class="membership-sub">
+                Advanced intelligence unlocked · Unlimited scans
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="membership-actions">
+            {% if plan_info.membership == "FREE" %}
+            <a class="tier-btn pro-tier" href="/upgrade/pro?email={{email}}">Upgrade to Pro · ${{ pro_price }}/mo</a>
+            <a class="tier-btn reseller-tier" href="/upgrade/reseller?email={{email}}">Reseller · ${{ reseller_price }}/mo</a>
+            {% elif plan_info.membership == "PRO" %}
+            <a class="tier-btn reseller-tier" href="/upgrade/reseller?email={{email}}">Upgrade to Reseller · ${{ reseller_price }}/mo</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="tier-grid">
+        <div class="tier-card">
+            <h3>Free</h3>
+            <div class="tier-price">$0</div>
+            <p>5 scans/day</p>
+            <p>Basic pricing view</p>
+        </div>
+
+        <div class="tier-card featured-tier">
+            <h3>Pro</h3>
+            <div class="tier-price">${{ pro_price }}/mo</div>
+            <p>Unlimited scans</p>
+            <p>AI photo detection</p>
+            <p>Generated listings</p>
+        </div>
+
+        <div class="tier-card">
+            <h3>Reseller</h3>
+            <div class="tier-price">${{ reseller_price }}/mo</div>
+            <p>Unlimited scans</p>
+            <p>Advanced intelligence</p>
+            <p>Built for serious sellers</p>
+        </div>
+    </div>
+
+    <form method="post" action="/app" enctype="multipart/form-data">
+
+        <input type="hidden" name="email" value="{{email}}">
+
+        <div class="search-bar">
+
+            <div class="form-group search-item">
+                <label>Search Item</label>
+                <input id="query" type="text" name="query" placeholder="iPhone 12">
+            </div>
+
+            <div class="form-group">
+                <label>Condition</label>
+                <select name="condition">
+                    <option value="A">A - Excellent</option>
+                    <option value="B">B - Good</option>
+                    <option value="C">C - Fair</option>
+                    <option value="P">Parts</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Target Profit %</label>
+                <input type="number" name="profit" value="{{ user_settings.default_profit }}">
+            </div>
+
+            <div class="form-group">
+                <label>Seller Asking Price</label>
+                <input type="number" name="asking_price">
+            </div>
+
+            <button class="analyze-btn" type="submit">Analyze</button>
+
+        </div>
+
+        <div class="upload-section">
+
+            <label>Upload / Take Photo</label>
+            <input type="file" name="photo" accept="image/*" capture="environment">
+
+            <div class="upload-note">
+                {% if plan_info.ai_photo_enabled %}
+                Photo AI is active for your plan.
+                {% else %}
+                Photo upload available. Upgrade to Pro to unlock AI photo detection.
+                {% endif %}
+            </div>
+
+            <button type="button" onclick="startScanner()">Scan Barcode</button>
 
-{% if error %}
-<div class="error-box">{{ error }}</div>
-{% endif %}
+            <div id="scanner"></div>
 
-<div class="membership-banner">
+        </div>
 
-<strong>Plan:</strong> {{ user.membership }}
+    </form>
 
-{% if user.membership == "FREE" %}
-<span class="limit-warning">
-Free plan limit approaching. Upgrade for unlimited scans.
-</span>
+    {% if listing %}
 
-<a class="upgrade-btn" href="/account?email={{email}}">
-Upgrade
-</a>
+    <div class="listing-preview">
 
-{% endif %}
+        <img src="{{ listing.image }}">
 
-</div>
+        <div>
 
-<form method="post" action="/app" enctype="multipart/form-data">
+            <div class="listing-preview-title">
+                {{ listing.title }}
+            </div>
 
-<input type="hidden" name="email" value="{{email}}">
+            <div class="listing-preview-price">
+                ${{ listing.price }}
+            </div>
 
-<div class="search-bar">
+            <a href="{{ listing.url }}" target="_blank">
+                View Listing
+            </a>
 
-<div class="form-group search-item">
-<label>Search Item</label>
-<input id="query" type="text" name="query" placeholder="iPhone 12">
-</div>
+        </div>
 
-<div class="form-group">
-<label>Condition</label>
-<select name="condition">
-<option value="A">A - Excellent</option>
-<option value="B">B - Good</option>
-<option value="C">C - Fair</option>
-<option value="P">Parts</option>
-</select>
-</div>
+    </div>
+
+    {% endif %}
 
-<div class="form-group">
-<label>Target Profit %</label>
-<input type="number" name="profit" value="{{ user_settings.default_profit }}">
-</div>
+    {% if data %}
+
+    <h2>Pricing</h2>
 
-<div class="form-group">
-<label>Seller Asking Price</label>
-<input type="number" name="asking_price">
-</div>
-
-<button class="analyze-btn" type="submit">Analyze</button>
-
-</div>
-
-<div class="upload-section">
-
-<label>Upload / Take Photo</label>
-
-<input type="file" name="photo" accept="image/*" capture="environment">
-
-<br><br>
-
-<button type="button" onclick="startScanner()">Scan Barcode</button>
-
-<div id="scanner"></div>
-
-</div>
-
-</form>
-
-{% if listing %}
-
-<div class="listing-preview">
-
-<img src="{{ listing.image }}">
-
-<div>
-
-<div class="listing-preview-title">
-{{ listing.title }}
-</div>
-
-<div class="listing-preview-price">
-${{ listing.price }}
-</div>
-
-<a href="{{ listing.url }}" target="_blank">
-View Listing
-</a>
-
-</div>
-
-</div>
-
-{% endif %}
-
-{% if data %}
-
-<h2>Pricing</h2>
-
-<div class="price-grid">
-
-<div class="price-card fast">
-<h3>FAST CASH</h3>
-<p>${{data.fast_cash}}</p>
-</div>
-
-<div class="price-card market">
-<h3>MARKET PRICE</h3>
-<p>${{data.market_price}}</p>
-</div>
-
-<div class="price-card hold">
-<h3>HOLD PRICE</h3>
-<p>${{data.hold_price}}</p>
-</div>
-
-</div>
-
-<h2>Generated Listings</h2>
-
-{% if generated_listings %}
-
-{% for platform, listing in generated_listings.items() %}
-
-<div class="listing-card">
-
-<h3>{{platform|capitalize}}</h3>
-
-<p><strong>{{listing.title}}</strong></p>
-
-<p>Price: ${{listing.price}}</p>
-
-<p>Category: {{listing.category}}</p>
-
-<p>{{listing.description}}</p>
-
-</div>
-
-{% endfor %}
-
-{% endif %}
-
-<br>
-
-<label class="advanced-toggle">
-<input type="checkbox" onclick="toggleAdvanced()">
-Show Advanced Market Intelligence
-</label>
-
-<div id="advanced" class="hidden">
-
-<h2>Advanced Market Intelligence</h2>
-
-<div class="metric-grid">
-
-<div class="metric-card">
-<h3>Deal Score</h3>
-<p>{{data.deal_score}}</p>
-</div>
-
-<div class="metric-card">
-<h3>Quick Flip Score</h3>
-
-{% set flip = data.flip_score %}
-{% if flip < 0 %}
-{% set flip = 0 %}
-{% endif %}
-
-<p>{{flip}} / 100</p>
-
-</div>
-
-<div class="metric-card">
-<h3>Confidence</h3>
-<p>{{data.confidence}}</p>
-</div>
-
-<div class="metric-card">
-<h3>Median Price</h3>
-<p>${{data.median_price}}</p>
-</div>
-
-<div class="metric-card">
-<h3>Sell Through</h3>
-<p>{{data.sell_through}}%</p>
-</div>
-
-<div class="metric-card">
-<h3>Volatility</h3>
-<p>{{data.volatility}}</p>
-</div>
-
-<div class="metric-card">
-<h3>Liquidity</h3>
-<p>{{data.liquidity}}</p>
-</div>
-
-<div class="metric-card">
-<h3>Risk</h3>
-<p>{{data.risk}}</p>
-</div>
-
-<div class="metric-card">
-<h3>Listings</h3>
-<p>{{data.sold_count}} sold / {{data.active_count}} active</p>
-</div>
-
-</div>
-
-</div>
-
-{% endif %}
+    <div class="price-grid">
+
+        <div class="price-card fast">
+            <h3>FAST CASH</h3>
+            <p>${{data.fast_cash}}</p>
+        </div>
+
+        <div class="price-card market">
+            <h3>MARKET PRICE</h3>
+            <p>${{data.market_price}}</p>
+        </div>
+
+        <div class="price-card hold">
+            <h3>HOLD PRICE</h3>
+            <p>${{data.hold_price}}</p>
+        </div>
+
+    </div>
+
+    {% if data.profit_delta is not none %}
+    <div class="profit-opportunity-card">
+        <div class="profit-headline">Profit Opportunity</div>
+        <div class="profit-main">
+            {% if data.profit_delta >= 0 %}
+            +${{ data.profit_delta }}
+            {% else %}
+            -${{ (data.profit_delta * -1) }}
+            {% endif %}
+        </div>
+        <div class="profit-subline">
+            {% if data.profit_margin_percent is not none %}
+            Margin:
+            {% if data.profit_margin_percent >= 0 %}
+            +{{ data.profit_margin_percent }}%
+            {% else %}
+            {{ data.profit_margin_percent }}%
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <h2>Generated Listings</h2>
+
+    {% if generated_listings %}
+        {% for platform, listing in generated_listings.items() %}
+        <div class="listing-card">
+            <h3>{{platform|capitalize}}</h3>
+            <p><strong>{{listing.title}}</strong></p>
+            <p>Price: ${{listing.price}}</p>
+            <p>Category: {{listing.category}}</p>
+            <p>{{listing.description}}</p>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <br>
+
+    <label class="advanced-toggle">
+        <input type="checkbox" onclick="toggleAdvanced()">
+        Show Advanced Market Intelligence
+    </label>
+
+    <div id="advanced" class="hidden">
+
+        <h2>Advanced Market Intelligence</h2>
+
+        <div class="metric-grid">
+
+            <div class="metric-card {{ data.deal_score_class }}">
+                <h3>Deal Score</h3>
+                <p>{{data.deal_score_ui}} / 100</p>
+            </div>
+
+            <div class="metric-card {{ data.flip_score_class }}">
+                <h3>Quick Flip Score</h3>
+                <p>{{data.flip_score_ui}} / 100</p>
+            </div>
+
+            <div class="metric-card">
+                <h3>Confidence</h3>
+                <p>{{data.confidence}}</p>
+            </div>
+
+            <div class="metric-card">
+                <h3>Median Price</h3>
+                <p>${{data.median_price}}</p>
+            </div>
+
+            <div class="metric-card">
+                <h3>Sell Through</h3>
+                <p>{{data.sell_through}}%</p>
+            </div>
+
+            <div class="metric-card">
+                <h3>Volatility</h3>
+                <p>{{data.volatility}}</p>
+            </div>
+
+            <div class="metric-card">
+                <h3>Liquidity</h3>
+                <p>{{data.liquidity}}</p>
+            </div>
+
+            <div class="metric-card">
+                <h3>Risk</h3>
+                <p>{{data.risk}}</p>
+            </div>
+
+            <div class="metric-card">
+                <h3>Listings</h3>
+                <p>{{data.sold_count}} sold / {{data.active_count}} active</p>
+            </div>
+
+        </div>
+
+        {% if plan_info.membership != "RESELLER" %}
+        <div class="advanced-upsell">
+            Advanced intelligence is most valuable for frequent sellers.
+            <a href="/upgrade/reseller?email={{email}}">Unlock Reseller</a>
+        </div>
+        {% endif %}
+
+    </div>
+
+    {% endif %}
 
 </div>
 
 <div class="mobile-nav">
-
-<a href="/app?email={{email}}">
-<span>Analyze</span>
-</a>
-
-<a href="/settings?email={{email}}">
-<span>Settings</span>
-</a>
-
-<a href="/account?email={{email}}">
-<span>Account</span>
-</a>
-
+    <a href="/app?email={{email}}"><span>Analyze</span></a>
+    <a href="/settings?email={{email}}"><span>Settings</span></a>
+    <a href="/account?email={{email}}"><span>Account</span></a>
 </div>
 
 </body>

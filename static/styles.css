@@ -51,13 +51,103 @@ opacity:1;
 .app-container{
 max-width:1050px;
 margin:auto;
-padding:30px 25px;
+padding:30px 25px 100px;
+}
+
+h1, h2{
+letter-spacing:.3px;
 }
 
 h1{
-margin-bottom:25px;
+margin-bottom:22px;
 font-weight:700;
-letter-spacing:.3px;
+}
+
+h2{
+margin-top:30px;
+margin-bottom:14px;
+}
+
+/* MEMBERSHIP */
+
+.membership-banner{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:18px;
+padding:18px 20px;
+border-radius:16px;
+background:linear-gradient(135deg,#0b244f,#102d63);
+box-shadow:0 10px 28px rgba(0,0,0,0.35);
+margin-bottom:20px;
+}
+
+.membership-plan{
+font-size:16px;
+font-weight:600;
+}
+
+.membership-sub{
+font-size:13px;
+opacity:.8;
+margin-top:4px;
+}
+
+.membership-actions{
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+}
+
+.tier-btn{
+display:inline-block;
+text-decoration:none;
+padding:12px 16px;
+border-radius:12px;
+font-weight:700;
+font-size:14px;
+}
+
+.pro-tier{
+background:#2563eb;
+color:white;
+}
+
+.reseller-tier{
+background:#7c3aed;
+color:white;
+}
+
+.tier-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:18px;
+margin-bottom:28px;
+}
+
+.tier-card{
+background:#0b244f;
+padding:22px;
+border-radius:16px;
+box-shadow:0 8px 24px rgba(0,0,0,0.32);
+border:1px solid rgba(255,255,255,0.05);
+}
+
+.featured-tier{
+border:1px solid rgba(59,130,246,0.55);
+box-shadow:0 10px 30px rgba(37,99,235,0.25);
+}
+
+.tier-card h3{
+margin-top:0;
+margin-bottom:6px;
+font-size:18px;
+}
+
+.tier-price{
+font-size:28px;
+font-weight:800;
+margin-bottom:10px;
 }
 
 /* SEARCH BAR */
@@ -67,6 +157,7 @@ display:flex;
 gap:16px;
 flex-wrap:wrap;
 align-items:flex-end;
+justify-content:center;
 margin-bottom:30px;
 }
 
@@ -75,10 +166,12 @@ display:flex;
 flex-direction:column;
 flex:1;
 min-width:170px;
+max-width:220px;
 }
 
 .search-item{
 flex:2;
+max-width:420px;
 }
 
 .form-group label{
@@ -107,18 +200,18 @@ box-shadow:0 0 0 2px #3b82f6;
 .analyze-btn{
 height:48px;
 padding:0 22px;
-background:#3b82f6;
+background:linear-gradient(135deg,#3b82f6,#2563eb);
 border:none;
 border-radius:12px;
 color:white;
-font-weight:600;
+font-weight:700;
 cursor:pointer;
 font-size:15px;
 transition:all .2s;
+box-shadow:0 8px 18px rgba(37,99,235,0.3);
 }
 
 .analyze-btn:hover{
-background:#2563eb;
 transform:translateY(-1px);
 }
 
@@ -126,10 +219,31 @@ transform:translateY(-1px);
 
 .upload-section{
 margin-bottom:28px;
+text-align:center;
 }
 
 .upload-section button{
+margin-top:12px;
+background:#1d4ed8;
+border:none;
+padding:12px 18px;
+border-radius:12px;
+color:white;
+font-weight:700;
+cursor:pointer;
+}
+
+.upload-note{
 margin-top:10px;
+font-size:13px;
+opacity:.8;
+}
+
+#scanner{
+display:none;
+width:100%;
+max-width:420px;
+margin:14px auto 0;
 }
 
 /* LISTING PREVIEW */
@@ -137,7 +251,7 @@ margin-top:10px;
 .listing-preview{
 background:#020617;
 padding:18px;
-border-radius:14px;
+border-radius:16px;
 display:flex;
 gap:16px;
 align-items:center;
@@ -189,9 +303,10 @@ opacity:.8;
 margin-bottom:10px;
 }
 
-.price-card .value{
-font-size:28px;
-font-weight:700;
+.price-card p{
+font-size:30px;
+font-weight:800;
+margin:0;
 }
 
 .fast{
@@ -206,6 +321,36 @@ border-top:4px solid #3b82f6;
 border-top:4px solid #a855f7;
 }
 
+/* PROFIT OPPORTUNITY */
+
+.profit-opportunity-card{
+margin-top:22px;
+background:linear-gradient(135deg,#05203f,#0b3b6a);
+border:1px solid rgba(34,197,94,0.25);
+padding:24px;
+border-radius:18px;
+text-align:center;
+box-shadow:0 10px 26px rgba(0,0,0,0.35);
+}
+
+.profit-headline{
+font-size:14px;
+opacity:.8;
+margin-bottom:8px;
+}
+
+.profit-main{
+font-size:36px;
+font-weight:800;
+color:#22c55e;
+}
+
+.profit-subline{
+margin-top:6px;
+font-size:15px;
+opacity:.88;
+}
+
 /* LISTINGS */
 
 .listing-card{
@@ -218,7 +363,15 @@ line-height:1.4;
 box-shadow:0 6px 16px rgba(0,0,0,0.35);
 }
 
-/* METRICS */
+/* ADVANCED */
+
+.advanced-toggle{
+display:inline-flex;
+align-items:center;
+gap:10px;
+font-weight:600;
+cursor:pointer;
+}
 
 .metric-grid{
 display:grid;
@@ -233,17 +386,49 @@ padding:24px;
 border-radius:16px;
 text-align:center;
 box-shadow:0 6px 18px rgba(0,0,0,0.35);
+border:1px solid rgba(255,255,255,0.04);
 }
 
 .metric-card h3{
 font-size:13px;
 opacity:.75;
-margin-bottom:6px;
+margin-bottom:8px;
 }
 
-.metric-card .value{
-font-size:24px;
+.metric-card p{
+font-size:28px;
+font-weight:800;
+margin:0;
+}
+
+.score-strong{
+border:1px solid rgba(34,197,94,0.45);
+box-shadow:0 10px 24px rgba(34,197,94,0.16);
+}
+
+.score-medium{
+border:1px solid rgba(234,179,8,0.45);
+box-shadow:0 10px 24px rgba(234,179,8,0.16);
+}
+
+.score-weak{
+border:1px solid rgba(239,68,68,0.45);
+box-shadow:0 10px 24px rgba(239,68,68,0.16);
+}
+
+.advanced-upsell{
+margin-top:18px;
+padding:16px 18px;
+border-radius:14px;
+background:#0f172a;
+border:1px solid rgba(124,58,237,0.3);
+font-size:14px;
+}
+
+.advanced-upsell a{
+color:#a78bfa;
 font-weight:700;
+text-decoration:none;
 }
 
 /* UTILITIES */
@@ -273,6 +458,7 @@ display:none;
 justify-content:space-around;
 padding:12px 0;
 font-size:14px;
+z-index:999;
 }
 
 .mobile-nav a{
@@ -280,21 +466,51 @@ color:#cbd5f5;
 text-decoration:none;
 }
 
-.mobile-nav a.active{
-color:#3b82f6;
-font-weight:600;
-}
-
 /* MOBILE */
 
 @media (max-width:900px){
 
+.header{
+flex-direction:column;
+align-items:flex-start;
+gap:10px;
+}
+
+.nav-links{
+display:none;
+}
+
+.app-container{
+padding:24px 16px 95px;
+}
+
+.membership-banner{
+flex-direction:column;
+align-items:flex-start;
+}
+
+.membership-actions{
+width:100%;
+}
+
+.tier-grid{
+grid-template-columns:1fr;
+}
+
 .search-bar{
 flex-direction:column;
+align-items:center;
+}
+
+.form-group,
+.search-item{
+width:100%;
+max-width:420px;
 }
 
 .analyze-btn{
 width:100%;
+max-width:420px;
 }
 
 .price-grid{
@@ -309,23 +525,17 @@ grid-template-columns:1fr;
 display:flex;
 }
 
-.header{
-flex-direction:column;
-align-items:flex-start;
-gap:10px;
-}
-
-.nav-links{
-display:none;
-}
-
-.app-container{
-padding:24px 16px 90px;
-}
-
 .listing-preview{
 flex-direction:row;
 align-items:flex-start;
+}
+
+.profit-main{
+font-size:30px;
+}
+
+.metric-card p{
+font-size:26px;
 }
 
 }
