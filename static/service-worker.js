@@ -1,22 +1,27 @@
-const CACHE_NAME = "clams-cache-v2";
-
-const urlsToCache = [
-  "/static/styles.css",
-  "/static/icon-192.png",
-  "/static/icon-512.png"
-];
+const CACHE_NAME = "clams-cache-v3";
 
 self.addEventListener("install", event => {
+  self.skipWaiting();   // force new worker immediately
+});
+
+self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(urlsToCache);
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
     })
   );
+  self.clients.claim(); // take control of open pages
 });
 
 self.addEventListener("fetch", event => {
 
-  // Never cache HTML pages
+  // Never cache HTML
   if (event.request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(fetch(event.request));
     return;
@@ -27,5 +32,4 @@ self.addEventListener("fetch", event => {
       return response || fetch(event.request);
     })
   );
-
 });
