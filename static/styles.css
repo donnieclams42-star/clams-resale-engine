@@ -59,7 +59,7 @@ letter-spacing:.3px;
 }
 
 h1{
-margin-bottom:22px;
+margin-bottom:16px;
 font-weight:700;
 }
 
@@ -68,7 +68,17 @@ margin-top:30px;
 margin-bottom:14px;
 }
 
+.tool-intro{
+font-size:15px;
+opacity:.82;
+margin-bottom:22px;
+}
+
 /* MEMBERSHIP */
+
+.membership-section{
+margin-top:34px;
+}
 
 .membership-banner{
 display:flex;
@@ -239,11 +249,38 @@ font-size:13px;
 opacity:.8;
 }
 
+.scanner-help{
+margin-top:10px;
+font-size:13px;
+opacity:.78;
+}
+
 #scanner{
 display:none;
+position:relative;
 width:100%;
 max-width:420px;
+min-height:220px;
 margin:14px auto 0;
+border-radius:16px;
+overflow:hidden;
+border:1px solid rgba(255,255,255,0.12);
+background:#020617;
+}
+
+#scanner::after{
+content:"Hold barcode inside frame";
+position:absolute;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+padding:10px 14px;
+border:2px solid rgba(59,130,246,0.7);
+border-radius:12px;
+font-size:13px;
+background:rgba(2,6,23,0.55);
+color:white;
+pointer-events:none;
 }
 
 /* LISTING PREVIEW */
@@ -414,6 +451,11 @@ box-shadow:0 10px 24px rgba(234,179,8,0.16);
 .score-weak{
 border:1px solid rgba(239,68,68,0.45);
 box-shadow:0 10px 24px rgba(239,68,68,0.16);
+}
+
+.locked-card{
+background:linear-gradient(135deg,#111827,#1f2937);
+opacity:.96;
 }
 
 .advanced-upsell{

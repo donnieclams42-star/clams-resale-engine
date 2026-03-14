@@ -11,6 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
 
 <script>
+let scannerRunning = false;
+
 function toggleAdvanced(){
     let section = document.getElementById("advanced");
 
@@ -21,7 +23,24 @@ function toggleAdvanced(){
     }
 }
 
+function stopScanner(){
+    if(scannerRunning){
+        Quagga.stop();
+        scannerRunning = false;
+    }
+
+    let scanner = document.getElementById("scanner");
+    if(scanner){
+        scanner.style.display = "none";
+        scanner.innerHTML = "";
+    }
+}
+
 function startScanner(){
+    if(scannerRunning){
+        return;
+    }
+
     let scanner = document.getElementById("scanner");
     scanner.style.display = "block";
 
@@ -29,24 +48,33 @@ function startScanner(){
         inputStream:{
             name:"Live",
             type:"LiveStream",
-            target:scanner
+            target:scanner,
+            constraints:{
+                facingMode:"environment"
+            }
+        },
+        locator:{
+            patchSize:"medium",
+            halfSample:true
         },
         decoder:{
-            readers:["ean_reader","upc_reader","code_128_reader"]
+            readers:["ean_reader","upc_reader","upc_e_reader","code_128_reader"]
         }
     }, function(err){
         if(err){
             console.log(err);
             return;
         }
+
+        scannerRunning = true;
         Quagga.start();
     });
 
+    Quagga.offDetected();
     Quagga.onDetected(function(data){
         let code = data.codeResult.code;
         document.getElementById("query").value = code;
-        Quagga.stop();
-        scanner.style.display = "none";
+        stopScanner();
     });
 }
 </script>
@@ -79,57 +107,8 @@ function startScanner(){
     <div class="error-box">{{ error }}</div>
     {% endif %}
 
-    <div class="membership-banner">
-        <div class="membership-left">
-            <div class="membership-plan">Current Plan: <strong>{{ plan_info.membership }}</strong></div>
-            {% if plan_info.membership == "FREE" %}
-            <div class="membership-sub">
-                {{ search_count }}/{{ free_limit }} scans used today
-            </div>
-            {% elif plan_info.membership == "PRO" %}
-            <div class="membership-sub">
-                AI photo detection unlocked · Unlimited scans
-            </div>
-            {% else %}
-            <div class="membership-sub">
-                Advanced intelligence unlocked · Unlimited scans
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="membership-actions">
-            {% if plan_info.membership == "FREE" %}
-            <a class="tier-btn pro-tier" href="/upgrade/pro?email={{email}}">Upgrade to Pro · ${{ pro_price }}/mo</a>
-            <a class="tier-btn reseller-tier" href="/upgrade/reseller?email={{email}}">Reseller · ${{ reseller_price }}/mo</a>
-            {% elif plan_info.membership == "PRO" %}
-            <a class="tier-btn reseller-tier" href="/upgrade/reseller?email={{email}}">Upgrade to Reseller · ${{ reseller_price }}/mo</a>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="tier-grid">
-        <div class="tier-card">
-            <h3>Free</h3>
-            <div class="tier-price">$0</div>
-            <p>5 scans/day</p>
-            <p>Basic pricing view</p>
-        </div>
-
-        <div class="tier-card featured-tier">
-            <h3>Pro</h3>
-            <div class="tier-price">${{ pro_price }}/mo</div>
-            <p>Unlimited scans</p>
-            <p>AI photo detection</p>
-            <p>Generated listings</p>
-        </div>
-
-        <div class="tier-card">
-            <h3>Reseller</h3>
-            <div class="tier-price">${{ reseller_price }}/mo</div>
-            <p>Unlimited scans</p>
-            <p>Advanced intelligence</p>
-            <p>Built for serious sellers</p>
-        </div>
+    <div class="tool-intro">
+        Analyze an item, compare likely resale value, and spot strong flips fast.
     </div>
 
     <form method="post" action="/app" enctype="multipart/form-data">
@@ -170,17 +149,21 @@ function startScanner(){
         <div class="upload-section">
 
             <label>Upload / Take Photo</label>
-            <input type="file" name="photo" accept="image/*" capture="environment">
+            <input type="file" name="photo" accept="image/*">
 
             <div class="upload-note">
                 {% if plan_info.ai_photo_enabled %}
                 Photo AI is active for your plan.
                 {% else %}
-                Photo upload available. Upgrade to Pro to unlock AI photo detection.
+                Photo upload is available. AI item detection unlocks on Pro and Reseller.
                 {% endif %}
             </div>
 
             <button type="button" onclick="startScanner()">Scan Barcode</button>
+
+            <div class="scanner-help">
+                Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame.
+            </div>
 
             <div id="scanner"></div>
 
@@ -302,6 +285,8 @@ function startScanner(){
                 <p>{{data.confidence}}</p>
             </div>
 
+            {% if plan_info.advanced_enabled %}
+
             <div class="metric-card">
                 <h3>Median Price</h3>
                 <p>${{data.median_price}}</p>
@@ -332,11 +317,45 @@ function startScanner(){
                 <p>{{data.sold_count}} sold / {{data.active_count}} active</p>
             </div>
 
+            {% else %}
+
+            <div class="metric-card locked-card">
+                <h3>Median Price</h3>
+                <p>🔒 Reseller</p>
+            </div>
+
+            <div class="metric-card locked-card">
+                <h3>Sell Through</h3>
+                <p>🔒 Reseller</p>
+            </div>
+
+            <div class="metric-card locked-card">
+                <h3>Volatility</h3>
+                <p>🔒 Reseller</p>
+            </div>
+
+            <div class="metric-card locked-card">
+                <h3>Liquidity</h3>
+                <p>🔒 Reseller</p>
+            </div>
+
+            <div class="metric-card locked-card">
+                <h3>Risk</h3>
+                <p>🔒 Reseller</p>
+            </div>
+
+            <div class="metric-card locked-card">
+                <h3>Listings</h3>
+                <p>🔒 Reseller</p>
+            </div>
+
+            {% endif %}
+
         </div>
 
-        {% if plan_info.membership != "RESELLER" %}
+        {% if not plan_info.advanced_enabled %}
         <div class="advanced-upsell">
-            Advanced intelligence is most valuable for frequent sellers.
+            Advanced intelligence is available inside the Reseller plan.
             <a href="/upgrade/reseller?email={{email}}">Unlock Reseller</a>
         </div>
         {% endif %}
@@ -344,6 +363,63 @@ function startScanner(){
     </div>
 
     {% endif %}
+
+    <div class="membership-section">
+        <h2>Membership & Access</h2>
+
+        <div class="membership-banner">
+            <div class="membership-left">
+                <div class="membership-plan">Current Plan: <strong>{{ plan_info.membership }}</strong></div>
+                {% if plan_info.membership == "FREE" %}
+                <div class="membership-sub">
+                    {{ search_count }}/{{ free_limit }} scans used today
+                </div>
+                {% elif plan_info.membership == "PRO" %}
+                <div class="membership-sub">
+                    AI photo detection unlocked · Unlimited scans
+                </div>
+                {% else %}
+                <div class="membership-sub">
+                    Advanced intelligence unlocked · Unlimited scans
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="membership-actions">
+                {% if plan_info.membership == "FREE" %}
+                <a class="tier-btn pro-tier" href="/upgrade/pro?email={{email}}">Upgrade to Pro · ${{ pro_price }}/mo</a>
+                <a class="tier-btn reseller-tier" href="/upgrade/reseller?email={{email}}">Reseller · ${{ reseller_price }}/mo</a>
+                {% elif plan_info.membership == "PRO" %}
+                <a class="tier-btn reseller-tier" href="/upgrade/reseller?email={{email}}">Upgrade to Reseller · ${{ reseller_price }}/mo</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="tier-grid">
+            <div class="tier-card">
+                <h3>Free</h3>
+                <div class="tier-price">$0</div>
+                <p>5 scans/day</p>
+                <p>Basic pricing view</p>
+            </div>
+
+            <div class="tier-card featured-tier">
+                <h3>Pro</h3>
+                <div class="tier-price">${{ pro_price }}/mo</div>
+                <p>Unlimited scans</p>
+                <p>AI photo detection</p>
+                <p>Generated listings</p>
+            </div>
+
+            <div class="tier-card">
+                <h3>Reseller</h3>
+                <div class="tier-price">${{ reseller_price }}/mo</div>
+                <p>Unlimited scans</p>
+                <p>Advanced intelligence</p>
+                <p>Built for serious sellers</p>
+            </div>
+        </div>
+    </div>
 
 </div>
 

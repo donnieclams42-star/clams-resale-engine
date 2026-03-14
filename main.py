@@ -4,7 +4,7 @@ import base64
 from datetime import date
 
 from fastapi import FastAPI, Request, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -14,6 +14,7 @@ from listing_generator import generate_listings
 
 from openai import OpenAI
 import stripe
+from supabase import create_client, Client
 
 
 app = FastAPI()
@@ -31,7 +32,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
-# ---------- USER STORAGE ----------
+# ---------- FALLBACK USER STORAGE ----------
 
 users = {}
 
@@ -46,11 +47,22 @@ RESELLER_PRICE = 49
 
 # ---------- STRIPE ----------
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 
 STRIPE_PRO_PRICE_ID = os.getenv("STRIPE_PRO_PRICE_ID", "")
 STRIPE_RESELLER_PRICE_ID = os.getenv("STRIPE_RESELLER_PRICE_ID", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
+
+
+# ---------- SUPABASE ----------
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "") or os.getenv("SUPABASE_KEY", "")
+
+supabase: Optional[Client] = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 # ---------- DEFAULT SETTINGS ----------
@@ -72,12 +84,9 @@ def build_default_settings():
     }
 
 
-def ensure_user_settings(user: dict):
-
-    if "settings" not in user or not isinstance(user["settings"], dict):
-        user["settings"] = build_default_settings()
-
-    settings = user["settings"]
+def normalize_settings(settings):
+    if not isinstance(settings, dict):
+        settings = build_default_settings()
 
     if "platforms" not in settings or not settings["platforms"]:
         settings["platforms"] = DEFAULT_USER_SETTINGS["platforms"][:]
@@ -94,31 +103,91 @@ def ensure_user_settings(user: dict):
     return settings
 
 
-def ensure_daily_reset(user: dict):
-    today = str(date.today())
-
-    if user.get("search_reset_date") != today:
-        user["search_reset_date"] = today
-        user["search_count"] = 0
-
+def normalize_user(user: dict):
+    user = dict(user)
+    user["membership"] = str(user.get("membership", "FREE")).upper()
+    user["search_count"] = int(user.get("search_count") or 0)
+    user["settings"] = normalize_settings(user.get("settings") or {})
+    user["search_reset_date"] = str(user.get("search_reset_date") or str(date.today()))
     return user
 
 
-def ensure_user_exists(email: str):
+def get_user(email: str):
+    if not email:
+        return None
 
-    if email not in users:
-        users[email] = {
-            "password": "",
-            "membership": "FREE",
-            "search_count": 0,
-            "search_reset_date": str(date.today()),
-            "settings": build_default_settings()
-        }
+    if supabase:
+        result = supabase.table("users").select("*").eq("email", email).limit(1).execute()
+        if result.data:
+            return normalize_user(result.data[0])
+        return None
 
-    ensure_user_settings(users[email])
-    ensure_daily_reset(users[email])
+    if email in users:
+        return normalize_user(users[email])
 
-    return users[email]
+    return None
+
+
+def create_user_record(email: str, password: str = ""):
+    user_record = {
+        "email": email,
+        "password": password,
+        "membership": "FREE",
+        "search_count": 0,
+        "search_reset_date": str(date.today()),
+        "settings": build_default_settings(),
+        "stripe_customer_id": None
+    }
+
+    if supabase:
+        supabase.table("users").insert(user_record).execute()
+        created = get_user(email)
+        return created
+
+    users[email] = user_record
+    return normalize_user(user_record)
+
+
+def update_user_record(email: str, updates: dict):
+    if not email:
+        return None
+
+    if "settings" in updates:
+        updates["settings"] = normalize_settings(updates["settings"])
+
+    if supabase:
+        supabase.table("users").update(updates).eq("email", email).execute()
+        return get_user(email)
+
+    if email in users:
+        users[email].update(updates)
+        return normalize_user(users[email])
+
+    return None
+
+
+def ensure_user_exists(email: str, password: str = ""):
+    existing = get_user(email)
+
+    if existing:
+        return existing
+
+    return create_user_record(email, password)
+
+
+def ensure_daily_reset(user: dict):
+    today = str(date.today())
+
+    if str(user.get("search_reset_date")) != today:
+        user = update_user_record(
+            user["email"],
+            {
+                "search_reset_date": today,
+                "search_count": 0
+            }
+        )
+
+    return user
 
 
 def get_membership_limits(user: dict):
@@ -173,13 +242,12 @@ def deal_score_class(score):
 
 # ---------- OPENAI CLIENT ----------
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 
 
 # ---------- IMAGE DETECTION ----------
 
 async def detect_item_from_image(photo: UploadFile):
-
     image_bytes = await photo.read()
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
@@ -237,7 +305,6 @@ async def service_worker():
 
 @app.get("/", response_class=HTMLResponse)
 async def landing(request: Request):
-
     email = request.cookies.get("clams_user")
 
     if email:
@@ -253,7 +320,6 @@ async def landing(request: Request):
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-
     email = request.cookies.get("clams_user")
 
     if email:
@@ -269,7 +335,6 @@ async def login_page(request: Request):
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
-
     return templates.TemplateResponse(
         "signup.html",
         {"request": request}
@@ -284,17 +349,14 @@ async def signup(
     password: str = Form(...),
     invite: str = Form(...)
 ):
-
     if invite != INVITE_CODE:
-        return {"error": "Invalid invite code"}
+        return JSONResponse({"error": "Invalid invite code"}, status_code=400)
 
-    users[email] = {
-        "password": password,
-        "membership": "FREE",
-        "search_count": 0,
-        "search_reset_date": str(date.today()),
-        "settings": build_default_settings()
-    }
+    existing = get_user(email)
+    if existing:
+        return JSONResponse({"error": "Account already exists. Please log in."}, status_code=400)
+
+    create_user_record(email, password)
 
     response = RedirectResponse(f"/app?email={email}", status_code=303)
 
@@ -317,14 +379,15 @@ async def login(
     password: str = Form(...),
     invite: str = Form(...)
 ):
-
     if invite != INVITE_CODE:
-        return {"error": "Invalid invite code"}
+        return JSONResponse({"error": "Invalid invite code"}, status_code=400)
 
-    user = ensure_user_exists(email)
+    user = get_user(email)
+    if not user:
+        user = create_user_record(email, password)
 
-    if user["password"] and user["password"] != password:
-        return {"error": "Incorrect password"}
+    if user.get("password") and user["password"] != password:
+        return JSONResponse({"error": "Incorrect password"}, status_code=400)
 
     response = RedirectResponse(f"/app?email={email}", status_code=303)
 
@@ -343,6 +406,8 @@ async def login(
 
 @app.get("/upgrade/{plan}")
 async def upgrade_plan(plan: str, email: str = ""):
+    if not email:
+        return RedirectResponse("/login", status_code=303)
 
     if plan not in ["pro", "reseller"]:
         return RedirectResponse(f"/app?email={email}", status_code=303)
@@ -354,8 +419,9 @@ async def upgrade_plan(plan: str, email: str = ""):
 
     checkout_session = stripe.checkout.Session.create(
         mode="subscription",
+        customer_email=email,
         line_items=[{"price": price_id, "quantity": 1}],
-        success_url=f"{APP_BASE_URL}/billing/success?email={email}&plan={plan}",
+        success_url=f"{APP_BASE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}&email={email}",
         cancel_url=f"{APP_BASE_URL}/billing/cancel?email={email}",
         metadata={
             "email": email,
@@ -367,14 +433,27 @@ async def upgrade_plan(plan: str, email: str = ""):
 
 
 @app.get("/billing/success")
-async def billing_success(email: str = "", plan: str = ""):
+async def billing_success(session_id: str = "", email: str = ""):
+    if session_id and stripe.api_key:
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            metadata = session.get("metadata", {}) or {}
+            plan = str(metadata.get("plan", "")).upper()
+            account_email = metadata.get("email") or email
+            stripe_customer_id = session.get("customer")
 
-    user = ensure_user_exists(email)
-
-    if plan.lower() == "pro":
-        user["membership"] = "PRO"
-    elif plan.lower() == "reseller":
-        user["membership"] = "RESELLER"
+            if account_email:
+                if plan in ["PRO", "RESELLER"]:
+                    update_user_record(
+                        account_email,
+                        {
+                            "membership": plan,
+                            "stripe_customer_id": stripe_customer_id
+                        }
+                    )
+                    return RedirectResponse(f"/app?email={account_email}", status_code=303)
+        except Exception as e:
+            print("Billing success verification failed:", e)
 
     return RedirectResponse(f"/app?email={email}", status_code=303)
 
@@ -384,17 +463,77 @@ async def billing_cancel(email: str = ""):
     return RedirectResponse(f"/app?email={email}", status_code=303)
 
 
+@app.post("/stripe-webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    if not STRIPE_WEBHOOK_SECRET:
+        return JSONResponse({"error": "Webhook secret missing"}, status_code=400)
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload,
+            sig_header,
+            STRIPE_WEBHOOK_SECRET
+        )
+    except Exception as e:
+        print("Webhook verification failed:", e)
+        return JSONResponse({"error": "Invalid webhook"}, status_code=400)
+
+    event_type = event.get("type", "")
+    event_object = event["data"]["object"]
+
+    if event_type == "checkout.session.completed":
+        email = None
+        plan = None
+        stripe_customer_id = event_object.get("customer")
+
+        metadata = event_object.get("metadata") or {}
+        email = metadata.get("email") or event_object.get("customer_email")
+        plan = str(metadata.get("plan", "")).upper()
+
+        if email and plan in ["PRO", "RESELLER"]:
+            update_user_record(
+                email,
+                {
+                    "membership": plan,
+                    "stripe_customer_id": stripe_customer_id
+                }
+            )
+
+    elif event_type in ["invoice.payment_failed", "customer.subscription.deleted"]:
+        stripe_customer_id = event_object.get("customer")
+
+        if stripe_customer_id and supabase:
+            result = supabase.table("users").select("*").eq("stripe_customer_id", stripe_customer_id).limit(1).execute()
+            if result.data:
+                email = result.data[0]["email"]
+                update_user_record(email, {"membership": "FREE"})
+
+        elif stripe_customer_id:
+            for email, user in users.items():
+                if user.get("stripe_customer_id") == stripe_customer_id:
+                    update_user_record(email, {"membership": "FREE"})
+                    break
+
+    return JSONResponse({"status": "ok"})
+
+
 # ---------- APP PAGE ----------
 
 @app.get("/app", response_class=HTMLResponse)
 async def app_page(request: Request, email: str = ""):
-
     cookie_user = request.cookies.get("clams_user")
 
     if not email and cookie_user:
         email = cookie_user
 
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
     user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
     plan_info = get_membership_limits(user)
 
     return templates.TemplateResponse(
@@ -430,13 +569,16 @@ async def analyze(
     platforms: Optional[List[str]] = Form(None),
     photo: UploadFile = File(None)
 ):
-
     cookie_user = request.cookies.get("clams_user")
 
     if not email and cookie_user:
         email = cookie_user
 
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
     user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
     settings = user["settings"]
     plan_info = get_membership_limits(user)
 
@@ -465,13 +607,13 @@ async def analyze(
                 "free_limit": FREE_LIMIT,
                 "pro_price": PRO_PRICE,
                 "reseller_price": RESELLER_PRICE,
-                "error": f"Free plan limit reached for today. Upgrade to Pro or Reseller for more scans."
+                "error": "Free plan limit reached for today. Upgrade inside Membership & Access for more scans."
             },
         )
 
-    user["search_count"] += 1
+    photo_uploaded = photo is not None and getattr(photo, "filename", None)
 
-    if photo and plan_info["ai_photo_enabled"]:
+    if photo_uploaded and plan_info["ai_photo_enabled"]:
         try:
             detected = await detect_item_from_image(photo)
             if detected:
@@ -480,6 +622,13 @@ async def analyze(
             print("Image detection failed:", e)
 
     if not query:
+        if photo_uploaded and plan_info["ai_photo_enabled"]:
+            error_message = "Could not identify the item from that photo. Try a clearer photo or enter a search term."
+        elif photo_uploaded and not plan_info["ai_photo_enabled"]:
+            error_message = "Photo uploaded, but AI photo detection is available on Pro and Reseller. Enter a search term or upgrade."
+        else:
+            error_message = "No search query detected."
+
         return templates.TemplateResponse(
             "dashboard.html",
             {
@@ -495,9 +644,17 @@ async def analyze(
                 "free_limit": FREE_LIMIT,
                 "pro_price": PRO_PRICE,
                 "reseller_price": RESELLER_PRICE,
-                "error": "No search query detected"
+                "error": error_message
             },
         )
+
+    user = update_user_record(
+        email,
+        {
+            "search_count": user["search_count"] + 1,
+            "search_reset_date": str(date.today())
+        }
+    )
 
     sold_prices, active_prices, suggestions, listing = search_ebay(query)
 
@@ -552,7 +709,7 @@ async def analyze(
             "listing": listing,
             "email": email,
             "search_count": user["search_count"],
-            "user_settings": settings,
+            "user_settings": user["settings"],
             "user": user,
             "plan_info": plan_info,
             "free_limit": FREE_LIMIT,
@@ -566,13 +723,16 @@ async def analyze(
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, email: str = ""):
-
     cookie_user = request.cookies.get("clams_user")
 
     if not email and cookie_user:
         email = cookie_user
 
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
     user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
 
     return templates.TemplateResponse(
         "settings.html",
@@ -597,11 +757,13 @@ async def save_settings(
     local_factor: float = Form(80),
     platforms: Optional[List[str]] = Form(None)
 ):
-
     cookie_user = request.cookies.get("clams_user")
 
     if not email and cookie_user:
         email = cookie_user
+
+    if not email:
+        return RedirectResponse("/login", status_code=303)
 
     user = ensure_user_exists(email)
 
@@ -609,11 +771,12 @@ async def save_settings(
         platforms = ["facebook", "ebay"]
 
     settings = user["settings"]
-
     settings["mode"] = mode
     settings["default_profit"] = default_profit
     settings["local_factor"] = local_factor
     settings["platforms"] = platforms
+
+    user = update_user_record(email, {"settings": settings})
 
     return templates.TemplateResponse(
         "settings.html",
@@ -621,7 +784,7 @@ async def save_settings(
             "request": request,
             "email": email,
             "user": user,
-            "user_settings": settings,
+            "user_settings": user["settings"],
             "success": "Settings saved successfully."
         }
     )
@@ -631,13 +794,16 @@ async def save_settings(
 
 @app.get("/account", response_class=HTMLResponse)
 async def account_page(request: Request, email: str = ""):
-
     cookie_user = request.cookies.get("clams_user")
 
     if not email and cookie_user:
         email = cookie_user
 
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
     user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
 
     return templates.TemplateResponse(
         "account.html",
