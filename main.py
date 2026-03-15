@@ -1,3 +1,10 @@
+
+# Barcode detection logic
+def detect_barcode_query(query):
+    if query and query.isdigit() and len(query) >= 8:
+        return {"barcode_mode": True, "query": query}
+    return {"barcode_mode": False, "query": query}
+
 from typing import List, Optional
 import os
 import re

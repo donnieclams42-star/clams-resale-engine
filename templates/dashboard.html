@@ -1,3 +1,9 @@
+
+<div style="margin-bottom:15px;">
+<input id="searchInput" name="query" placeholder="Search item or scan barcode..." style="width:70%;padding:10px;">
+<button onclick="document.getElementById('searchForm').submit()" style="padding:10px;">Search</button>
+<button onclick="startScanner()" style="padding:10px;">📦 Scan Barcode</button>
+</div>
 <!DOCTYPE html>
 <html>
 <head>
@@ -165,12 +171,12 @@ function startScanner(){
         }
     });
 
-    Quagga.onDetected(function(data){
-        const code = data && data.codeResult ? data.codeResult.code : "";
-        if(!code || code.length < 8){
-            return;
-        }
-        handleDetectedBarcode(code);
+    Quagga.onDetected(function(result){
+let code = result.codeResult.code;
+document.getElementById("searchInput").value = code;
+Quagga.stop();
+document.getElementById("searchForm").submit();
+});
     });
 }
 
