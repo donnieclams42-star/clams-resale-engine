@@ -20,8 +20,43 @@ def classify_deal_temperature(asking_price, max_buy, local_market_value):
     return "PASS"
 
 
-def analyze_market(sold_prices, active_prices, condition, profit_target, local_factor, asking_price=None):
+def quick_flip_score(sell_through, price_range=0):
+    try:
+        score = int((float(sell_through) * 0.6) + (max(0, 100 - float(price_range)) * 0.4))
+        return min(100, max(0, score))
+    except Exception:
+        return 0
 
+
+def supply_pressure(active_count, sold_count):
+    if active_count == 0:
+        return "Low"
+
+    ratio = active_count / max(1, sold_count)
+
+    if ratio <= 1:
+        return "Low"
+    elif ratio <= 2:
+        return "Moderate"
+    else:
+        return "High"
+
+
+def price_stability(sold_prices):
+    if not sold_prices or len(sold_prices) < 2:
+        return "Unknown"
+
+    price_range = max(sold_prices) - min(sold_prices)
+
+    if price_range < 20:
+        return "Stable"
+    elif price_range < 80:
+        return "Moderate"
+    else:
+        return "Volatile"
+
+
+def analyze_market(sold_prices, active_prices, condition, profit_target, local_factor, asking_price=None):
     if not sold_prices:
         return None
 
@@ -67,7 +102,7 @@ def analyze_market(sold_prices, active_prices, condition, profit_target, local_f
     else:
         risk = "High"
 
-    flip_score = min(100, int((sell_through * 0.6) + (100 - price_range) * 0.4))
+    flip_score = quick_flip_score(sell_through, price_range)
 
     deal_score = 50
     profit_delta = None
@@ -95,7 +130,7 @@ def analyze_market(sold_prices, active_prices, condition, profit_target, local_f
         "Facebook Marketplace": sell_through + 15,
         "eBay": sell_through,
         "Mercari": sell_through - 5,
-        "OfferUp": sell_through - 10
+        "OfferUp": sell_through - 10,
     }
 
     best_platform = max(platform_scores, key=platform_scores.get)
@@ -103,7 +138,7 @@ def analyze_market(sold_prices, active_prices, condition, profit_target, local_f
     platform_ranking = sorted(
         platform_scores.items(),
         key=lambda x: x[1],
-        reverse=True
+        reverse=True,
     )
 
     return {
