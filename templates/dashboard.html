@@ -302,7 +302,16 @@ window.addEventListener("beforeunload", stopScanner);
         </div>
 
         <div class="upload-section">
-            <label>Upload / Take Photo</label>
+            <label>
+<!-- Search Assist -->
+<div style="margin-top:12px;margin-bottom:12px;">
+    <label style="font-size:14px;opacity:.8;">Search Assist</label>
+    <input id="assist_search"
+    placeholder="Type item name if AI or barcode isn't perfect"
+    style="width:100%;padding:10px;border-radius:10px;border:1px solid #2c3e50;margin-top:6px;">
+</div>
+
+Upload / Take Photo</label>
             <input id="photo-input" type="file" name="photo" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp" capture="environment" onchange="handlePhotoSelected(event)" onclick="primePhotoInput()">
 
             <div id="photo-status" class="upload-note"></div>
@@ -508,3 +517,18 @@ window.addEventListener("beforeunload", stopScanner);
 </div>
 </body>
 </html>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+    const assist=document.getElementById("assist_search")
+    const main=document.querySelector("input[name='query']")
+
+    if(assist && main){
+        assist.addEventListener("input", function(){
+            main.value=this.value
+        })
+    }
+
+})
+</script>
