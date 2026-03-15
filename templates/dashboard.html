@@ -43,6 +43,7 @@ function stopScanner(){
 function handleDetectedBarcode(code){
     const queryInput = document.getElementById("query");
     const status = document.getElementById("scanner-status");
+    const analyzeButton = document.getElementById("analyze-btn");
 
     if(!code || scannerCooldown){
         return;
@@ -56,16 +57,20 @@ function handleDetectedBarcode(code){
     scannerCooldown = true;
 
     if(queryInput){
-        queryInput.value = code;
+        queryInput.value = String(code).replace(/\D/g, "");
     }
 
     if(status){
-        status.textContent = "Barcode captured: " + code;
+        status.textContent = "Barcode captured: " + code + " · ready to analyze.";
+    }
+
+    if(analyzeButton){
+        analyzeButton.textContent = "Analyze Barcode";
     }
 
     setTimeout(() => {
         stopScanner();
-    }, 300);
+    }, 450);
 }
 
 function startScanner(){
@@ -195,11 +200,20 @@ function handlePhotoSelected(event){
     reader.readAsDataURL(file);
 
     if(status){
-        status.textContent = "Photo attached. Tap Analyze to run image detection or combine it with a typed search.";
+        status.textContent = "Photo attached: " + file.name + ". Tap Analyze to run image detection.";
     }
     if(analyzeButton){
         analyzeButton.textContent = "Analyze Photo";
     }
+}
+
+function primePhotoInput(){
+    const input = document.getElementById("photo-input");
+    if(!input){
+        return;
+    }
+
+    input.value = "";
 }
 
 window.addEventListener("beforeunload", stopScanner);
@@ -283,7 +297,7 @@ window.addEventListener("beforeunload", stopScanner);
 
         <div class="upload-section">
             <label>Upload / Take Photo</label>
-            <input id="photo-input" type="file" name="photo" accept="image/*" capture="environment" onchange="handlePhotoSelected(event)">
+            <input id="photo-input" type="file" name="photo" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp" capture="environment" onchange="handlePhotoSelected(event)" onclick="primePhotoInput()">
 
             <div id="photo-status" class="upload-note"></div>
             <div id="photo-preview-wrap" class="photo-preview-wrap" style="display:none;">
@@ -302,7 +316,7 @@ window.addEventListener("beforeunload", stopScanner);
             <button type="button" class="secondary-scan-btn" onclick="stopScanner()">Stop Scanner</button>
 
             <div class="scanner-help">
-                Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame.
+                Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame. Numeric barcode scans now search as UPC / EAN automatically.
             </div>
             <div id="scanner-status" class="scanner-status">Scanner off.</div>
             <div id="scanner"></div>

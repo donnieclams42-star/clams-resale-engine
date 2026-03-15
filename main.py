@@ -362,6 +362,13 @@ async def detect_item_from_image(photo: UploadFile):
         return ""
 
     image_bytes = await photo.read()
+    if not image_bytes:
+        return ""
+
+    mime_type = (getattr(photo, "content_type", "") or "image/jpeg").strip().lower()
+    if not mime_type.startswith("image/"):
+        mime_type = "image/jpeg"
+
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
     response = client.responses.create(
@@ -387,7 +394,7 @@ Return only the search phrase.
                     },
                     {
                         "type": "input_image",
-                        "image_url": f"data:image/jpeg;base64,{image_b64}",
+                        "image_url": f"data:{mime_type};base64,{image_b64}",
                     },
                 ],
             }
@@ -745,6 +752,11 @@ async def analyze(
                 query = detected
         except Exception as e:
             print("Image detection failed:", e)
+
+    query = (query or "").strip()
+    numeric_query = re.sub(r"\D", "", query)
+    if numeric_query and len(numeric_query) >= 8 and len(numeric_query) <= 14:
+        query = numeric_query
 
     if not query:
         if photo_uploaded and plan_info["ai_photo_enabled"]:

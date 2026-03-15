@@ -66,26 +66,40 @@ def clean_query(query):
     return query.strip()
 
 
+def is_barcode_query(query):
+    query = re.sub(r"\D", "", query or "")
+    return 8 <= len(query) <= 14
+
+
+def normalize_barcode(query):
+    return re.sub(r"\D", "", query or "")
+
+
 def _prune_search_cache(now):
     expired_keys = [key for key, value in _SEARCH_CACHE.items() if now >= value["expires_at"]]
     for key in expired_keys:
         _SEARCH_CACHE.pop(key, None)
 
 
-def run_search(query, token):
+def run_search(query, token, gtin=None):
     headers = {
         "Authorization": f"Bearer {token}"
     }
 
     params = {
-        "q": query,
         "limit": 50,
         "filter": "buyingOptions:{FIXED_PRICE}"
     }
 
+    if gtin:
+        params["gtin"] = gtin
+    else:
+        params["q"] = query
+
     r = requests.get(SEARCH_URL, headers=headers, params=params, timeout=20)
 
     if r.status_code != 200:
+        print("Search request failed:", r.status_code, r.text[:300])
         return [], [], None
 
     items = r.json().get("itemSummaries", [])
@@ -130,6 +144,14 @@ def generate_suggestions(titles):
     return list(suggestions)[:5]
 
 
+def cache_result(key, result, now):
+    _SEARCH_CACHE[key] = {
+        "expires_at": now + SEARCH_CACHE_SECONDS,
+        "data": result,
+    }
+    return result
+
+
 def search_ebay(query):
     query = clean_query(query)
 
@@ -148,16 +170,38 @@ def search_ebay(query):
     if not token:
         return [], [], [], None
 
+    # Barcode / UPC / EAN path first
+    if is_barcode_query(query):
+        barcode = normalize_barcode(query)
+        barcode_cache_key = f"gtin:{barcode}"
+        cached_barcode = _SEARCH_CACHE.get(barcode_cache_key)
+
+        if cached_barcode and now < cached_barcode["expires_at"]:
+            return cached_barcode["data"]
+
+        prices, titles, listing = run_search(query="", token=token, gtin=barcode)
+        if prices:
+            suggestions = generate_suggestions(titles)
+            result = (prices, prices[:], suggestions, listing)
+            cache_result(barcode_cache_key, result, now)
+            cache_result(query, result, now)
+            return result
+
+        # Fallback: some listings still respond better to raw keyword barcode searches
+        prices, titles, listing = run_search(query=barcode, token=token)
+        if prices:
+            suggestions = generate_suggestions(titles)
+            result = (prices, prices[:], suggestions, listing)
+            cache_result(barcode_cache_key, result, now)
+            cache_result(query, result, now)
+            return result
+
     prices, titles, listing = run_search(query, token)
 
     if prices:
         suggestions = generate_suggestions(titles)
         result = (prices, prices[:], suggestions, listing)
-        _SEARCH_CACHE[query] = {
-            "expires_at": now + SEARCH_CACHE_SECONDS,
-            "data": result,
-        }
-        return result
+        return cache_result(query, result, now)
 
     words = query.split()
 
@@ -173,10 +217,6 @@ def search_ebay(query):
         if prices:
             suggestions = generate_suggestions(titles)
             result = (prices, prices[:], suggestions, listing)
-            _SEARCH_CACHE[relaxed] = {
-                "expires_at": now + SEARCH_CACHE_SECONDS,
-                "data": result,
-            }
-            return result
+            return cache_result(relaxed, result, now)
 
     return [], [], [], None
