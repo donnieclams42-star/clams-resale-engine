@@ -262,13 +262,13 @@ window.addEventListener("beforeunload", stopScanner);
         {% endif %}
     </div>
 
-    <form id="searchForm" method="post" action="/app" enctype="multipart/form-data">
+    <form method="post" action="/app" enctype="multipart/form-data">
         <input type="hidden" name="email" value="{{email}}">
 
         <div class="search-bar">
             <div class="form-group search-item">
                 <label>Search Item</label>
-                <input id="searchInput" type="text" name="query" placeholder="iPhone 12">
+                <input id="query" type="text" name="query" placeholder="iPhone 12">
             </div>
 
             <div class="form-group">
@@ -312,7 +312,7 @@ window.addEventListener("beforeunload", stopScanner);
 </div>
 
 Upload / Take Photo</label>
-            <input id="photo-input" type="file" name="photo" accept="image/*" onchange="handlePhotoSelected(event)" style="width:100%;padding:10px;">
+            <input id="photo-input" type="file" name="photo" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp" capture="environment" onchange="handlePhotoSelected(event)" onclick="primePhotoInput()">
 
             <div id="photo-status" class="upload-note"></div>
             <div id="photo-preview-wrap" class="photo-preview-wrap" style="display:none;">
