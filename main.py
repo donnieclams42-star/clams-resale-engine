@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from ebay import search_ebay
-from market_analysis import analyze_market
+from market_analysis import analyze_market, quick_flip_score, supply_pressure, price_stability
 from listing_generator import generate_listings
 
 from openai import OpenAI
@@ -836,7 +836,25 @@ async def analyze(
         data["profit_delta"] = None
         data["profit_margin_percent"] = None
 
-    generated_listings = generate_listings(query, condition, data["fast_cash"], data["market_price"], platforms)
+    generated_
+    radar_score = None
+    radar_label = None
+    radar_supply = None
+    radar_stability = None
+
+    try:
+        prices = [c.get("price",0) for c in comps if c.get("price")]
+        sold_count = len(prices)
+        active_count = len(active) if 'active' in locals() else sold_count
+
+        radar_score, radar_label = quick_flip_score(sold_count, active_count, prices)
+        radar_supply = supply_pressure(sold_count, active_count)
+        radar_stability = price_stability(prices)
+
+    except Exception:
+        pass
+
+    listings = generate_listings(query, condition, data["fast_cash"], data["market_price"], platforms)
 
     return templates.TemplateResponse(
         "dashboard.html",
