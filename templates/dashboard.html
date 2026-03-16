@@ -91,14 +91,6 @@
         width:100%;
     }
 }
-
-.scan-layout{display:flex;gap:20px;align-items:flex-start;margin-top:12px;}
-.scan-controls{flex:1;min-width:280px;}
-.scan-camera{flex:1;min-width:320px;}
-@media (max-width:768px){
-.scan-layout{flex-direction:column;}
-}
-
 </style>
 
 <script>
@@ -123,23 +115,15 @@ function submitMainForm(){
 
 function syncSearchInputs(sourceValue){
     const mainQuery = document.getElementById("query");
-    const topSearchInput = document.getElementById("searchInput");
     const assistSearch = document.getElementById("assist_search");
-    const manualBarcode = document.getElementById("manual_barcode");
 
     if(mainQuery){
         mainQuery.value = sourceValue;
     }
-    if(topSearchInput && topSearchInput.value !== sourceValue){
-        topSearchInput.value = sourceValue;
-    }
-    if(assistSearch && assistSearch.value !== sourceValue){
+        if(assistSearch && assistSearch.value !== sourceValue){
         assistSearch.value = sourceValue;
     }
-    if(manualBarcode && manualBarcode.value !== sourceValue){
-        manualBarcode.value = sourceValue;
     }
-}
 
 function stopScanner(){
     if (window.Quagga) {
@@ -341,29 +325,16 @@ window.addEventListener("beforeunload", stopScanner);
 document.addEventListener("DOMContentLoaded", function(){
     const assist = document.getElementById("assist_search");
     const main = document.getElementById("query");
-    const topSearchInput = document.getElementById("searchInput");
-    const manualBarcode = document.getElementById("manual_barcode");
     const analyzeButton = document.getElementById("analyze-btn");
 
-    if(topSearchInput){
-        topSearchInput.addEventListener("input", function(){
-            syncSearchInputs(this.value);
-        });
-    }
-
+    
     if(assist){
         assist.addEventListener("input", function(){
             syncSearchInputs(this.value);
         });
     }
 
-    if(manualBarcode){
-        manualBarcode.addEventListener("input", function(){
-            const cleaned = String(this.value).replace(/\D/g, "");
-            syncSearchInputs(cleaned);
-        });
-    }
-
+    
     if(main){
         main.addEventListener("input", function(){
             syncSearchInputs(this.value);
@@ -425,8 +396,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
     <form id="analyzer-form" method="post" action="/app" enctype="multipart/form-data">
         <input type="hidden" name="email" value="{{email}}">
-
-        <div class="search-bar">
+<div class="search-bar">
             <div class="form-group search-item">
                 <label>Search Item</label>
                 <input id="query" type="text" name="query" placeholder="iPhone 12">
@@ -462,7 +432,7 @@ document.addEventListener("DOMContentLoaded", function(){
             {% endfor %}
         </div>
 
-        <div class="upload-section"><div class="scan-layout"><div class="scan-controls">
+        <div class="upload-section">
             <div style="margin-top:12px;margin-bottom:12px;">
                 <label style="font-size:14px;opacity:.8;">Search Assist</label>
                 <input
@@ -495,8 +465,7 @@ document.addEventListener("DOMContentLoaded", function(){
                 Photo upload is available. AI item detection unlocks on Pro and Reseller.
                 {% endif %}
             </div>
-
-            <div class="upload-trigger-row">
+<div class="upload-trigger-row">
                 <button type="button" onclick="startScanner()">Scan Barcode</button>
                 <button type="button" class="secondary-scan-btn" onclick="stopScanner()">Stop Scanner</button>
             </div>
@@ -505,7 +474,8 @@ document.addEventListener("DOMContentLoaded", function(){
                 Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame. Numeric barcode scans search as UPC / EAN automatically.
             </div>
 
-            </div><div class="scan-camera"><div id="scanner-status" class="scanner-status">Scanner off.</div><div id="scanner"></div></div></div>
+            <div id="scanner-status" class="scanner-status">Scanner off.</div>
+            <div id="scanner"></div>
         </div>
     </form>
 
