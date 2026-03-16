@@ -21,33 +21,24 @@ MIN_PROFIT = int(os.getenv("MIN_PROFIT", 10))
 LOCAL_RESALE_FACTOR = float(os.getenv("LOCAL_RESALE_FACTOR", 0.82))
 
 SOLD_SEARCH_LIMIT = int(os.getenv("SOLD_SEARCH_LIMIT", 40))
-
 HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", 12))
 
-# --- KEYWORD POOL (fix for import error) ---
+# --- KEYWORDS ---
 KEYWORDS = [
-    "iphone",
-    "iphone cracked",
-    "samsung phone",
-    "macbook",
-    "macbook pro",
-    "ipad",
-    "ipad pro",
-    "playstation",
-    "playstaton",
-    "xbox",
-    "video game lot",
-    "pokemon",
-    "pokmon",
-    "mechanic tools",
-    "tool lot",
-    "garage cleanout",
-    "moving sale",
-    "first come first serve",
-    "bulk lot"
+    "iphone","iphone cracked","samsung phone",
+    "macbook","macbook pro","ipad","ipad pro",
+    "playstation","playstaton","xbox",
+    "video game lot","pokemon","pokmon",
+    "mechanic tools","tool lot",
+    "garage cleanout","moving sale",
+    "first come first serve","bulk lot"
 ]
 
 KEYWORDS_PER_CYCLE = int(os.getenv("KEYWORDS_PER_CYCLE", 18))
+
+# FIX: some scanners expect this constant
+DEFAULT_KEYWORDS_PER_CYCLE = KEYWORDS_PER_CYCLE
+
 ALERT_TOP_N = int(os.getenv("ALERT_TOP_N", 7))
 
 ENABLE_EBAY = env_bool("ENABLE_EBAY", True)
@@ -57,7 +48,6 @@ ENABLE_CRAIGSLIST = env_bool("ENABLE_CRAIGSLIST", True)
 ENABLE_OFFERUP = env_bool("ENABLE_OFFERUP", True)
 ENABLE_FACEBOOK = env_bool("ENABLE_FACEBOOK", True)
 
-# --- Radar timing ---
 SCAN_INTERVAL = int(os.getenv("SCAN_INTERVAL", 180))
 FB_SCAN_FREQUENCY = int(os.getenv("FB_SCAN_FREQUENCY", 2))
 
