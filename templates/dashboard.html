@@ -2,289 +2,22 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CLAMS Intelligence | Market Analyzer</title>
+<title>Market Radar | CLAMS Intelligence</title>
 <link rel="stylesheet" href="/static/styles.css">
-<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
-
-<style>
-.top-search-assist{
-    margin-bottom:15px;
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-
-.top-search-assist input{
-    flex:1 1 320px;
-    padding:10px;
-    border-radius:10px;
-    border:1px solid #2c3e50;
-}
-
-.top-search-assist button{
-    padding:10px 14px;
-    border-radius:10px;
-    border:none;
-    cursor:pointer;
-}
-
-.upload-trigger-row{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-top:10px;
-    margin-bottom:10px;
-}
-
-.upload-trigger-row button{
-    padding:10px 14px;
-    border-radius:10px;
-    border:none;
-    cursor:pointer;
-}
-
-.manual-barcode-wrap{
-    margin-top:12px;
-}
-
-.manual-barcode-wrap input{
-    width:100%;
-    padding:10px;
-    border-radius:10px;
-    border:1px solid #2c3e50;
-    margin-top:6px;
-}
-
-.photo-preview-wrap img{
-    max-width:100%;
-    height:auto;
-    border-radius:12px;
-    display:block;
-    margin-top:10px;
-}
-
-#scanner{
-    display:none;
-    width:100%;
-    min-height:260px;
-    border-radius:12px;
-    overflow:hidden;
-    background:#0f172a;
-    margin-top:12px;
-}
-
-@media (max-width: 768px){
-    .top-search-assist{
-        flex-direction:column;
-    }
-
-    .top-search-assist input,
-    .top-search-assist button{
-        width:100%;
-    }
-
-    .upload-trigger-row{
-        flex-direction:column;
-    }
-
-    .upload-trigger-row button{
-        width:100%;
-    }
-}
-</style>
-
 <script>
-let scannerRunning = false;
-let lastDetectedCode = "";
-let scannerCooldown = false;
+const clamsQuotes = [
+    "Hunt the deal.",
+    "Buy smart. Flip faster.",
+    "Profit loves preparation.",
+    "Find value others miss.",
+    "Turn knowledge into cash."
+];
 
 function toggleAdvanced(){
     const section = document.getElementById("advanced");
-    if(!section){
-        return;
+    if(section){
+        section.classList.toggle("hidden");
     }
-    section.classList.toggle("hidden");
-}
-
-function submitMainForm(){
-    const form = document.getElementById("analyzer-form");
-    if(form){
-        form.submit();
-    }
-}
-
-function syncSearchInputs(sourceValue){
-    const mainQuery = document.getElementById("query");
-    const topSearchInput = document.getElementById("searchInput");
-    const assistSearch = document.getElementById("assist_search");
-    const manualBarcode = document.getElementById("manual_barcode");
-
-    if(mainQuery){
-        mainQuery.value = sourceValue;
-    }
-    if(topSearchInput && topSearchInput.value !== sourceValue){
-        topSearchInput.value = sourceValue;
-    }
-    if(assistSearch && assistSearch.value !== sourceValue){
-        assistSearch.value = sourceValue;
-    }
-    if(manualBarcode && manualBarcode.value !== sourceValue){
-        manualBarcode.value = sourceValue;
-    }
-}
-
-function stopScanner(){
-    if (window.Quagga) {
-        try { Quagga.offDetected(); } catch (e) {}
-        try { Quagga.stop(); } catch (e) {}
-    }
-
-    scannerRunning = false;
-    scannerCooldown = false;
-
-    const scanner = document.getElementById("scanner");
-    const status = document.getElementById("scanner-status");
-
-    if(scanner){
-        scanner.style.display = "none";
-        scanner.innerHTML = "";
-    }
-
-    if(status){
-        status.textContent = "Scanner off.";
-    }
-}
-
-function handleDetectedBarcode(code){
-    const status = document.getElementById("scanner-status");
-    const analyzeButton = document.getElementById("analyze-btn");
-
-    if(!code || scannerCooldown){
-        return;
-    }
-
-    if(code === lastDetectedCode){
-        return;
-    }
-
-    lastDetectedCode = code;
-    scannerCooldown = true;
-
-    const cleaned = String(code).replace(/\D/g, "");
-    syncSearchInputs(cleaned);
-
-    if(status){
-        status.textContent = "Barcode captured: " + cleaned + " · ready to analyze.";
-    }
-
-    if(analyzeButton){
-        analyzeButton.textContent = "Analyze Barcode";
-    }
-
-    setTimeout(() => {
-        stopScanner();
-        submitMainForm();
-    }, 450);
-}
-
-function startScanner(){
-    const scanner = document.getElementById("scanner");
-    const status = document.getElementById("scanner-status");
-
-    if(!scanner){
-        return;
-    }
-
-    if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
-        if(status){
-            status.textContent = "Camera scanning needs HTTPS or localhost.";
-        }
-        return;
-    }
-
-    if(typeof Quagga === "undefined"){
-        if(status){
-            status.textContent = "Scanner library did not load. Refresh and try again.";
-        }
-        return;
-    }
-
-    if(scannerRunning){
-        if(status){
-            status.textContent = "Scanner already running.";
-        }
-        return;
-    }
-
-    lastDetectedCode = "";
-    scannerCooldown = false;
-    scanner.style.display = "block";
-
-    if(status){
-        status.textContent = "Starting camera scanner...";
-    }
-
-    try { Quagga.offDetected(); } catch (e) {}
-
-    Quagga.init({
-        inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: scanner,
-            constraints: {
-                facingMode: "environment",
-                width: { min: 640, ideal: 1280 },
-                height: { min: 480, ideal: 720 },
-                aspectRatio: { ideal: 1.7777778 }
-            },
-            area: {
-                top: "15%",
-                right: "5%",
-                left: "5%",
-                bottom: "15%"
-            },
-            singleChannel: false
-        },
-        locator: {
-            patchSize: "medium",
-            halfSample: true
-        },
-        numOfWorkers: 0,
-        locate: true,
-        frequency: 15,
-        decoder: {
-            readers: [
-                "ean_reader",
-                "ean_8_reader",
-                "upc_reader",
-                "upc_e_reader",
-                "code_128_reader"
-            ],
-            multiple: false
-        }
-    }, function(err){
-        if(err){
-            console.log(err);
-            if(status){
-                status.textContent = "Unable to start barcode scanner. Check camera permission and try again.";
-            }
-            scanner.style.display = "none";
-            return;
-        }
-
-        scannerRunning = true;
-        Quagga.start();
-
-        if(status){
-            status.textContent = "Scanner live. Hold the barcode steady in the frame.";
-        }
-
-        Quagga.onDetected(function(result){
-            if(result && result.codeResult && result.codeResult.code){
-                handleDetectedBarcode(result.codeResult.code);
-            }
-        });
-    });
 }
 
 function handlePhotoSelected(event){
@@ -322,68 +55,30 @@ function handlePhotoSelected(event){
 
 function primePhotoInput(){
     const input = document.getElementById("photo-input");
-    if(!input){
-        return;
+    if(input){
+        input.value = "";
     }
-    input.value = "";
 }
 
-window.addEventListener("beforeunload", stopScanner);
-
 document.addEventListener("DOMContentLoaded", function(){
-    const assist = document.getElementById("assist_search");
-    const main = document.getElementById("query");
-    const topSearchInput = document.getElementById("searchInput");
-    const manualBarcode = document.getElementById("manual_barcode");
-    const analyzeButton = document.getElementById("analyze-btn");
-
-    if(topSearchInput){
-        topSearchInput.addEventListener("input", function(){
-            syncSearchInputs(this.value);
-        });
-    }
-
-    if(assist){
-        assist.addEventListener("input", function(){
-            syncSearchInputs(this.value);
-        });
-    }
-
-    if(manualBarcode){
-        manualBarcode.addEventListener("input", function(){
-            const cleaned = String(this.value).replace(/\D/g, "");
-            syncSearchInputs(cleaned);
-        });
-    }
-
-    if(main){
-        main.addEventListener("input", function(){
-            syncSearchInputs(this.value);
-        });
-    }
-
-    if(analyzeButton){
-        analyzeButton.addEventListener("click", function(){
-            const topValue = topSearchInput ? topSearchInput.value.trim() : "";
-            const assistValue = assist ? assist.value.trim() : "";
-            const mainValue = main ? main.value.trim() : "";
-            const manualValue = manualBarcode ? manualBarcode.value.trim() : "";
-
-            if(!mainValue){
-                syncSearchInputs(topValue || assistValue || manualValue || "");
-            }
-        });
+    const quote = document.getElementById("rotating-quote");
+    if(quote){
+        let idx = 0;
+        quote.textContent = clamsQuotes[0];
+        setInterval(function(){
+            idx = (idx + 1) % clamsQuotes.length;
+            quote.textContent = clamsQuotes[idx];
+        }, 3500);
     }
 });
 </script>
 </head>
-
 <body>
 <div class="header">
     <div class="logo">
         <div class="logo-main">CLAMS Intelligence</div>
         <div class="logo-sub">Market Analyzer</div>
-        <div class="logo-quote">See opportunity before the market does.</div>
+        <div class="logo-quote" id="rotating-quote">See opportunity before the market does.</div>
     </div>
 
     <div class="nav-links">
@@ -393,43 +88,32 @@ document.addEventListener("DOMContentLoaded", function(){
     </div>
 </div>
 
-<div class="app-container">
-
-<div class="desktop-back-btn" style="margin:12px 0;">
-<a href="/app?email={{email}}"><button type="button">← Back</button></a>
-</div>
-
-    <h1>Market Analyzer</h1>
+<div class="app-container compact-app">
+    <div class="dashboard-status-bar">
+        <div class="dashboard-status-pill">{{ membership_tier }}</div>
+        {% if plan_info.daily_limit is not none %}
+        <div class="dashboard-status-sub">{{ user.search_count }} / {{ free_limit }} scans used today · Membership options are now inside Account</div>
+        {% elif plan_info.membership == "ADMIN" %}
+        <div class="dashboard-status-sub">Admin mode active · Unlimited access enabled</div>
+        {% else %}
+        <div class="dashboard-status-sub">Market analysis, pricing strategy, and listing generation ready.</div>
+        {% endif %}
+    </div>
 
     {% if error %}
     <div class="error-box">{{ error }}</div>
     {% endif %}
 
-    <div class="tool-intro">
-        Analyze an item, compare likely resale value, and spot strong flips fast.
-    </div>
-
-    <div class="dashboard-status-bar">
-        <div class="dashboard-status-pill">Plan: {{ plan_info.membership }}</div>
-        {% if plan_info.membership == "FREE" %}
-        <div class="dashboard-status-sub">{{ search_count }}/{{ free_limit }} scans used today · Membership options are now inside Account</div>
-        {% elif plan_info.membership == "ADMIN" %}
-        <div class="dashboard-status-sub">Admin mode active · Unlimited access enabled</div>
-        {% else %}
-        <div class="dashboard-status-sub">Membership options are now inside Account</div>
-        {% endif %}
-    </div>
-
     <form id="analyzer-form" method="post" action="/app" enctype="multipart/form-data">
         <input type="hidden" name="email" value="{{email}}">
 
-        <div class="search-bar">
-            <div class="form-group search-item">
+        <div class="search-bar compact-search-bar">
+            <div class="form-group search-item wide-field">
                 <label>Search Item</label>
-                <input id="query" type="text" name="query" placeholder="iPhone 12">
+                <input id="query" type="text" name="query" placeholder="iPhone 12, PS4 controller, Milwaukee drill">
             </div>
 
-            <div class="form-group">
+            <div class="form-group compact-field">
                 <label>Condition</label>
                 <select name="condition">
                     <option value="A">A - Excellent</option>
@@ -439,12 +123,12 @@ document.addEventListener("DOMContentLoaded", function(){
                 </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group compact-field">
                 <label>Target Profit %</label>
                 <input type="number" name="profit" value="{{ user_settings.default_profit }}">
             </div>
 
-            <div class="form-group">
+            <div class="form-group compact-field">
                 <label>Seller Asking Price</label>
                 <input type="number" name="asking_price" step="0.01">
             </div>
@@ -452,63 +136,50 @@ document.addEventListener("DOMContentLoaded", function(){
             <button id="analyze-btn" class="analyze-btn" type="submit">Analyze</button>
         </div>
 
-        <div class="platform-pills">
+        <div class="platform-pills compact-pills">
             {% for platform in user_settings.platforms %}
             <span class="platform-pill">{{ platform|capitalize }}</span>
             <input type="hidden" name="platforms" value="{{ platform }}">
             {% endfor %}
         </div>
 
-        <div class="upload-section">
-            <div style="margin-top:12px;margin-bottom:12px;">
-                <label style="font-size:14px;opacity:.8;">Search Assist</label>
-                <input
-                    id="assist_search"
-                    placeholder="Type item name if AI or barcode isn't perfect"
-                    style="width:100%;padding:10px;border-radius:10px;border:1px solid #2c3e50;margin-top:6px;"
-                >
+        <div class="upload-section compact-upload-section">
+            <div class="upload-row-grid">
+                <div class="assist-box">
+                    <label>Search Assist</label>
+                    <input id="assist_search" placeholder="Use a clearer item name if needed">
+                    <div class="upload-note">Search assist helps when titles are messy or photos are not enough.</div>
+                </div>
+
+                <div class="assist-box">
+                    <label for="photo-input">Upload / Take Photo</label>
+                    <input
+                        id="photo-input"
+                        type="file"
+                        name="photo"
+                        accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                        onchange="handlePhotoSelected(event)"
+                        onclick="primePhotoInput()"
+                    >
+                    <div id="photo-status" class="upload-note"></div>
+                    <div class="upload-note">
+                        {% if plan_info.ai_photo_enabled %}
+                        Photo AI is active for your plan.
+                        {% else %}
+                        Photo upload is available. AI item detection unlocks on Pro and Reseller.
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-
-            <label for="photo-input">Upload / Take Photo</label>
-            <input
-                id="photo-input"
-                type="file"
-                name="photo"
-                accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
-                onchange="handlePhotoSelected(event)"
-                onclick="primePhotoInput()"
-            >
-
-            <div id="photo-status" class="upload-note"></div>
 
             <div id="photo-preview-wrap" class="photo-preview-wrap" style="display:none;">
                 <img id="photo-preview" src="" alt="Selected photo preview">
             </div>
-
-            <div class="upload-note">
-                {% if plan_info.ai_photo_enabled %}
-                Photo AI is active for your plan.
-                {% else %}
-                Photo upload is available. AI item detection unlocks on Pro and Reseller.
-                {% endif %}
-            </div>
-
-            <div class="upload-trigger-row">
-                <button type="button" onclick="startScanner()">Scan Barcode</button>
-                <button type="button" class="secondary-scan-btn" onclick="stopScanner()">Stop Scanner</button>
-            </div>
-
-            <div class="scanner-help">
-                Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame. Numeric barcode scans search as UPC / EAN automatically.
-            </div>
-
-            <div id="scanner-status" class="scanner-status">Scanner off.</div>
-            <div id="scanner"></div>
         </div>
     </form>
 
     {% if listing %}
-    <div class="listing-preview">
+    <div class="listing-preview compact-listing-preview">
         <img src="{{ listing.image }}" alt="Matched item preview">
         <div>
             <div class="listing-preview-title">{{ listing.title }}</div>
@@ -519,78 +190,118 @@ document.addEventListener("DOMContentLoaded", function(){
     {% endif %}
 
     {% if data %}
-    <div class="search-used-box">
-        Search used: <strong>{{ data.query_used }}</strong>
-        {% if data.suggestions %}
-        <div class="suggestion-row">
-            {% for suggestion in data.suggestions %}
-            <span class="suggestion-pill">{{ suggestion }}</span>
-            {% endfor %}
+    <div class="results-top-grid">
+        <div>
+            <div class="search-used-box compact-box">
+                Search used: <strong>{{ data.query_used }}</strong>
+                {% if data.suggestions %}
+                <div class="suggestion-row">
+                    {% for suggestion in data.suggestions %}
+                    <span class="suggestion-pill">{{ suggestion }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="flip-intel-card compact-box">
+                <div class="section-kicker">CLAMS Flip Intelligence</div>
+                <div class="flip-intel-strip">
+                    <div class="intel-mini-card">
+                        <div class="intel-label">Market Value</div>
+                        <div class="intel-value">${{ "%.2f"|format(data.market_price|float) }}</div>
+                    </div>
+                    <div class="intel-mini-card">
+                        <div class="intel-label">Buy Under</div>
+                        <div class="intel-value">${{ "%.2f"|format(data.max_buy|float) }}</div>
+                    </div>
+                    <div class="intel-mini-card">
+                        <div class="intel-label">Expected Profit</div>
+                        <div class="intel-value">
+                            {% if data.profit_delta is not none %}
+                                {% if data.profit_delta >= 0 %}+{% endif %}${{ "%.2f"|format(data.profit_delta|float) }}
+                            {% else %}
+                                ${{ "%.2f"|format((data.local_market_value - data.max_buy)|float) }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="intel-mini-card {{ data.deal_score_class if data.profit_delta is not none else data.flip_score_class }}">
+                        <div class="intel-label">Deal Meter</div>
+                        <div class="intel-value">{{ ((data.deal_score_ui if data.profit_delta is not none else data.flip_score_ui)|float)|round(0)|int }}%</div>
+                    </div>
+                </div>
+                <div class="flip-intel-foot">Based on {{ data.sold_count }} sold listings{% if data.active_count is not none %} · {{ data.active_count }} active{% endif %}</div>
+            </div>
+
+            <div class="price-strategy-card compact-box">
+                <div class="section-kicker">Price Strategy</div>
+                <div class="price-strategy-strip">
+                    <div class="strategy-card fast">
+                        <div class="intel-label">Quick Sale</div>
+                        <div class="intel-value">${{ "%.2f"|format(data.fast_cash|float) }}</div>
+                    </div>
+                    <div class="strategy-card market">
+                        <div class="intel-label">Market Price</div>
+                        <div class="intel-value">${{ "%.2f"|format(data.market_price|float) }}</div>
+                    </div>
+                    <div class="strategy-card hold">
+                        <div class="intel-label">Hold Price</div>
+                        <div class="intel-value">${{ "%.2f"|format(data.hold_price|float) }}</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        {% endif %}
-    </div>
 
-    <h2>Pricing</h2>
-    <div class="price-grid">
-        <div class="price-card local">
-            <h3>LOCAL VALUE</h3>
-            <p>${{data.local_market_value}}</p>
-        </div>
+        <div>
+            <div class="best-platform-box compact-box">
+                <div class="best-platform-title">⭐ Best Market</div>
+                <div class="best-platform-main">{{ data.best_platform }}</div>
+                <div class="best-platform-sub">
+                    {% for platform_name, platform_score in data.platform_ranking %}
+                    <span>{{ platform_name }}: {{ platform_score }}</span>
+                    {% endfor %}
+                </div>
+            </div>
 
-        <div class="price-card fast">
-            <h3>FAST CASH</h3>
-            <p>${{data.fast_cash}}</p>
-        </div>
+            {% if data.profit_delta is not none %}
+            <div class="deal-temperature-box {{ data.deal_temperature_class }} compact-box">
+                <div class="deal-temperature-label">Deal Signal</div>
+                <div class="deal-temperature-main">{{ data.deal_temperature }}</div>
+                <div class="deal-temperature-sub">Max buy target: ${{ "%.2f"|format(data.max_buy|float) }}</div>
+            </div>
 
-        <div class="price-card market">
-            <h3>MARKET PRICE</h3>
-            <p>${{data.market_price}}</p>
-        </div>
-
-        <div class="price-card hold">
-            <h3>HOLD PRICE</h3>
-            <p>${{data.hold_price}}</p>
-        </div>
-    </div>
-
-    <div class="best-platform-box">
-        <div class="best-platform-title">Best Platform</div>
-        <div class="best-platform-main">{{ data.best_platform }}</div>
-        <div class="best-platform-sub">
-            {% for platform_name, platform_score in data.platform_ranking %}
-            <span>{{ platform_name }}: {{ platform_score }}</span>
-            {% endfor %}
-        </div>
-    </div>
-
-    {% if data.profit_delta is not none %}
-    <div class="deal-temperature-box {{ data.deal_temperature_class }}">
-        <div class="deal-temperature-label">Deal Signal</div>
-        <div class="deal-temperature-main">{{ data.deal_temperature }}</div>
-        <div class="deal-temperature-sub">Max buy target: ${{ data.max_buy }}</div>
-    </div>
-
-    <div class="profit-opportunity-card">
-        <div class="profit-headline">Profit Opportunity</div>
-        <div class="profit-main">
-            {% if data.profit_delta >= 0 %}
-            +${{ data.profit_delta }}
-            {% else %}
-            -${{ (data.profit_delta * -1) }}
+            <div class="profit-opportunity-card compact-box">
+                <div class="profit-headline">Profit Opportunity</div>
+                <div class="profit-main">
+                    {% if data.profit_delta >= 0 %}+{% endif %}${{ "%.2f"|format(data.profit_delta|float) }}
+                </div>
+                <div class="profit-subline">
+                    {% if data.profit_margin_percent is not none %}
+                    Margin: {% if data.profit_margin_percent >= 0 %}+{% endif %}{{ data.profit_margin_percent }}%
+                    {% endif %}
+                </div>
+            </div>
             {% endif %}
-        </div>
-        <div class="profit-subline">
-            {% if data.profit_margin_percent is not none %}
-            Margin:
-            {% if data.profit_margin_percent >= 0 %}
-            +{{ data.profit_margin_percent }}%
-            {% else %}
-            {{ data.profit_margin_percent }}%
-            {% endif %}
-            {% endif %}
+
+            <div class="metric-grid compact-metric-grid always-open-metrics">
+                <div class="metric-card">
+                    <h3>Confidence</h3>
+                    <p>{{ data.confidence }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Sell Through</h3>
+                    <p>{{ data.sell_through }}%</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Volatility</h3>
+                    <p>{{ data.volatility }}</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Liquidity</h3>
+                    <p>{{ data.liquidity }}</p>
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
 
     <h2>Generated Listings</h2>
     {% if generated_listings %}
@@ -605,8 +316,6 @@ document.addEventListener("DOMContentLoaded", function(){
         {% endfor %}
     {% endif %}
 
-    <br>
-
     <label class="advanced-toggle">
         <input type="checkbox" onclick="toggleAdvanced()">
         Show Advanced Market Intelligence
@@ -614,63 +323,33 @@ document.addEventListener("DOMContentLoaded", function(){
 
     <div id="advanced" class="hidden">
         <h2>Advanced Market Intelligence</h2>
-
-        <div class="metric-grid">
+        <div class="metric-grid compact-metric-grid">
             <div class="metric-card {{ data.deal_score_class }}">
                 <h3>Deal Score</h3>
                 <p>{{data.deal_score_ui}} / 100</p>
             </div>
-
             <div class="metric-card {{ data.flip_score_class }}">
                 <h3>Quick Flip Score</h3>
                 <p>{{data.flip_score_ui}} / 100</p>
             </div>
-
-            <div class="metric-card">
-                <h3>Confidence</h3>
-                <p>{{data.confidence}}</p>
-            </div>
-
-            {% if plan_info.advanced_enabled %}
             <div class="metric-card">
                 <h3>Median Price</h3>
                 <p>${{data.median_price}}</p>
             </div>
-
-            <div class="metric-card">
-                <h3>Sell Through</h3>
-                <p>{{data.sell_through}}%</p>
-            </div>
-
-            <div class="metric-card">
-                <h3>Volatility</h3>
-                <p>{{data.volatility}}</p>
-            </div>
-
-            <div class="metric-card">
-                <h3>Liquidity</h3>
-                <p>{{data.liquidity}}</p>
-            </div>
-
+            {% if plan_info.advanced_enabled %}
             <div class="metric-card">
                 <h3>Risk</h3>
                 <p>{{data.risk}}</p>
             </div>
-
             <div class="metric-card">
                 <h3>Listings</h3>
                 <p>{{data.sold_count}} sold / {{data.active_count}} active</p>
             </div>
             {% else %}
-            <div class="metric-card locked-card"><h3>Median Price</h3><p>🔒 Reseller</p></div>
-            <div class="metric-card locked-card"><h3>Sell Through</h3><p>🔒 Reseller</p></div>
-            <div class="metric-card locked-card"><h3>Volatility</h3><p>🔒 Reseller</p></div>
-            <div class="metric-card locked-card"><h3>Liquidity</h3><p>🔒 Reseller</p></div>
             <div class="metric-card locked-card"><h3>Risk</h3><p>🔒 Reseller</p></div>
             <div class="metric-card locked-card"><h3>Listings</h3><p>🔒 Reseller</p></div>
             {% endif %}
         </div>
-
         {% if not plan_info.advanced_enabled %}
         <div class="advanced-upsell">
             Advanced intelligence is available inside the Reseller plan.

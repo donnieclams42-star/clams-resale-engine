@@ -1,10 +1,3 @@
-# Barcode detection logic
-def detect_barcode_query(query):
-    if query and query.isdigit() and len(query) >= 8:
-        return {"barcode_mode": True, "query": query}
-    return {"barcode_mode": False, "query": query}
-
-
 from typing import List, Optional
 import os
 import re
@@ -160,6 +153,41 @@ def normalize_user(user: dict):
 
 def valid_email(email: str) -> bool:
     return bool(EMAIL_RE.match((email or "").strip().lower()))
+
+
+def verify_user_password(user: dict, password: str) -> bool:
+    if not user:
+        return False
+    stored_password = str(user.get("password", "") or "")
+    return stored_password == str(password or "")
+
+
+def change_user_email(old_email: str, new_email: str):
+    old_email = (old_email or "").strip().lower()
+    new_email = (new_email or "").strip().lower()
+
+    if not old_email or not new_email or old_email == new_email:
+        return get_user(old_email)
+
+    user = get_user(old_email)
+    if not user:
+        return None
+
+    updated_user = dict(user)
+    updated_user["email"] = new_email
+
+    if supabase:
+        try:
+            supabase.table("users").update({"email": new_email}).eq("email", old_email).execute()
+            return get_user(new_email)
+        except Exception as e:
+            print("Supabase change_user_email failed:", e)
+            return None
+
+    users[new_email] = updated_user
+    if old_email in users:
+        del users[old_email]
+    return normalize_user(users[new_email])
 
 
 def get_user(email: str):
@@ -818,7 +846,7 @@ async def analyze(
                 "free_limit": FREE_LIMIT,
                 "pro_price": PRO_PRICE,
                 "reseller_price": RESELLER_PRICE,
-                "error": "No usable market data was found for that search. Try a clearer model name, barcode, or photo.",
+                "error": "No usable market data was found for that search. Try a clearer model name or photo.",
                 **plan_ui,
             },
         )
@@ -968,12 +996,67 @@ async def account_page(request: Request, email: str = "", error: str = "", notic
             **plan_ui,
         },
     )
-from fastapi import Form
+
 
 @app.post("/change-password")
-async def change_password(new_password: str = Form(...)):
-    return {"status":"Password updated"}
+async def change_password(
+    request: Request,
+    email: str = Form(""),
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
+    user = ensure_user_exists(email)
+
+    if not verify_user_password(user, current_password):
+        return RedirectResponse(f"/account?email={email}&error=Current+password+verification+failed", status_code=303)
+
+    if len((new_password or "").strip()) < 6:
+        return RedirectResponse(f"/account?email={email}&error=New+password+must+be+at+least+6+characters", status_code=303)
+
+    if new_password != confirm_password:
+        return RedirectResponse(f"/account?email={email}&error=New+password+and+confirmation+did+not+match", status_code=303)
+
+    update_user_record(email, {"password": new_password.strip()})
+    return RedirectResponse(f"/account?email={email}&notice=Password+updated+successfully", status_code=303)
+
 
 @app.post("/change-email")
-async def change_email(new_email: str = Form(...)):
-    return {"status":"Email updated"}
+async def change_email(
+    request: Request,
+    email: str = Form(""),
+    current_password: str = Form(...),
+    new_email: str = Form(...),
+    confirm_email: str = Form(...),
+):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
+    user = ensure_user_exists(email)
+    new_email = (new_email or "").strip().lower()
+    confirm_email = (confirm_email or "").strip().lower()
+
+    if not verify_user_password(user, current_password):
+        return RedirectResponse(f"/account?email={email}&error=Current+password+verification+failed", status_code=303)
+
+    if not valid_email(new_email):
+        return RedirectResponse(f"/account?email={email}&error=Enter+a+valid+new+email+address", status_code=303)
+
+    if new_email != confirm_email:
+        return RedirectResponse(f"/account?email={email}&error=New+email+and+confirmation+did+not+match", status_code=303)
+
+    if new_email != email and get_user(new_email):
+        return RedirectResponse(f"/account?email={email}&error=That+email+is+already+in+use", status_code=303)
+
+    updated = change_user_email(email, new_email)
+    if not updated:
+        return RedirectResponse(f"/account?email={email}&error=Unable+to+update+email+right+now", status_code=303)
+
+    response = RedirectResponse(f"/account?email={new_email}&notice=Email+updated+successfully", status_code=303)
+    set_user_cookie(response, new_email)
+    return response

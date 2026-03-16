@@ -2,157 +2,40 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Market Radar Account</title>
+<title>Account | Market Radar | CLAMS Intelligence</title>
 <link rel="stylesheet" href="/static/styles.css">
 <style>
-.account-wrap{
-max-width:1100px;
-margin:auto;
-padding:30px 25px 110px;
-}
-.account-header{
-display:flex;
-justify-content:space-between;
-align-items:flex-start;
-gap:16px;
-margin-bottom:24px;
-}
-.account-title h1{
-margin:0 0 8px 0;
-}
-.account-title p{
-margin:0;
-opacity:.82;
-line-height:1.6;
-}
-.membership-pill{
-display:inline-block;
-padding:10px 16px;
-border-radius:999px;
-font-size:13px;
-font-weight:800;
-letter-spacing:.4px;
-background:rgba(59,130,246,.18);
-color:#93c5fd;
-border:1px solid rgba(59,130,246,.35);
-}
-.account-grid{
-display:grid;
-grid-template-columns:repeat(2, 1fr);
-gap:20px;
-}
-.account-card{
-background:#0b244f;
-padding:24px;
-border-radius:16px;
-box-shadow:0 10px 24px rgba(0,0,0,.28);
-border:1px solid rgba(255,255,255,.06);
-}
-.account-card h3{
-margin-top:0;
-margin-bottom:14px;
-font-size:18px;
-}
-.account-row{
-display:flex;
-justify-content:space-between;
-gap:20px;
-padding:10px 0;
-border-bottom:1px solid rgba(255,255,255,.08);
-font-size:14px;
-}
-.account-row:last-child{
-border-bottom:none;
-padding-bottom:0;
-}
-.account-label{
-opacity:.75;
-}
-.account-value{
-font-weight:700;
-text-align:right;
-}
-.account-actions{
-display:flex;
-gap:12px;
-flex-wrap:wrap;
-margin-top:18px;
-}
-.secondary-btn{
-background:#1e40af;
-}
-.membership-section{
-margin-top:22px;
-}
-.membership-intro{
-font-size:14px;
-line-height:1.6;
-opacity:.9;
-margin-bottom:14px;
-}
-.membership-grid{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:16px;
-margin-top:16px;
-}
-.membership-card{
-background:rgba(255,255,255,.04);
-border:1px solid rgba(255,255,255,.08);
-border-radius:14px;
-padding:18px;
-}
-.membership-card h4{
-margin:0 0 6px 0;
-font-size:18px;
-}
-.membership-price{
-font-size:28px;
-font-weight:800;
-margin-bottom:10px;
-}
-.membership-note{
-font-size:13px;
-opacity:.78;
-margin-bottom:14px;
-}
-.membership-list{
-margin:0;
-padding-left:18px;
-line-height:1.8;
-font-size:14px;
-}
-.plan-current{
-border:1px solid rgba(34,197,94,.45);
-box-shadow:0 10px 24px rgba(34,197,94,.12);
-}
-.admin-box{
-margin-top:16px;
-padding:16px;
-border-radius:12px;
-background:rgba(34,197,94,.12);
-border:1px solid rgba(34,197,94,.28);
-font-size:14px;
-line-height:1.6;
-}
-.upgrade-btn{
-margin-top:16px;
-width:100%;
-}
-@media (max-width:900px){
-.account-grid{
-grid-template-columns:1fr;
-}
-.membership-grid{
-grid-template-columns:1fr;
-}
-.account-wrap{
-padding:24px 16px 95px;
-}
-.account-header{
-flex-direction:column;
-}
-}
+.account-wrap{max-width:1100px;margin:auto;padding:30px 25px 110px;}
+.account-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;}
+.account-title h1{margin:0 0 8px 0;}
+.account-title p{margin:0;opacity:.82;line-height:1.6;}
+.membership-pill{display:inline-block;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:800;letter-spacing:.4px;background:rgba(59,130,246,.18);color:#93c5fd;border:1px solid rgba(59,130,246,.35);}
+.account-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
+.account-card{background:#0b244f;padding:24px;border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06);}
+.account-card h3{margin-top:0;margin-bottom:14px;font-size:18px;}
+.account-row{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;}
+.account-row:last-child{border-bottom:none;padding-bottom:0;}
+.account-label{opacity:.75;}
+.account-value{font-weight:700;text-align:right;}
+.account-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;}
+.secondary-btn{background:#1e40af;}
+.membership-section{margin-top:22px;}
+.membership-intro{font-size:14px;line-height:1.6;opacity:.9;margin-bottom:14px;}
+.membership-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px;}
+.membership-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;}
+.membership-card h4{margin:0 0 6px 0;font-size:18px;}
+.membership-price{font-size:28px;font-weight:800;margin-bottom:10px;}
+.membership-note{font-size:13px;opacity:.78;margin-bottom:14px;}
+.membership-list{margin:0;padding-left:18px;line-height:1.8;font-size:14px;}
+.plan-current{border:1px solid rgba(34,197,94,.45);box-shadow:0 10px 24px rgba(34,197,94,.12);}
+.admin-box{margin-top:16px;padding:16px;border-radius:12px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);font-size:14px;line-height:1.6;}
+.upgrade-btn{margin-top:16px;width:100%;}
+.security-form{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);}
+.security-form label{display:block;font-size:13px;opacity:.85;margin-bottom:6px;}
+.security-form input{width:100%;padding:12px 14px;border-radius:10px;border:none;margin-bottom:12px;font-size:15px;}
+.security-note{font-size:13px;line-height:1.5;opacity:.82;margin-top:8px;}
+.back-row{margin-bottom:14px;}
+@media (max-width:900px){.account-grid,.membership-grid{grid-template-columns:1fr;}.account-wrap{padding:24px 16px 95px;}.account-header{flex-direction:column;}}
 </style>
 </head>
 <body>
@@ -162,77 +45,32 @@ flex-direction:column;
         <div class="logo-sub">Powered by CLAMS Intelligence</div>
         <div class="logo-quote">See opportunity before the market does.</div>
     </div>
-
     <div class="nav-links">
         <a href="/app?email={{email}}">Analyze</a>
         <a href="/settings?email={{email}}">Settings</a>
         <a href="/account?email={{email}}">Account</a>
     </div>
 </div>
-
 <div class="account-wrap">
-
-<div style="margin-bottom:14px;">
-<a href="/app?email={{email}}"><button type="button">← Back to Analyzer</button></a>
-</div>
-
+    <div class="back-row"><a href="/app?email={{email}}"><button type="button">← Back to Analyzer</button></a></div>
     <div class="account-header">
         <div class="account-title">
             <h1>Account</h1>
-            <p>Membership, access, and launch-day billing controls all live here now.</p>
+            <p>Membership, access, and security controls all live here now.</p>
         </div>
         <div class="membership-pill">{{ membership_tier }}</div>
     </div>
-
-    {% if error %}
-    <div class="error-box">{{ error }}</div>
-    {% endif %}
-    {% if notice %}
-    <div class="success-box">{{ notice }}</div>
-    {% endif %}
-
+    {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+    {% if notice %}<div class="success-box">{{ notice }}</div>{% endif %}
     <div class="account-grid">
         <div class="account-card">
             <h3>Account Overview</h3>
-
-            <div class="account-row">
-                <div class="account-label">User</div>
-                <div class="account-value">{{ email }}</div>
-            </div>
-
-            <div class="account-row">
-                <div class="account-label">Membership</div>
-                <div class="account-value">{{ membership_tier }}</div>
-            </div>
-
-            <div class="account-row">
-                <div class="account-label">AI Access</div>
-                <div class="account-value">{{ ai_access }}</div>
-            </div>
-
-            <div class="account-row">
-                <div class="account-label">Daily Usage</div>
-                <div class="account-value">
-                    {% if plan_info.daily_limit is none %}
-                    Unlimited
-                    {% else %}
-                    {{ user.search_count }} / {{ plan_info.daily_limit }}
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="account-row">
-                <div class="account-label">Status</div>
-                <div class="account-value">Active</div>
-            </div>
-
-            {% if plan_info.membership == "ADMIN" %}
-            <div class="admin-box">
-                <strong>Admin mode is active.</strong><br>
-                Unlimited scans, AI photo tools, and advanced intelligence are fully unlocked for your account.
-            </div>
-            {% endif %}
-
+            <div class="account-row"><div class="account-label">User</div><div class="account-value">{{ email }}</div></div>
+            <div class="account-row"><div class="account-label">Membership</div><div class="account-value">{{ membership_tier }}</div></div>
+            <div class="account-row"><div class="account-label">AI Access</div><div class="account-value">{{ ai_access }}</div></div>
+            <div class="account-row"><div class="account-label">Daily Usage</div><div class="account-value">{% if plan_info.daily_limit is none %}Unlimited{% else %}{{ user.search_count }} / {{ plan_info.daily_limit }}{% endif %}</div></div>
+            <div class="account-row"><div class="account-label">Status</div><div class="account-value">Active</div></div>
+            {% if plan_info.membership == "ADMIN" %}<div class="admin-box"><strong>Admin mode is active.</strong><br>Unlimited scans, AI photo tools, and advanced intelligence are fully unlocked for your account.</div>{% endif %}
             <div class="account-actions">
                 <a href="/app?email={{email}}"><button type="button">Back to Analyzer</button></a>
                 <a href="/settings?email={{email}}"><button type="button" class="secondary-btn">Settings</button></a>
@@ -242,127 +80,77 @@ flex-direction:column;
 
         <div class="account-card membership-section">
             <h3>Membership</h3>
-            <div class="membership-intro">
-                Billing has been moved into this account page so the analyzer stays clean and focused on flips.
-            </div>
-
+            <div class="membership-intro">Billing has been moved into this account page so the analyzer stays clean and focused on flips.</div>
             {% if plan_info.membership == "ADMIN" %}
-            <div class="admin-box">
-                Membership pricing is hidden from admin use because your account already has full internal access.
-            </div>
+            <div class="admin-box">Membership pricing is hidden from admin use because your account already has full internal access.</div>
             {% else %}
             <div class="membership-grid">
                 <div class="membership-card {% if membership_tier == 'PRO' %}plan-current{% endif %}">
                     <h4>Pro</h4>
                     <div class="membership-price">${{ pro_price }}/mo</div>
                     <div class="membership-note">Unlimited scans + photo AI access</div>
-                    <ul class="membership-list">
-                        <li>Unlimited analyzer use</li>
-                        <li>AI photo item detection</li>
-                        <li>Generated listings</li>
-                    </ul>
-                    {% if membership_tier == "PRO" %}
-                    <button type="button" class="upgrade-btn secondary-btn">Current Plan</button>
-                    {% else %}
-                    <a href="/upgrade/pro?email={{email}}"><button type="button" class="upgrade-btn">Choose Pro</button></a>
-                    {% endif %}
+                    <ul class="membership-list"><li>Unlimited analyzer use</li><li>AI photo item detection</li><li>Generated listings</li></ul>
+                    {% if membership_tier == "PRO" %}<button type="button" class="upgrade-btn secondary-btn">Current Plan</button>{% else %}<a href="/upgrade/pro?email={{email}}"><button type="button" class="upgrade-btn">Choose Pro</button></a>{% endif %}
                 </div>
-
                 <div class="membership-card {% if membership_tier == 'RESELLER' %}plan-current{% endif %}">
                     <h4>Reseller</h4>
                     <div class="membership-price">${{ reseller_price }}/mo</div>
                     <div class="membership-note">Everything in Pro + advanced intelligence</div>
-                    <ul class="membership-list">
-                        <li>Advanced market intelligence</li>
-                        <li>Unlimited scans</li>
-                        <li>Best fit for serious flipping</li>
-                    </ul>
-                    {% if membership_tier == "RESELLER" %}
-                    <button type="button" class="upgrade-btn secondary-btn">Current Plan</button>
-                    {% else %}
-                    <a href="/upgrade/reseller?email={{email}}"><button type="button" class="upgrade-btn">Choose Reseller</button></a>
-                    {% endif %}
+                    <ul class="membership-list"><li>Advanced market intelligence</li><li>Unlimited scans</li><li>Best fit for serious flipping</li></ul>
+                    {% if membership_tier == "RESELLER" %}<button type="button" class="upgrade-btn secondary-btn">Current Plan</button>{% else %}<a href="/upgrade/reseller?email={{email}}"><button type="button" class="upgrade-btn">Choose Reseller</button></a>{% endif %}
                 </div>
             </div>
             {% endif %}
         </div>
-    
+
         <div class="account-card">
             <h3>Market Preferences</h3>
-            <div class="membership-intro">
-                Your local market adjustment now lives here so the analyzer stays clean and fast.
-            </div>
-
+            <div class="membership-intro">Your local market adjustment now lives here so the analyzer stays clean and fast.</div>
             <form method="post" action="/account/preferences">
                 <input type="hidden" name="email" value="{{email}}">
-
                 <div class="form-group">
                     <label>Local Market Adjustment %</label>
                     <input type="number" name="local_factor" min="40" max="120" step="1" value="{{ user.settings.local_factor }}">
                 </div>
-
-                <div class="upload-note">
-                    80 is a strong default for local deals. Raise it if your area moves fast. Lower it if buyers are slower.
-                </div>
-
-                <div class="account-row">
-                    <div class="account-label">Default Profit Target</div>
-                    <div class="account-value">{{ user.settings.default_profit }}%</div>
-                </div>
-
-                <div class="account-row">
-                    <div class="account-label">Platforms</div>
-                    <div class="account-value">{{ user.settings.platforms|join(', ') }}</div>
-                </div>
-
-                <div class="account-actions">
-                    <button type="submit">Save Market Preferences</button>
-                </div>
+                <div class="upload-note">80 is a strong default for local deals. Raise it if your area moves fast. Lower it if buyers are slower.</div>
+                <div class="account-row"><div class="account-label">Default Profit Target</div><div class="account-value">{{ user.settings.default_profit }}%</div></div>
+                <div class="account-row"><div class="account-label">Platforms</div><div class="account-value">{{ user.settings.platforms|join(', ') }}</div></div>
+                <div class="account-actions"><button type="submit">Save Market Preferences</button></div>
             </form>
         </div>
 
+        <div class="account-card">
+            <h3>Security</h3>
+            <div class="account-row"><div class="account-label">Email</div><div class="account-value">{{ email }}</div></div>
+            <div class="account-row"><div class="account-label">Password</div><div class="account-value">••••••••</div></div>
+            <div class="account-row"><div class="account-label">Verification</div><div class="account-value">Current password required</div></div>
 
-<div class="account-card">
-<h3>User Profile</h3>
+            <form class="security-form" action="/change-password" method="post">
+                <input type="hidden" name="email" value="{{ email }}">
+                <label>Current Password</label>
+                <input type="password" name="current_password" required>
+                <label>New Password</label>
+                <input type="password" name="new_password" required>
+                <label>Confirm New Password</label>
+                <input type="password" name="confirm_password" required>
+                <button type="submit">Change Password</button>
+            </form>
 
-<div class="account-row">
-<div class="account-label">Email</div>
-<div class="account-value">{{ email }}</div>
+            <form class="security-form" action="/change-email" method="post">
+                <input type="hidden" name="email" value="{{ email }}">
+                <label>Current Password</label>
+                <input type="password" name="current_password" required>
+                <label>New Email</label>
+                <input type="email" name="new_email" required>
+                <label>Confirm New Email</label>
+                <input type="email" name="confirm_email" required>
+                <button type="submit">Change Email</button>
+            </form>
+
+            <div class="security-note">Account changes now require current-password verification before they save.</div>
+        </div>
+    </div>
 </div>
-
-<div class="account-row">
-<div class="account-label">Password</div>
-<div class="account-value">••••••••</div>
-</div>
-
-<div class="account-row">
-<div class="account-label">Two‑Factor Auth</div>
-<div class="account-value">Not Enabled</div>
-</div>
-
-<div class="account-actions">
-<button type="button">
-<form action="/change-password" method="post">
-<label>New Password</label>
-<input type="password" name="new_password" required>
-<button type="submit">Change Password</button>
-</form>
-
-<form action="/change-email" method="post">
-<label>New Email</label>
-<input type="email" name="new_email" required>
-<button type="submit">Change Email</button>
-</form>
-</button>
-</div>
-
-<div class="upload-note">
-Protect your account with two‑factor authentication. When enabled, you'll confirm login using a verification code from your phone.
-</div>
-</div>
-
-</div>
-
 <div class="mobile-nav">
     <a href="/app?email={{email}}"><span>Analyze</span></a>
     <a href="/settings?email={{email}}"><span>Settings</span></a>

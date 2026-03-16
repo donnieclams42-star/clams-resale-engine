@@ -175,89 +175,13 @@ letter-spacing:.35px;
 
 /* UPLOAD */
 
-.upload-section{
-margin-bottom:28px;
-text-align:center;
-}
+.upload-section{margin-bottom:22px;}
 
-.upload-section button{
-margin-top:12px;
-background:#1d4ed8;
-border:none;
-padding:12px 18px;
-border-radius:12px;
-color:white;
-font-weight:700;
-cursor:pointer;
-}
+.upload-note{margin-top:8px;font-size:13px;opacity:.8;}
 
-.secondary-scan-btn{
-background:#1e3a8a !important;
-margin-left:10px;
-}
+.photo-preview-wrap{margin:14px auto 0;max-width:260px;padding:10px;border-radius:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);}
 
-.upload-note{
-margin-top:10px;
-font-size:13px;
-opacity:.8;
-}
-
-.scanner-help{
-margin-top:10px;
-font-size:13px;
-opacity:.78;
-}
-
-.scanner-status{
-margin-top:10px;
-font-size:13px;
-opacity:.9;
-color:#bfdbfe;
-}
-
-.photo-preview-wrap{
-margin:14px auto 0;
-max-width:260px;
-padding:10px;
-border-radius:16px;
-background:rgba(255,255,255,0.04);
-border:1px solid rgba(255,255,255,0.08);
-}
-
-.photo-preview-wrap img{
-display:block;
-width:100%;
-border-radius:12px;
-object-fit:cover;
-}
-
-#scanner{
-display:none;
-position:relative;
-width:100%;
-max-width:420px;
-min-height:220px;
-margin:14px auto 0;
-border-radius:16px;
-overflow:hidden;
-border:1px solid rgba(255,255,255,0.12);
-background:#020617;
-}
-
-#scanner::after{
-content:"Hold barcode inside frame";
-position:absolute;
-left:50%;
-top:50%;
-transform:translate(-50%,-50%);
-padding:10px 14px;
-border:2px solid rgba(59,130,246,0.7);
-border-radius:12px;
-font-size:13px;
-background:rgba(2,6,23,0.55);
-color:white;
-pointer-events:none;
-}
+.photo-preview-wrap img{display:block;width:100%;border-radius:12px;object-fit:cover;}
 
 /* SEARCH USED / SUGGESTIONS */
 
@@ -817,4 +741,38 @@ font-size:28px;
 align-items:flex-start;
 padding-top:34px;
 }
+}
+
+
+/* COMPACT / INTELLIGENCE LAYOUT */
+.compact-app{max-width:1180px;padding-top:22px;}
+.compact-search-bar{gap:12px;margin-bottom:14px;align-items:end;}
+.compact-field{max-width:160px;min-width:140px;}
+.wide-field{max-width:none;}
+.compact-pills{justify-content:flex-start;margin-bottom:18px;}
+.compact-upload-section{background:#081a35;border:1px solid rgba(255,255,255,0.06);padding:16px;border-radius:16px;box-shadow:0 8px 18px rgba(0,0,0,.24);}
+.upload-row-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;align-items:start;}
+.assist-box label{display:block;font-size:13px;margin-bottom:6px;opacity:.8;}
+.assist-box input{width:100%;padding:12px;border-radius:12px;border:none;font-size:15px;background:#fff;color:#111;}
+.results-top-grid{display:grid;grid-template-columns:1.4fr .9fr;gap:18px;align-items:start;margin-top:18px;}
+.compact-box{margin-bottom:16px;}
+.section-kicker{font-size:13px;opacity:.78;margin-bottom:10px;letter-spacing:.35px;text-transform:uppercase;}
+.flip-intel-card,.price-strategy-card{background:linear-gradient(135deg,#0b244f,#0f2f63);padding:18px;border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.28);}
+.flip-intel-strip,.price-strategy-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.price-strategy-strip{grid-template-columns:repeat(3,1fr);}
+.intel-mini-card,.strategy-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);padding:14px;border-radius:14px;min-width:0;}
+.intel-label{font-size:12px;opacity:.78;margin-bottom:8px;text-transform:uppercase;letter-spacing:.35px;}
+.intel-value{font-size:28px;font-weight:800;line-height:1.05;}
+.flip-intel-foot{font-size:13px;opacity:.82;margin-top:12px;}
+.compact-metric-grid{grid-template-columns:repeat(2,1fr);gap:14px;margin-top:0;}
+.always-open-metrics .metric-card p{font-size:22px;}
+.compact-listing-preview{margin-bottom:18px;}
+.best-platform-title{font-weight:700;}
+
+@media (max-width:900px){
+  .upload-row-grid,.results-top-grid{grid-template-columns:1fr;}
+  .flip-intel-strip{display:flex;overflow-x:auto;padding-bottom:6px;}
+  .price-strategy-strip{display:flex;overflow-x:auto;padding-bottom:6px;}
+  .intel-mini-card,.strategy-card{min-width:180px;}
+  .compact-field{max-width:none;width:100%;}
 }
