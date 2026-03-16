@@ -115,15 +115,23 @@ function submitMainForm(){
 
 function syncSearchInputs(sourceValue){
     const mainQuery = document.getElementById("query");
+    const topSearchInput = document.getElementById("searchInput");
     const assistSearch = document.getElementById("assist_search");
+    const manualBarcode = document.getElementById("manual_barcode");
 
     if(mainQuery){
         mainQuery.value = sourceValue;
     }
-        if(assistSearch && assistSearch.value !== sourceValue){
+    if(topSearchInput && topSearchInput.value !== sourceValue){
+        topSearchInput.value = sourceValue;
+    }
+    if(assistSearch && assistSearch.value !== sourceValue){
         assistSearch.value = sourceValue;
     }
+    if(manualBarcode && manualBarcode.value !== sourceValue){
+        manualBarcode.value = sourceValue;
     }
+}
 
 function stopScanner(){
     if (window.Quagga) {
@@ -325,16 +333,29 @@ window.addEventListener("beforeunload", stopScanner);
 document.addEventListener("DOMContentLoaded", function(){
     const assist = document.getElementById("assist_search");
     const main = document.getElementById("query");
+    const topSearchInput = document.getElementById("searchInput");
+    const manualBarcode = document.getElementById("manual_barcode");
     const analyzeButton = document.getElementById("analyze-btn");
 
-    
+    if(topSearchInput){
+        topSearchInput.addEventListener("input", function(){
+            syncSearchInputs(this.value);
+        });
+    }
+
     if(assist){
         assist.addEventListener("input", function(){
             syncSearchInputs(this.value);
         });
     }
 
-    
+    if(manualBarcode){
+        manualBarcode.addEventListener("input", function(){
+            const cleaned = String(this.value).replace(/\D/g, "");
+            syncSearchInputs(cleaned);
+        });
+    }
+
     if(main){
         main.addEventListener("input", function(){
             syncSearchInputs(this.value);
@@ -373,6 +394,11 @@ document.addEventListener("DOMContentLoaded", function(){
 </div>
 
 <div class="app-container">
+
+<div class="desktop-back-btn" style="margin:12px 0;">
+<a href="/app?email={{email}}"><button type="button">← Back</button></a>
+</div>
+
     <h1>Market Analyzer</h1>
 
     {% if error %}
@@ -396,7 +422,8 @@ document.addEventListener("DOMContentLoaded", function(){
 
     <form id="analyzer-form" method="post" action="/app" enctype="multipart/form-data">
         <input type="hidden" name="email" value="{{email}}">
-<div class="search-bar">
+
+        <div class="search-bar">
             <div class="form-group search-item">
                 <label>Search Item</label>
                 <input id="query" type="text" name="query" placeholder="iPhone 12">
@@ -465,7 +492,8 @@ document.addEventListener("DOMContentLoaded", function(){
                 Photo upload is available. AI item detection unlocks on Pro and Reseller.
                 {% endif %}
             </div>
-<div class="upload-trigger-row">
+
+            <div class="upload-trigger-row">
                 <button type="button" onclick="startScanner()">Scan Barcode</button>
                 <button type="button" class="secondary-scan-btn" onclick="stopScanner()">Stop Scanner</button>
             </div>

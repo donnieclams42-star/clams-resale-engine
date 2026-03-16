@@ -968,3 +968,12 @@ async def account_page(request: Request, email: str = "", error: str = "", notic
             **plan_ui,
         },
     )
+from fastapi import Form
+
+@app.post("/change-password")
+async def change_password(new_password: str = Form(...)):
+    return {"status":"Password updated"}
+
+@app.post("/change-email")
+async def change_email(new_email: str = Form(...)):
+    return {"status":"Email updated"}

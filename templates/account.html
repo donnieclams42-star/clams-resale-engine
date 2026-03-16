@@ -172,7 +172,7 @@ flex-direction:column;
 
 <div class="account-wrap">
 
-<div style="margin-bottom:16px;">
+<div style="margin-bottom:14px;">
 <a href="/app?email={{email}}"><button type="button">← Back to Analyzer</button></a>
 </div>
 
@@ -323,7 +323,12 @@ flex-direction:column;
 
 
 <div class="account-card">
-<h3>Security</h3>
+<h3>User Profile</h3>
+
+<div class="account-row">
+<div class="account-label">Email</div>
+<div class="account-value">{{ email }}</div>
+</div>
 
 <div class="account-row">
 <div class="account-label">Password</div>
@@ -331,18 +336,28 @@ flex-direction:column;
 </div>
 
 <div class="account-row">
-<div class="account-label">Email</div>
-<div class="account-value">{{ email }}</div>
+<div class="account-label">Two‑Factor Auth</div>
+<div class="account-value">Not Enabled</div>
 </div>
 
 <div class="account-actions">
-<button type="button">Change Password</button>
-<button type="button" class="secondary-btn">Change Email</button>
-<button type="button" class="secondary-btn">Enable 2FA</button>
+<button type="button">
+<form action="/change-password" method="post">
+<label>New Password</label>
+<input type="password" name="new_password" required>
+<button type="submit">Change Password</button>
+</form>
+
+<form action="/change-email" method="post">
+<label>New Email</label>
+<input type="email" name="new_email" required>
+<button type="submit">Change Email</button>
+</form>
+</button>
 </div>
 
 <div class="upload-note">
-Two‑factor authentication will add an additional layer of security to your account when enabled.
+Protect your account with two‑factor authentication. When enabled, you'll confirm login using a verification code from your phone.
 </div>
 </div>
 
