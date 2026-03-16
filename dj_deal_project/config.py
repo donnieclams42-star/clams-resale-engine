@@ -17,12 +17,36 @@ DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK") or os.getenv("DISCORD_WEBHOOK_URL
 
 MAX_PRICE = int(os.getenv("MAX_PRICE", 500))
 MIN_PRICE = int(os.getenv("MIN_PRICE", 15))
-MIN_PROFIT = int(os.getenv("MIN_PROFIT", 25))
+MIN_PROFIT = int(os.getenv("MIN_PROFIT", 10))
 LOCAL_RESALE_FACTOR = float(os.getenv("LOCAL_RESALE_FACTOR", 0.82))
 
 SOLD_SEARCH_LIMIT = int(os.getenv("SOLD_SEARCH_LIMIT", 40))
 
 HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", 12))
+
+# --- KEYWORD POOL (fix for import error) ---
+KEYWORDS = [
+    "iphone",
+    "iphone cracked",
+    "samsung phone",
+    "macbook",
+    "macbook pro",
+    "ipad",
+    "ipad pro",
+    "playstation",
+    "playstaton",
+    "xbox",
+    "video game lot",
+    "pokemon",
+    "pokmon",
+    "mechanic tools",
+    "tool lot",
+    "garage cleanout",
+    "moving sale",
+    "first come first serve",
+    "bulk lot"
+]
+
 KEYWORDS_PER_CYCLE = int(os.getenv("KEYWORDS_PER_CYCLE", 18))
 ALERT_TOP_N = int(os.getenv("ALERT_TOP_N", 7))
 
@@ -33,9 +57,9 @@ ENABLE_CRAIGSLIST = env_bool("ENABLE_CRAIGSLIST", True)
 ENABLE_OFFERUP = env_bool("ENABLE_OFFERUP", True)
 ENABLE_FACEBOOK = env_bool("ENABLE_FACEBOOK", True)
 
-# --- Radar tuning ---
-SCAN_INTERVAL = int(os.getenv("SCAN_INTERVAL", 180))          # 3 minutes
-FB_SCAN_FREQUENCY = int(os.getenv("FB_SCAN_FREQUENCY", 2))    # every 2 cycles (~6 min)
+# --- Radar timing ---
+SCAN_INTERVAL = int(os.getenv("SCAN_INTERVAL", 180))
+FB_SCAN_FREQUENCY = int(os.getenv("FB_SCAN_FREQUENCY", 2))
 
 EBAY_SCAN_FREQUENCY = int(os.getenv("EBAY_SCAN_FREQUENCY", 1))
 MERCARI_SCAN_FREQUENCY = int(os.getenv("MERCARI_SCAN_FREQUENCY", 1))
@@ -46,11 +70,8 @@ MERCARI_KEYWORDS_PER_CYCLE = int(os.getenv("MERCARI_KEYWORDS_PER_CYCLE", 8))
 OFFERUP_KEYWORDS_PER_CYCLE = int(os.getenv("OFFERUP_KEYWORDS_PER_CYCLE", 5))
 FACEBOOK_KEYWORDS_PER_CYCLE = int(os.getenv("FACEBOOK_KEYWORDS_PER_CYCLE", 5))
 
-DEFAULT_KEYWORDS_PER_CYCLE = KEYWORDS_PER_CYCLE
-
-# Increased analysis depth
-RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE = int(os.getenv("RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", 15))
+RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE = int(os.getenv("RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", 25))
 
 RADAR_ANALYSIS_CACHE_SECONDS = int(os.getenv("RADAR_ANALYSIS_CACHE_SECONDS", 21600))
-RADAR_MIN_MARGIN = float(os.getenv("RADAR_MIN_MARGIN", 0.25))
+RADAR_MIN_MARGIN = float(os.getenv("RADAR_MIN_MARGIN", 0.15))
 SOURCE_FAILURE_COOLDOWN_SECONDS = int(os.getenv("SOURCE_FAILURE_COOLDOWN_SECONDS", 1800))
