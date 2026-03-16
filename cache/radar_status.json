@@ -2,15 +2,29 @@
   "running": true,
   "status": "live",
   "message": "No vetted deals in the latest cycle",
-  "last_cycle": "2026-03-16T13:29:23.022778",
-  "last_success": "2026-03-16T13:29:23.022778",
+  "last_cycle": "2026-03-16T13:58:55.156291",
+  "last_success": "2026-03-16T13:58:55.156291",
   "deals_found_today": 0,
   "last_error": "",
   "sources": [
-    "OfferUp",
     "Mercari",
     "eBay"
   ],
   "live": true,
-  "updated_at": "2026-03-16T13:29:23.022778"
+  "updated_at": "2026-03-16T13:58:55.161287",
+  "source_state": {
+    "Mercari": {
+      "last_success": "2026-03-16T13:58:42.736202",
+      "cooldown_until": 0,
+      "last_error": ""
+    },
+    "eBay": {
+      "last_success": "2026-03-16T13:58:47.914189",
+      "cooldown_until": 0,
+      "last_error": ""
+    }
+  },
+  "analysis_calls_this_cycle": 5,
+  "last_discord_test": "2026-03-16T13:58:47.070948",
+  "discord_test_ok": true
 }

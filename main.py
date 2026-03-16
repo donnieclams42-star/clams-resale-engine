@@ -44,6 +44,7 @@ RADAR_DIR = os.path.join(BASE_DIR, "dj_deal_project")
 RADAR_CACHE_DIR = os.path.join(BASE_DIR, "cache")
 RADAR_RESULTS_FILE = os.path.join(RADAR_CACHE_DIR, "radar_results.json")
 RADAR_STATUS_FILE = os.path.join(RADAR_CACHE_DIR, "radar_status.json")
+RADAR_ANALYSIS_CACHE_FILE = os.path.join(RADAR_CACHE_DIR, "radar_analysis_cache.json")
 os.makedirs(RADAR_CACHE_DIR, exist_ok=True)
 
 _radar_thread = None
@@ -121,6 +122,82 @@ def _update_radar_status(**kwargs):
     _write_json_file(RADAR_STATUS_FILE, current)
 
 
+def _get_analysis_cache():
+    return _read_json_file(RADAR_ANALYSIS_CACHE_FILE, {}) or {}
+
+
+def _set_analysis_cache(cache):
+    _write_json_file(RADAR_ANALYSIS_CACHE_FILE, cache)
+
+
+def _clean_radar_query(deal: dict) -> str:
+    query = str(deal.get("search_keyword") or "").strip().lower()
+    if query:
+        return query
+    title = str(deal.get("title") or "").lower()
+    title = re.sub(r"\$[\d,]+(?:\.\d{1,2})?", " ", title)
+    title = re.sub(r"[^a-z0-9 ]+", " ", title)
+    title = re.sub(r"\s+", " ", title).strip()
+    return " ".join(title.split()[:6])
+
+
+def _source_enabled_for_cycle(source_name: str, cycle_count: int, radar_config) -> bool:
+    name = source_name.lower()
+    if name == "ebay":
+        return bool(getattr(radar_config, "ENABLE_EBAY", True)) and (cycle_count % max(1, int(getattr(radar_config, "EBAY_SCAN_FREQUENCY", 1) or 1)) == 0)
+    if name == "mercari":
+        return bool(getattr(radar_config, "ENABLE_MERCARI", True)) and (cycle_count % max(1, int(getattr(radar_config, "MERCARI_SCAN_FREQUENCY", 1) or 1)) == 0)
+    if name == "offerup":
+        return bool(getattr(radar_config, "ENABLE_OFFERUP", True)) and (cycle_count % max(1, int(getattr(radar_config, "OFFERUP_SCAN_FREQUENCY", 2) or 2)) == 0)
+    if name == "facebook":
+        return bool(getattr(radar_config, "ENABLE_FACEBOOK", True)) and (cycle_count % max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 8) or 8)) == 0)
+    return False
+
+
+def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
+    query = _clean_radar_query(deal)
+    if not query:
+        return None
+    now_ts = time.time()
+    cache_ttl = int(getattr(radar_config, "RADAR_ANALYSIS_CACHE_SECONDS", 21600) or 21600)
+    cached = analysis_cache.get(query)
+    prices = []
+    listing = None
+    if cached and now_ts - float(cached.get("ts", 0)) < cache_ttl:
+        prices = cached.get("prices", []) or []
+        listing = cached.get("listing")
+    else:
+        prices, _active_prices, _suggestions, listing = search_ebay(query)
+        analysis_cache[query] = {"ts": now_ts, "prices": prices, "listing": listing}
+    if not prices:
+        return None
+    asking_price = float(deal.get("price") or 0)
+    if asking_price <= 0:
+        return None
+    analysis = analyze_market(prices, [], "A", 0.30, getattr(radar_config, "LOCAL_RESALE_FACTOR", 0.82), asking_price=asking_price)
+    if not analysis:
+        return None
+    profit = float(analysis.get("profit_delta") or 0)
+    margin = profit / asking_price if asking_price > 0 else 0
+    min_profit = float(getattr(radar_config, "MIN_PROFIT", 35) or 35)
+    min_margin = float(getattr(radar_config, "RADAR_MIN_MARGIN", 0.25) or 0.25)
+    if profit < min_profit or margin < min_margin:
+        return None
+    result = dict(deal)
+    result["market_value"] = round(float(analysis.get("local_market_value") or analysis.get("market_price") or 0), 2)
+    result["resale"] = result["market_value"]
+    result["profit"] = round(profit, 2)
+    result["score"] = round(margin, 2)
+    result["deal_score"] = int(analysis.get("deal_score") or 0)
+    result["edge_score"] = int(analysis.get("deal_score") or 0)
+    result["confidence"] = analysis.get("confidence") or ("High" if len(prices) >= 12 else "Medium" if len(prices) >= 6 else "Low")
+    result["source"] = result.get("source") or result.get("market") or ""
+    result["url"] = result.get("url") or result.get("link") or (listing or {}).get("url") or ""
+    result["best_market"] = analysis.get("best_platform") or "Facebook Marketplace"
+    result["sold_count"] = int(analysis.get("sold_count") or len(prices))
+    return result
+
+
 def _run_radar_cycle():
     global _radar_cycle_count
     _radar_cycle_count += 1
@@ -133,19 +210,30 @@ def _run_radar_cycle():
     from scanners.mercari_scanner import scan_mercari
     from scanners.offerup_scanner import scan_offerup
     from scanners.fb_scanner import scan_facebook
-    from filters.profit_filter import evaluate_profit
     from filters.scam_filter import is_scam_listing
     from alerts.discord_alert import send_discord_alert
     from utils.seen_deals import filter_new
 
-    fb_frequency = max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 3) or 3))
-    scanner_jobs = [
+    source_state = get_radar_status().get("source_state", {}) or {}
+    scanner_jobs = []
+    possible_jobs = [
         ("eBay", scan_ebay),
         ("Mercari", scan_mercari),
         ("OfferUp", scan_offerup),
+        ("Facebook", scan_facebook),
     ]
-    if _radar_cycle_count % fb_frequency == 0:
-        scanner_jobs.append(("Facebook", scan_facebook))
+    now = time.time()
+    for label, fn in possible_jobs:
+        state = source_state.get(label, {}) or {}
+        cooldown_until = float(state.get("cooldown_until", 0) or 0)
+        if cooldown_until and now < cooldown_until:
+            continue
+        if _source_enabled_for_cycle(label, _radar_cycle_count, radar_config):
+            scanner_jobs.append((label, fn))
+
+    if not scanner_jobs:
+        _update_radar_status(message="All sources are idle or cooling down", sources=[], source_state=source_state)
+        return []
 
     raw_deals = []
     active_sources = []
@@ -157,28 +245,43 @@ def _run_radar_cycle():
                 deals = future.result() or []
                 raw_deals.extend(deals)
                 active_sources.append(label)
+                source_state[label] = {"last_success": datetime.utcnow().isoformat(), "cooldown_until": 0, "last_error": ""}
             except Exception as e:
+                cooldown = int(getattr(radar_config, "SOURCE_FAILURE_COOLDOWN_SECONDS", 1800) or 1800)
+                source_state[label] = {"last_error": str(e), "cooldown_until": now + cooldown}
                 _update_radar_status(last_error=f"{label}: {e}")
 
     new_deals = filter_new(raw_deals)
+    analysis_cache = _get_analysis_cache()
+    max_calls = int(getattr(radar_config, "RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", 6) or 6)
     approved = []
-    for deal in new_deals:
-        try:
-            title = str(deal.get("title", "") or "")
-            if title and is_scam_listing(title):
+    analysis_calls = 0
+
+    for deal in sorted(new_deals, key=lambda d: float(d.get("price") or 999999)):
+        title = str(deal.get("title", "") or "")
+        if title and is_scam_listing(title):
+            continue
+        query = _clean_radar_query(deal)
+        if not query:
+            continue
+        cached = analysis_cache.get(query)
+        fresh_cache = bool(cached and time.time() - float(cached.get("ts", 0)) < float(getattr(radar_config, "RADAR_ANALYSIS_CACHE_SECONDS", 21600) or 21600))
+        if not fresh_cache:
+            if analysis_calls >= max_calls:
                 continue
-            result = evaluate_profit(deal)
+            analysis_calls += 1
+        try:
+            result = _build_vetted_deal(deal, analysis_cache, radar_config)
             if not result:
                 continue
-            result["source"] = result.get("source") or result.get("market") or deal.get("market") or ""
-            result["url"] = result.get("url") or result.get("link") or deal.get("link") or deal.get("url") or ""
-            result["edge_score"] = int(round(float(result.get("deal_score", 0) or 0)))
             approved.append(result)
         except Exception as e:
-            _update_radar_status(last_error=f"filter: {e}")
+            _update_radar_status(last_error=f"analysis: {e}")
 
+    _set_analysis_cache(analysis_cache)
+    approved = filter_new(approved)
     approved.sort(key=lambda d: (float(d.get("edge_score", 0)), float(d.get("profit", 0))), reverse=True)
-    approved = approved[:50]
+    approved = approved[:25]
     _write_json_file(RADAR_RESULTS_FILE, approved)
 
     status_msg = f"{len(approved)} vetted deals ready" if approved else "No vetted deals in the latest cycle"
@@ -191,12 +294,14 @@ def _run_radar_cycle():
         last_success=datetime.utcnow().isoformat(),
         deals_found_today=len(approved),
         sources=active_sources,
+        source_state=source_state,
+        analysis_calls_this_cycle=analysis_calls,
         last_error="",
     )
 
     if approved:
         alert_errors = []
-        for deal in approved[: min(5, len(approved))]:
+        for deal in approved[: min(3, len(approved))]:
             try:
                 send_discord_alert(deal)
             except Exception as e:
@@ -212,7 +317,7 @@ def _radar_background_loop():
         try:
             _update_radar_status(running=True, status="scanning", message="Scanning for vetted deals...")
             deals = _run_radar_cycle()
-            wait_time = 900 if deals else 1800
+            wait_time = int(getattr(__import__("config"), "SCAN_INTERVAL", 900) or 900) if deals else max(900, int(getattr(__import__("config"), "SCAN_INTERVAL", 900) or 900))
         except Exception as e:
             _update_radar_status(running=False, status="error", message="Radar hit an error", last_error=str(e), last_cycle=datetime.utcnow().isoformat())
             wait_time = 1800
@@ -1123,6 +1228,50 @@ async def radar_page(request: Request, email: str = ""):
 
 
 # ---------- SETTINGS PAGE ----------
+
+
+
+@app.get("/radar/test-discord")
+async def radar_test_discord(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
+    try:
+        if RADAR_DIR not in sys.path:
+            sys.path.insert(0, RADAR_DIR)
+
+        from alerts.discord_alert import send_discord_alert
+
+        test_deal = {
+            "title": "CLAMS Radar Discord Test",
+            "price": 0,
+            "market_value": 100,
+            "profit": 100,
+            "confidence": "high",
+            "source": "System Test",
+            "url": f"{request.base_url}radar?email={email}",
+            "edge_score": 100,
+        }
+
+        ok = bool(send_discord_alert(test_deal))
+        status = get_radar_status()
+        status["last_discord_test"] = datetime.utcnow().isoformat()
+        status["discord_test_ok"] = ok
+        status["message"] = "Discord test notification sent" if ok else "Discord test attempted but alert module reported failure"
+        _write_json_file(RADAR_STATUS_FILE, status)
+
+        return JSONResponse({
+            "ok": ok,
+            "message": "Discord test notification sent" if ok else "Discord test attempted but alert module reported failure"
+        })
+    except Exception as e:
+        status = get_radar_status()
+        status["last_discord_test"] = datetime.utcnow().isoformat()
+        status["discord_test_ok"] = False
+        status["last_error"] = f"Discord test failed: {e}"
+        _write_json_file(RADAR_STATUS_FILE, status)
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, email: str = ""):
