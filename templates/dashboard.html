@@ -1,16 +1,98 @@
-
-<div style="margin-bottom:15px;">
-<input id="searchInput" name="query" placeholder="Search item or scan barcode..." style="width:70%;padding:10px;">
-<button onclick="document.getElementById('searchForm').submit()" style="padding:10px;">Search</button>
-<button onclick="startScanner()" style="padding:10px;">📦 Scan Barcode</button>
-</div>
 <!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Market Radar | CLAMS Intelligence</title>
+<title>CLAMS Intelligence | Market Analyzer</title>
 <link rel="stylesheet" href="/static/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+
+<style>
+.top-search-assist{
+    margin-bottom:15px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.top-search-assist input{
+    flex:1 1 320px;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #2c3e50;
+}
+
+.top-search-assist button{
+    padding:10px 14px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+}
+
+.upload-trigger-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:10px;
+    margin-bottom:10px;
+}
+
+.upload-trigger-row button{
+    padding:10px 14px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+}
+
+.manual-barcode-wrap{
+    margin-top:12px;
+}
+
+.manual-barcode-wrap input{
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #2c3e50;
+    margin-top:6px;
+}
+
+.photo-preview-wrap img{
+    max-width:100%;
+    height:auto;
+    border-radius:12px;
+    display:block;
+    margin-top:10px;
+}
+
+#scanner{
+    display:none;
+    width:100%;
+    min-height:260px;
+    border-radius:12px;
+    overflow:hidden;
+    background:#0f172a;
+    margin-top:12px;
+}
+
+@media (max-width: 768px){
+    .top-search-assist{
+        flex-direction:column;
+    }
+
+    .top-search-assist input,
+    .top-search-assist button{
+        width:100%;
+    }
+
+    .upload-trigger-row{
+        flex-direction:column;
+    }
+
+    .upload-trigger-row button{
+        width:100%;
+    }
+}
+</style>
+
 <script>
 let scannerRunning = false;
 let lastDetectedCode = "";
@@ -22,6 +104,33 @@ function toggleAdvanced(){
         return;
     }
     section.classList.toggle("hidden");
+}
+
+function submitMainForm(){
+    const form = document.getElementById("analyzer-form");
+    if(form){
+        form.submit();
+    }
+}
+
+function syncSearchInputs(sourceValue){
+    const mainQuery = document.getElementById("query");
+    const topSearchInput = document.getElementById("searchInput");
+    const assistSearch = document.getElementById("assist_search");
+    const manualBarcode = document.getElementById("manual_barcode");
+
+    if(mainQuery){
+        mainQuery.value = sourceValue;
+    }
+    if(topSearchInput && topSearchInput.value !== sourceValue){
+        topSearchInput.value = sourceValue;
+    }
+    if(assistSearch && assistSearch.value !== sourceValue){
+        assistSearch.value = sourceValue;
+    }
+    if(manualBarcode && manualBarcode.value !== sourceValue){
+        manualBarcode.value = sourceValue;
+    }
 }
 
 function stopScanner(){
@@ -47,7 +156,6 @@ function stopScanner(){
 }
 
 function handleDetectedBarcode(code){
-    const queryInput = document.getElementById("query");
     const status = document.getElementById("scanner-status");
     const analyzeButton = document.getElementById("analyze-btn");
 
@@ -62,12 +170,11 @@ function handleDetectedBarcode(code){
     lastDetectedCode = code;
     scannerCooldown = true;
 
-    if(queryInput){
-        queryInput.value = String(code).replace(/\D/g, "");
-    }
+    const cleaned = String(code).replace(/\D/g, "");
+    syncSearchInputs(cleaned);
 
     if(status){
-        status.textContent = "Barcode captured: " + code + " · ready to analyze.";
+        status.textContent = "Barcode captured: " + cleaned + " · ready to analyze.";
     }
 
     if(analyzeButton){
@@ -76,6 +183,7 @@ function handleDetectedBarcode(code){
 
     setTimeout(() => {
         stopScanner();
+        submitMainForm();
     }, 450);
 }
 
@@ -166,17 +274,16 @@ function startScanner(){
 
         scannerRunning = true;
         Quagga.start();
+
         if(status){
             status.textContent = "Scanner live. Hold the barcode steady in the frame.";
         }
-    });
 
-    Quagga.onDetected(function(result){
-let code = result.codeResult.code;
-document.getElementById("searchInput").value = code;
-Quagga.stop();
-document.getElementById("searchForm").submit();
-});
+        Quagga.onDetected(function(result){
+            if(result && result.codeResult && result.codeResult.code){
+                handleDetectedBarcode(result.codeResult.code);
+            }
+        });
     });
 }
 
@@ -218,18 +325,64 @@ function primePhotoInput(){
     if(!input){
         return;
     }
-
     input.value = "";
 }
 
 window.addEventListener("beforeunload", stopScanner);
+
+document.addEventListener("DOMContentLoaded", function(){
+    const assist = document.getElementById("assist_search");
+    const main = document.getElementById("query");
+    const topSearchInput = document.getElementById("searchInput");
+    const manualBarcode = document.getElementById("manual_barcode");
+    const analyzeButton = document.getElementById("analyze-btn");
+
+    if(topSearchInput){
+        topSearchInput.addEventListener("input", function(){
+            syncSearchInputs(this.value);
+        });
+    }
+
+    if(assist){
+        assist.addEventListener("input", function(){
+            syncSearchInputs(this.value);
+        });
+    }
+
+    if(manualBarcode){
+        manualBarcode.addEventListener("input", function(){
+            const cleaned = String(this.value).replace(/\D/g, "");
+            syncSearchInputs(cleaned);
+        });
+    }
+
+    if(main){
+        main.addEventListener("input", function(){
+            syncSearchInputs(this.value);
+        });
+    }
+
+    if(analyzeButton){
+        analyzeButton.addEventListener("click", function(){
+            const topValue = topSearchInput ? topSearchInput.value.trim() : "";
+            const assistValue = assist ? assist.value.trim() : "";
+            const mainValue = main ? main.value.trim() : "";
+            const manualValue = manualBarcode ? manualBarcode.value.trim() : "";
+
+            if(!mainValue){
+                syncSearchInputs(topValue || assistValue || manualValue || "");
+            }
+        });
+    }
+});
 </script>
 </head>
+
 <body>
 <div class="header">
     <div class="logo">
-        <div class="logo-main">Market Radar</div>
-        <div class="logo-sub">Powered by CLAMS Intelligence</div>
+        <div class="logo-main">CLAMS Intelligence</div>
+        <div class="logo-sub">Market Analyzer</div>
         <div class="logo-quote">See opportunity before the market does.</div>
     </div>
 
@@ -262,8 +415,14 @@ window.addEventListener("beforeunload", stopScanner);
         {% endif %}
     </div>
 
-    <form method="post" action="/app" enctype="multipart/form-data">
+    <form id="analyzer-form" method="post" action="/app" enctype="multipart/form-data">
         <input type="hidden" name="email" value="{{email}}">
+
+        <div class="top-search-assist">
+            <input id="searchInput" type="text" placeholder="Search item or scan barcode...">
+            <button type="button" onclick="syncSearchInputs(document.getElementById('searchInput').value); submitMainForm();">Search</button>
+            <button type="button" onclick="startScanner()">📦 Scan Barcode</button>
+        </div>
 
         <div class="search-bar">
             <div class="form-group search-item">
@@ -302,19 +461,27 @@ window.addEventListener("beforeunload", stopScanner);
         </div>
 
         <div class="upload-section">
-            <label>
-<!-- Search Assist -->
-<div style="margin-top:12px;margin-bottom:12px;">
-    <label style="font-size:14px;opacity:.8;">Search Assist</label>
-    <input id="assist_search"
-    placeholder="Type item name if AI or barcode isn't perfect"
-    style="width:100%;padding:10px;border-radius:10px;border:1px solid #2c3e50;margin-top:6px;">
-</div>
+            <div style="margin-top:12px;margin-bottom:12px;">
+                <label style="font-size:14px;opacity:.8;">Search Assist</label>
+                <input
+                    id="assist_search"
+                    placeholder="Type item name if AI or barcode isn't perfect"
+                    style="width:100%;padding:10px;border-radius:10px;border:1px solid #2c3e50;margin-top:6px;"
+                >
+            </div>
 
-Upload / Take Photo</label>
-            <input id="photo-input" type="file" name="photo" accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp" capture="environment" onchange="handlePhotoSelected(event)" onclick="primePhotoInput()">
+            <label for="photo-input">Upload / Take Photo</label>
+            <input
+                id="photo-input"
+                type="file"
+                name="photo"
+                accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                onchange="handlePhotoSelected(event)"
+                onclick="primePhotoInput()"
+            >
 
             <div id="photo-status" class="upload-note"></div>
+
             <div id="photo-preview-wrap" class="photo-preview-wrap" style="display:none;">
                 <img id="photo-preview" src="" alt="Selected photo preview">
             </div>
@@ -327,12 +494,20 @@ Upload / Take Photo</label>
                 {% endif %}
             </div>
 
-            <button type="button" onclick="startScanner()">Scan Barcode</button>
-            <button type="button" class="secondary-scan-btn" onclick="stopScanner()">Stop Scanner</button>
+            <div class="manual-barcode-wrap">
+                <label for="manual_barcode">Manual Barcode Input</label>
+                <input id="manual_barcode" type="text" inputmode="numeric" placeholder="Type UPC / EAN manually if scan misses">
+            </div>
+
+            <div class="upload-trigger-row">
+                <button type="button" onclick="startScanner()">Scan Barcode</button>
+                <button type="button" class="secondary-scan-btn" onclick="stopScanner()">Stop Scanner</button>
+            </div>
 
             <div class="scanner-help">
-                Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame. Numeric barcode scans now search as UPC / EAN automatically.
+                Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame. Numeric barcode scans search as UPC / EAN automatically.
             </div>
+
             <div id="scanner-status" class="scanner-status">Scanner off.</div>
             <div id="scanner"></div>
         </div>
@@ -367,6 +542,7 @@ Upload / Take Photo</label>
             <h3>LOCAL VALUE</h3>
             <p>${{data.local_market_value}}</p>
         </div>
+
         <div class="price-card fast">
             <h3>FAST CASH</h3>
             <p>${{data.fast_cash}}</p>
@@ -444,6 +620,7 @@ Upload / Take Photo</label>
 
     <div id="advanced" class="hidden">
         <h2>Advanced Market Intelligence</h2>
+
         <div class="metric-grid">
             <div class="metric-card {{ data.deal_score_class }}">
                 <h3>Deal Score</h3>
@@ -517,18 +694,3 @@ Upload / Take Photo</label>
 </div>
 </body>
 </html>
-
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-
-    const assist=document.getElementById("assist_search")
-    const main=document.querySelector("input[name='query']")
-
-    if(assist && main){
-        assist.addEventListener("input", function(){
-            main.value=this.value
-        })
-    }
-
-})
-</script>
