@@ -15,13 +15,31 @@ EBAY_MARKET = os.getenv("EBAY_MARKET", "EBAY_US")
 
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK") or os.getenv("DISCORD_WEBHOOK_URL")
 
+# --- NETWORK SETTINGS ---
+USER_AGENT = os.getenv(
+    "USER_AGENT",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+)
+
+HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", 12))
+
+# --- PRICE FILTERS ---
 MAX_PRICE = int(os.getenv("MAX_PRICE", 500))
 MIN_PRICE = int(os.getenv("MIN_PRICE", 15))
 MIN_PROFIT = int(os.getenv("MIN_PROFIT", 10))
 LOCAL_RESALE_FACTOR = float(os.getenv("LOCAL_RESALE_FACTOR", 0.82))
 
 SOLD_SEARCH_LIMIT = int(os.getenv("SOLD_SEARCH_LIMIT", 40))
-HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", 12))
+
+# --- CRAIGSLIST REGIONS (required by scanner) ---
+CRAIGSLIST_REGIONS = [
+    "newyork",
+    "philadelphia",
+    "southjersey",
+    "jerseyshore",
+    "delaware",
+    "baltimore"
+]
 
 # --- KEYWORDS ---
 KEYWORDS = [
@@ -35,8 +53,6 @@ KEYWORDS = [
 ]
 
 KEYWORDS_PER_CYCLE = int(os.getenv("KEYWORDS_PER_CYCLE", 18))
-
-# FIX: some scanners expect this constant
 DEFAULT_KEYWORDS_PER_CYCLE = KEYWORDS_PER_CYCLE
 
 ALERT_TOP_N = int(os.getenv("ALERT_TOP_N", 7))
