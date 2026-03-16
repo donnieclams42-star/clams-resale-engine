@@ -91,6 +91,14 @@
         width:100%;
     }
 }
+
+.scan-layout{display:flex;gap:20px;align-items:flex-start;margin-top:12px;}
+.scan-controls{flex:1;min-width:280px;}
+.scan-camera{flex:1;min-width:320px;}
+@media (max-width:768px){
+.scan-layout{flex-direction:column;}
+}
+
 </style>
 
 <script>
@@ -418,12 +426,6 @@ document.addEventListener("DOMContentLoaded", function(){
     <form id="analyzer-form" method="post" action="/app" enctype="multipart/form-data">
         <input type="hidden" name="email" value="{{email}}">
 
-        <div class="top-search-assist">
-            <input id="searchInput" type="text" placeholder="Search item or scan barcode...">
-            <button type="button" onclick="syncSearchInputs(document.getElementById('searchInput').value); submitMainForm();">Search</button>
-            <button type="button" onclick="startScanner()">📦 Scan Barcode</button>
-        </div>
-
         <div class="search-bar">
             <div class="form-group search-item">
                 <label>Search Item</label>
@@ -460,7 +462,7 @@ document.addEventListener("DOMContentLoaded", function(){
             {% endfor %}
         </div>
 
-        <div class="upload-section">
+        <div class="upload-section"><div class="scan-layout"><div class="scan-controls">
             <div style="margin-top:12px;margin-bottom:12px;">
                 <label style="font-size:14px;opacity:.8;">Search Assist</label>
                 <input
@@ -494,11 +496,6 @@ document.addEventListener("DOMContentLoaded", function(){
                 {% endif %}
             </div>
 
-            <div class="manual-barcode-wrap">
-                <label for="manual_barcode">Manual Barcode Input</label>
-                <input id="manual_barcode" type="text" inputmode="numeric" placeholder="Type UPC / EAN manually if scan misses">
-            </div>
-
             <div class="upload-trigger-row">
                 <button type="button" onclick="startScanner()">Scan Barcode</button>
                 <button type="button" class="secondary-scan-btn" onclick="stopScanner()">Stop Scanner</button>
@@ -508,8 +505,7 @@ document.addEventListener("DOMContentLoaded", function(){
                 Barcode scanning uses your live camera feed. Hold the barcode steady inside the frame. Numeric barcode scans search as UPC / EAN automatically.
             </div>
 
-            <div id="scanner-status" class="scanner-status">Scanner off.</div>
-            <div id="scanner"></div>
+            </div><div class="scan-camera"><div id="scanner-status" class="scanner-status">Scanner off.</div><div id="scanner"></div></div></div>
         </div>
     </form>
 

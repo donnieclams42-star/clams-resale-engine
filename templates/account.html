@@ -171,6 +171,11 @@ flex-direction:column;
 </div>
 
 <div class="account-wrap">
+
+<div style="margin-bottom:16px;">
+<a href="/app?email={{email}}"><button type="button">← Back to Analyzer</button></a>
+</div>
+
     <div class="account-header">
         <div class="account-title">
             <h1>Account</h1>
@@ -315,6 +320,31 @@ flex-direction:column;
                 </div>
             </form>
         </div>
+
+
+<div class="account-card">
+<h3>Security</h3>
+
+<div class="account-row">
+<div class="account-label">Password</div>
+<div class="account-value">••••••••</div>
+</div>
+
+<div class="account-row">
+<div class="account-label">Email</div>
+<div class="account-value">{{ email }}</div>
+</div>
+
+<div class="account-actions">
+<button type="button">Change Password</button>
+<button type="button" class="secondary-btn">Change Email</button>
+<button type="button" class="secondary-btn">Enable 2FA</button>
+</div>
+
+<div class="upload-note">
+Two‑factor authentication will add an additional layer of security to your account when enabled.
+</div>
+</div>
 
 </div>
 
