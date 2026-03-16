@@ -25,7 +25,6 @@ ENABLE_EBAY_AUCTIONS = getattr(config, "ENABLE_EBAY_AUCTIONS", True)
 ENABLE_MERCARI = getattr(config, "ENABLE_MERCARI", True)
 ENABLE_CRAIGSLIST = getattr(config, "ENABLE_CRAIGSLIST", True)
 ENABLE_OFFERUP = getattr(config, "ENABLE_OFFERUP", False)
-ENABLE_FACEBOOK = getattr(config, "ENABLE_FACEBOOK", True)
 
 
 def _run_named_scan(name: str, func):
@@ -54,7 +53,7 @@ def run_market_scans(cycle: int) -> list[dict]:
     if ENABLE_OFFERUP:
         scan_jobs.append(("OFFERUP", scan_offerup))
 
-    if ENABLE_FACEBOOK and cycle % FB_SCAN_FREQUENCY == 0:
+    if cycle % FB_SCAN_FREQUENCY == 0:
         scan_jobs.append(("FACEBOOK", scan_facebook))
         log_event("FACEBOOK SCAN ACTIVE THIS CYCLE")
     else:
@@ -170,6 +169,21 @@ def main() -> None:
         log_event(f"WAITING {wait_time} SECONDS")
         time.sleep(wait_time)
 
+
+
+import threading
+
+def start_background_radar():
+    try:
+        t = threading.Thread(target=main, daemon=True)
+        t.start()
+        log_event("RADAR BACKGROUND THREAD STARTED")
+    except Exception as e:
+        log_event(f"RADAR_START_ERROR {e}")
+
+# When running under Uvicorn / Render (module import), auto-start radar
+if __name__ != "__main__":
+    start_background_radar()
 
 if __name__ == "__main__":
     main()
