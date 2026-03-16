@@ -776,3 +776,39 @@ padding-top:34px;
   .intel-mini-card,.strategy-card{min-width:180px;}
   .compact-field{max-width:none;width:100%;}
 }
+
+
+/* RADAR */
+.radar-preview-box{margin-bottom:18px;background:linear-gradient(135deg,#0b244f,#0f2f63);}
+.radar-preview-head{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;}
+.radar-status-line{display:flex;gap:8px;align-items:center;font-size:13px;opacity:.86;flex-wrap:wrap;}
+.radar-status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:#f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,.18);}
+.radar-status-dot.online{background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.18);}
+.radar-status-dot.offline{background:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.18);}
+.radar-open-link{text-decoration:none;font-weight:700;color:#bfdbfe;}
+.radar-preview-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;}
+.radar-mini-card{padding:12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);}
+.radar-mini-title{font-weight:700;font-size:14px;margin-bottom:6px;line-height:1.35;}
+.radar-mini-meta{font-size:12px;opacity:.82;line-height:1.45;}
+.radar-page-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px;}
+.radar-page-title{margin:4px 0 10px 0;}
+.radar-page-sub{font-size:14px;opacity:.85;line-height:1.6;max-width:760px;}
+.radar-health-card{min-width:280px;padding:18px;border-radius:16px;background:#0b244f;border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.28);}
+.radar-health-card.is-live{border-color:rgba(34,197,94,.45);box-shadow:0 10px 24px rgba(34,197,94,.12);}
+.radar-health-card.is-offline{border-color:rgba(239,68,68,.35);}
+.radar-health-label{font-size:12px;opacity:.76;letter-spacing:.45px;text-transform:uppercase;}
+.radar-health-main{font-size:30px;font-weight:800;margin:8px 0;}
+.radar-health-sub{font-size:13px;opacity:.82;line-height:1.5;margin-top:4px;}
+.radar-health-error{margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.22);font-size:12px;line-height:1.45;}
+.radar-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+.radar-deal-card{padding:18px;border-radius:16px;background:linear-gradient(135deg,#0b244f,#0d325e);border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.28);}
+.radar-deal-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px;}
+.radar-deal-source{font-size:12px;font-weight:800;letter-spacing:.4px;color:#93c5fd;text-transform:uppercase;}
+.radar-deal-score{font-size:12px;padding:8px 10px;border-radius:999px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.32);}
+.radar-deal-title{font-size:18px;font-weight:700;line-height:1.4;margin-bottom:14px;}
+.radar-metrics-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+.radar-metric{padding:12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:4px;}
+.radar-metric span{font-size:12px;opacity:.76;text-transform:uppercase;letter-spacing:.35px;}
+.radar-metric strong{font-size:18px;}
+.radar-deal-bottom a{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:#2563eb;text-decoration:none;font-weight:700;}
+@media (max-width:900px){.radar-grid,.radar-preview-list,.results-top-grid{grid-template-columns:1fr;}.radar-page-top{flex-direction:column;}.radar-health-card{min-width:0;width:100%;}.mobile-nav{display:grid;grid-template-columns:repeat(4,1fr);} }

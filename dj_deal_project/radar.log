@@ -1,0 +1,906 @@
+[2026-03-07 17:30:12] D&J Deal Radar v4 running...
+[2026-03-07 17:30:12] SEEN loaded count=12
+[2026-03-07 17:30:12] SCAN ebay keyword=iphone broken
+[2026-03-07 17:30:13] SCAN_RESULT ebay keyword=iphone broken deals=34
+[2026-03-07 17:30:13] LOOP deals_returned=34
+[2026-03-07 17:30:14] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:30:17] SOLD_MEDIAN model=iphone 12 median=209.99 samples=20
+[2026-03-07 17:30:19] SOLD_MEDIAN model=iphone 11 median=172.49 samples=20
+[2026-03-07 17:30:21] SOLD_MEDIAN model=iphone 14 median=287.99 samples=20
+[2026-03-07 17:30:23] SOLD_MEDIAN model=iphone 8 median=100.0 samples=20
+[2026-03-07 17:30:25] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 17:30:27] SOLD_MEDIAN model=iphone 14 pro median=358.14 samples=20
+[2026-03-07 17:30:31] SOLD_MEDIAN model=iphone 13 pro max median=194.16 samples=20
+[2026-03-07 17:30:33] SOLD_MEDIAN model=iphone xr median=135.0 samples=20
+[2026-03-07 17:30:35] SOLD_MEDIAN model=iphone 13 mini median=279.99 samples=20
+[2026-03-07 17:30:38] SOLD_MEDIAN model=iphone 13 median=257.5 samples=20
+[2026-03-07 17:30:42] SOLD_MEDIAN model=iphone xs max median=162.45 samples=20
+[2026-03-07 17:30:44] SOLD_MEDIAN model=iphone 14 pro max median=395.25 samples=20
+[2026-03-07 17:30:47] SOLD_MEDIAN model=iphone 12 mini median=175.99 samples=20
+[2026-03-07 17:30:49] SOLD_MEDIAN model=iphone xs median=162.47 samples=20
+[2026-03-07 17:30:52] SOLD_MEDIAN model=iphone 15 median=418.37 samples=20
+[2026-03-07 17:30:54] SOLD_MEDIAN model=iphone 11 pro max median=244.99 samples=20
+[2026-03-07 17:30:56] SOLD_MEDIAN model=iphone 12 pro median=259.94 samples=20
+[2026-03-07 17:31:27] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:31:27] SCAN_RESULT ebay keyword=iphone cracked deals=35
+[2026-03-07 17:31:27] LOOP deals_returned=35
+[2026-03-07 17:31:32] SOLD_MEDIAN model=iphone x median=149.97 samples=20
+[2026-03-07 17:31:35] SOLD_MEDIAN model=iphone 13 pro median=340.43 samples=20
+[2026-03-07 17:31:38] SOLD_MEDIAN model=iphone 15 plus median=303.45 samples=20
+[2026-03-07 17:31:40] SOLD_MEDIAN model=iphone 15 pro max median=559.48 samples=20
+[2026-03-07 17:33:22] D&J Deal Radar v4 running...
+[2026-03-07 17:33:22] SEEN loaded count=12
+[2026-03-07 17:33:22] SCAN ebay keyword=iphone broken
+[2026-03-07 17:33:24] SCAN_RESULT ebay keyword=iphone broken deals=33
+[2026-03-07 17:33:24] LOOP deals_returned=33
+[2026-03-07 17:33:25] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:33:27] SOLD_MEDIAN model=iphone 12 median=186.0 samples=20
+[2026-03-07 17:33:29] SOLD_MEDIAN model=iphone 11 median=172.49 samples=20
+[2026-03-07 17:33:31] SOLD_MEDIAN model=iphone 14 median=280.72 samples=20
+[2026-03-07 17:33:33] SOLD_MEDIAN model=iphone 8 median=77.5 samples=20
+[2026-03-07 17:33:35] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 17:33:37] SOLD_MEDIAN model=iphone 14 pro median=344.97 samples=20
+[2026-03-07 17:33:40] SOLD_MEDIAN model=iphone 13 pro max median=194.16 samples=20
+[2026-03-07 17:33:42] SOLD_MEDIAN model=iphone xr median=135.0 samples=20
+[2026-03-07 17:33:46] SOLD_MEDIAN model=iphone 13 mini median=279.99 samples=20
+[2026-03-07 17:33:49] SOLD_MEDIAN model=iphone 13 median=257.5 samples=20
+[2026-03-07 17:33:53] SOLD_MEDIAN model=iphone xs max median=162.45 samples=20
+[2026-03-07 17:33:55] SOLD_MEDIAN model=iphone 14 pro max median=395.25 samples=20
+[2026-03-07 17:33:57] SOLD_MEDIAN model=iphone 12 mini median=175.99 samples=20
+[2026-03-07 17:33:59] SOLD_MEDIAN model=iphone xs median=162.47 samples=20
+[2026-03-07 17:34:02] SOLD_MEDIAN model=iphone 15 median=435.2 samples=20
+[2026-03-07 17:34:04] SOLD_MEDIAN model=iphone 11 pro max median=244.99 samples=20
+[2026-03-07 17:34:06] SOLD_MEDIAN model=iphone 12 pro median=259.94 samples=20
+[2026-03-07 17:34:36] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:34:37] SCAN_RESULT ebay keyword=iphone cracked deals=35
+[2026-03-07 17:34:37] LOOP deals_returned=35
+[2026-03-07 17:34:42] SOLD_MEDIAN model=iphone x median=149.97 samples=20
+[2026-03-07 17:34:45] SOLD_MEDIAN model=iphone 13 pro median=340.43 samples=20
+[2026-03-07 17:34:48] SOLD_MEDIAN model=iphone 15 plus median=303.45 samples=20
+[2026-03-07 17:34:51] SOLD_MEDIAN model=iphone 15 pro max median=559.48 samples=20
+[2026-03-07 17:42:38] D&J Deal Radar v4 running...
+[2026-03-07 17:42:38] SEEN loaded count=12
+[2026-03-07 17:42:38] SCAN ebay keyword=iphone broken
+[2026-03-07 17:42:40] SCAN_RESULT ebay keyword=iphone broken deals=32
+[2026-03-07 17:42:40] LOOP deals_returned=32
+[2026-03-07 17:42:41] SOLD_MEDIAN model=iphone 14 pro max median=395.25 samples=20
+[2026-03-07 17:42:42] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:42:44] SOLD_MEDIAN model=iphone 12 median=193.49 samples=20
+[2026-03-07 17:42:46] SOLD_MEDIAN model=iphone 11 median=172.49 samples=20
+[2026-03-07 17:42:47] SOLD_MEDIAN model=iphone 14 median=283.19 samples=20
+[2026-03-07 17:42:49] SOLD_MEDIAN model=iphone 8 median=87.5 samples=20
+[2026-03-07 17:42:50] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 17:44:08] D&J Deal Radar v4 running...
+[2026-03-07 17:44:08] SEEN loaded count=12
+[2026-03-07 17:44:08] SCAN ebay keyword=iphone broken
+[2026-03-07 17:44:10] SCAN_RESULT ebay keyword=iphone broken deals=32
+[2026-03-07 17:44:10] LOOP deals_returned=32
+[2026-03-07 17:44:11] SOLD_MEDIAN model=iphone 14 pro max median=395.25 samples=20
+[2026-03-07 17:44:12] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:44:14] SOLD_MEDIAN model=iphone 12 median=193.49 samples=20
+[2026-03-07 17:44:16] SOLD_MEDIAN model=iphone 11 median=172.49 samples=20
+[2026-03-07 17:44:18] SOLD_MEDIAN model=iphone 14 median=283.19 samples=20
+[2026-03-07 17:44:19] SOLD_MEDIAN model=iphone 8 median=87.5 samples=20
+[2026-03-07 17:44:20] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 17:44:23] SOLD_MEDIAN model=iphone 14 pro median=344.97 samples=20
+[2026-03-07 17:44:25] SOLD_MEDIAN model=iphone 13 pro max median=338.49 samples=20
+[2026-03-07 17:44:27] SOLD_MEDIAN model=iphone xr median=135.0 samples=20
+[2026-03-07 17:44:28] SOLD_MEDIAN model=iphone 13 mini median=279.99 samples=20
+[2026-03-07 17:44:30] SOLD_MEDIAN model=iphone 13 median=255.0 samples=20
+[2026-03-07 17:44:31] SOLD_MEDIAN model=iphone xs max median=162.45 samples=20
+[2026-03-07 17:44:33] SOLD_MEDIAN model=iphone 12 mini median=175.99 samples=20
+[2026-03-07 17:44:34] SOLD_MEDIAN model=iphone xs median=162.47 samples=20
+[2026-03-07 17:44:35] SOLD_MEDIAN model=iphone 15 median=418.37 samples=20
+[2026-03-07 17:45:07] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:45:08] SCAN_RESULT ebay keyword=iphone cracked deals=35
+[2026-03-07 17:45:08] LOOP deals_returned=35
+[2026-03-07 17:45:10] SOLD_MEDIAN model=iphone x median=149.97 samples=20
+[2026-03-07 17:45:12] SOLD_MEDIAN model=iphone 13 pro median=340.43 samples=20
+[2026-03-07 17:45:14] SOLD_MEDIAN model=iphone 15 plus median=327.47 samples=20
+[2026-03-07 17:45:16] SOLD_MEDIAN model=iphone 15 pro max median=552.0 samples=20
+[2026-03-07 17:45:18] SOLD_MEDIAN model=iphone 11 pro max median=244.99 samples=20
+[2026-03-07 17:45:20] SOLD_MEDIAN model=iphone 12 pro median=257.88 samples=20
+[2026-03-07 17:47:03] D&J Deal Radar v4 running...
+[2026-03-07 17:47:03] SEEN loaded count=12
+[2026-03-07 17:47:03] SCAN ebay keyword=iphone broken
+[2026-03-07 17:47:04] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:47:05] SCAN ebay keyword=iphone for parts
+[2026-03-07 17:47:06] SCAN ebay keyword=iphone lot
+[2026-03-07 17:47:07] SCAN ebay keyword=ifone broken
+[2026-03-07 17:47:07] SCAN ebay keyword=iphne broken
+[2026-03-07 17:47:08] SCAN ebay keyword=i phon broken
+[2026-03-07 17:47:09] SCAN ebay keyword=ipone broken
+[2026-03-07 17:47:09] SCAN ebay keyword=iphnoe broken
+[2026-03-07 17:47:10] SCAN ebay keyword=ifhone broken
+[2026-03-07 17:47:10] SCAN ebay keyword=apl iphone
+[2026-03-07 17:47:11] SCAN ebay keyword=iphon broken
+[2026-03-07 17:47:12] SCAN ebay keyword=samsung broken
+[2026-03-07 17:47:13] SCAN ebay keyword=samsung cracked
+[2026-03-07 17:47:13] SCAN ebay keyword=samsung for parts
+[2026-03-07 17:47:14] SCAN ebay keyword=samung broken
+[2026-03-07 17:47:15] SCAN ebay keyword=samsng broken
+[2026-03-07 17:47:15] SCAN ebay keyword=samsumg broken
+[2026-03-07 17:47:16] SCAN ebay keyword=ps5 broken
+[2026-03-07 17:47:17] SCAN ebay keyword=playstation 5 broken
+[2026-03-07 17:47:18] SCAN ebay keyword=playstaton 5
+[2026-03-07 17:47:18] SCAN ebay keyword=playstatin 5
+[2026-03-07 17:47:19] SCAN ebay keyword=playsttion 5
+[2026-03-07 17:47:19] SCAN ebay keyword=xbox series x broken
+[2026-03-07 17:47:20] SCAN ebay keyword=xbox seris x
+[2026-03-07 17:47:21] SCAN ebay keyword=xbox seires x
+[2026-03-07 17:47:22] SCAN ebay keyword=nintendo switch broken
+[2026-03-07 17:47:23] SCAN ebay keyword=nintndo switch
+[2026-03-07 17:47:23] SCAN ebay keyword=nintebdo switch
+[2026-03-07 17:47:24] SCAN ebay keyword=gamecube console
+[2026-03-07 17:47:25] SCAN ebay keyword=gamecube bundle
+[2026-03-07 17:47:26] SCAN ebay keyword=game qube
+[2026-03-07 17:47:27] SCAN ebay keyword=macbook broken
+[2026-03-07 17:47:27] SCAN ebay keyword=ipad broken
+[2026-03-07 17:47:28] SCAN ebay keyword=ipd broken
+[2026-03-07 17:47:29] SCAN ebay keyword=macbok broken
+[2026-03-07 17:47:29] SCAN ebay keyword=pokemon card lot
+[2026-03-07 17:47:30] SCAN ebay keyword=pokeman cards
+[2026-03-07 17:47:31] SCAN ebay keyword=pokmon cards
+[2026-03-07 17:47:32] SCAN ebay keyword=dewalt tools
+[2026-03-07 17:47:33] SCAN ebay keyword=dewlat tools
+[2026-03-07 17:47:33] SCAN ebay keyword=milwaukee tool lot
+[2026-03-07 17:47:34] SCAN ebay keyword=milwakee tools
+[2026-03-07 17:47:35] SCAN_RESULT total_deals=168
+[2026-03-07 17:47:35] LOOP deals_returned=168
+[2026-03-07 17:47:37] SOLD_MEDIAN model=iphone 14 pro max median=395.25 samples=20
+[2026-03-07 17:47:38] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:47:39] SOLD_MEDIAN model=iphone 12 median=193.49 samples=20
+[2026-03-07 17:47:41] SOLD_MEDIAN model=iphone 11 median=177.49 samples=20
+[2026-03-07 17:47:43] SOLD_MEDIAN model=iphone 14 median=287.99 samples=20
+[2026-03-07 17:47:44] SOLD_MEDIAN model=iphone 8 median=87.5 samples=20
+[2026-03-07 17:47:46] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 17:48:55] D&J Deal Radar v4 running...
+[2026-03-07 17:48:55] SEEN loaded count=12
+[2026-03-07 17:48:56] SCAN ebay keyword=iphone broken
+[2026-03-07 17:48:57] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:48:57] SCAN ebay keyword=iphone for parts
+[2026-03-07 17:48:58] SCAN ebay keyword=iphone lot
+[2026-03-07 17:48:59] SCAN ebay keyword=ifone broken
+[2026-03-07 17:48:59] SCAN ebay keyword=iphne broken
+[2026-03-07 17:49:00] SCAN ebay keyword=i phon broken
+[2026-03-07 17:49:01] SCAN ebay keyword=ipone broken
+[2026-03-07 17:49:01] SCAN ebay keyword=iphnoe broken
+[2026-03-07 17:49:02] SCAN ebay keyword=ifhone broken
+[2026-03-07 17:49:03] SCAN ebay keyword=apl iphone
+[2026-03-07 17:49:03] SCAN ebay keyword=iphon broken
+[2026-03-07 17:49:04] SCAN ebay keyword=samsung broken
+[2026-03-07 17:49:05] SCAN ebay keyword=samsung cracked
+[2026-03-07 17:49:05] SCAN ebay keyword=samsung for parts
+[2026-03-07 17:49:06] SCAN ebay keyword=samung broken
+[2026-03-07 17:49:07] SCAN ebay keyword=samsng broken
+[2026-03-07 17:49:08] SCAN ebay keyword=samsumg broken
+[2026-03-07 17:49:08] SCAN ebay keyword=ps5 broken
+[2026-03-07 17:49:09] SCAN ebay keyword=playstation 5 broken
+[2026-03-07 17:49:10] SCAN ebay keyword=playstaton 5
+[2026-03-07 17:49:11] SCAN ebay keyword=playstatin 5
+[2026-03-07 17:49:11] SCAN ebay keyword=playsttion 5
+[2026-03-07 17:49:12] SCAN ebay keyword=xbox series x broken
+[2026-03-07 17:49:13] SCAN ebay keyword=xbox seris x
+[2026-03-07 17:49:13] SCAN ebay keyword=xbox seires x
+[2026-03-07 17:49:14] SCAN ebay keyword=nintendo switch broken
+[2026-03-07 17:49:15] SCAN ebay keyword=nintndo switch
+[2026-03-07 17:49:16] SCAN ebay keyword=nintebdo switch
+[2026-03-07 17:49:17] SCAN ebay keyword=gamecube console
+[2026-03-07 17:49:17] SCAN ebay keyword=gamecube bundle
+[2026-03-07 17:49:18] SCAN ebay keyword=game qube
+[2026-03-07 17:49:19] SCAN ebay keyword=macbook broken
+[2026-03-07 17:49:19] SCAN ebay keyword=ipad broken
+[2026-03-07 17:49:20] SCAN ebay keyword=ipd broken
+[2026-03-07 17:49:21] SCAN ebay keyword=macbok broken
+[2026-03-07 17:49:22] SCAN ebay keyword=pokemon card lot
+[2026-03-07 17:49:22] SCAN ebay keyword=pokeman cards
+[2026-03-07 17:49:23] SCAN ebay keyword=pokmon cards
+[2026-03-07 17:49:24] SCAN ebay keyword=dewalt tools
+[2026-03-07 17:49:25] SCAN ebay keyword=dewlat tools
+[2026-03-07 17:49:25] SCAN ebay keyword=milwaukee tool lot
+[2026-03-07 17:49:26] SCAN ebay keyword=milwakee tools
+[2026-03-07 17:49:27] SCAN_RESULT total_deals=168
+[2026-03-07 17:49:27] LOOP deals_returned=168
+[2026-03-07 17:49:28] SOLD_MEDIAN model=iphone 14 pro max median=395.25 samples=20
+[2026-03-07 17:49:29] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:49:31] SOLD_MEDIAN model=iphone 12 median=193.49 samples=20
+[2026-03-07 17:49:33] SOLD_MEDIAN model=iphone 11 median=175.0 samples=20
+[2026-03-07 17:49:34] SOLD_MEDIAN model=iphone 14 median=289.97 samples=20
+[2026-03-07 17:49:36] SOLD_MEDIAN model=iphone 8 median=87.5 samples=20
+[2026-03-07 17:49:37] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 17:50:35] D&J Deal Radar v4 running...
+[2026-03-07 17:50:35] SEEN loaded count=12
+[2026-03-07 17:50:36] SCAN ebay keyword=iphone broken
+[2026-03-07 17:50:37] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:50:38] SCAN ebay keyword=iphone for parts
+[2026-03-07 17:50:39] SCAN ebay keyword=iphone lot
+[2026-03-07 17:50:39] SCAN ebay keyword=ifone broken
+[2026-03-07 17:50:40] SCAN ebay keyword=iphne broken
+[2026-03-07 17:50:41] SCAN ebay keyword=i phon broken
+[2026-03-07 17:50:41] SCAN ebay keyword=ipone broken
+[2026-03-07 17:50:42] SCAN ebay keyword=iphnoe broken
+[2026-03-07 17:50:43] SCAN ebay keyword=ifhone broken
+[2026-03-07 17:50:44] SCAN ebay keyword=apl iphone
+[2026-03-07 17:50:44] SCAN ebay keyword=iphon broken
+[2026-03-07 17:50:45] SCAN ebay keyword=samsung broken
+[2026-03-07 17:50:46] SCAN ebay keyword=samsung cracked
+[2026-03-07 17:50:47] SCAN ebay keyword=samsung for parts
+[2026-03-07 17:50:48] SCAN ebay keyword=samung broken
+[2026-03-07 17:50:49] SCAN ebay keyword=samsng broken
+[2026-03-07 17:50:49] SCAN ebay keyword=samsumg broken
+[2026-03-07 17:50:50] SCAN ebay keyword=ps5 broken
+[2026-03-07 17:50:51] SCAN ebay keyword=playstation 5 broken
+[2026-03-07 17:50:52] SCAN ebay keyword=playstaton 5
+[2026-03-07 17:50:53] SCAN ebay keyword=playstatin 5
+[2026-03-07 17:50:53] SCAN ebay keyword=playsttion 5
+[2026-03-07 17:50:54] SCAN ebay keyword=xbox series x broken
+[2026-03-07 17:50:55] SCAN ebay keyword=xbox seris x
+[2026-03-07 17:50:55] SCAN ebay keyword=xbox seires x
+[2026-03-07 17:50:56] SCAN ebay keyword=nintendo switch broken
+[2026-03-07 17:50:57] SCAN ebay keyword=nintndo switch
+[2026-03-07 17:50:57] SCAN ebay keyword=nintebdo switch
+[2026-03-07 17:50:58] SCAN ebay keyword=gamecube console
+[2026-03-07 17:50:59] SCAN ebay keyword=gamecube bundle
+[2026-03-07 17:51:00] SCAN ebay keyword=game qube
+[2026-03-07 17:51:00] SCAN ebay keyword=macbook broken
+[2026-03-07 17:51:01] SCAN ebay keyword=ipad broken
+[2026-03-07 17:51:02] SCAN ebay keyword=ipd broken
+[2026-03-07 17:51:03] SCAN ebay keyword=macbok broken
+[2026-03-07 17:51:04] SCAN ebay keyword=pokemon card lot
+[2026-03-07 17:51:05] SCAN ebay keyword=pokeman cards
+[2026-03-07 17:51:05] SCAN ebay keyword=pokmon cards
+[2026-03-07 17:51:06] SCAN ebay keyword=dewalt tools
+[2026-03-07 17:51:07] SCAN ebay keyword=dewlat tools
+[2026-03-07 17:51:08] SCAN ebay keyword=milwaukee tool lot
+[2026-03-07 17:51:08] SCAN ebay keyword=milwakee tools
+[2026-03-07 17:51:09] SCAN_RESULT total_deals=168
+[2026-03-07 17:51:09] LOOP deals_returned=168
+[2026-03-07 17:51:10] SOLD_MEDIAN model=iphone 14 pro max median=395.25 samples=20
+[2026-03-07 17:51:12] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:51:13] SOLD_MEDIAN model=iphone 12 median=193.49 samples=20
+[2026-03-07 17:51:15] SOLD_MEDIAN model=iphone 11 median=172.49 samples=20
+[2026-03-07 17:51:16] SOLD_MEDIAN model=iphone 14 median=287.99 samples=20
+[2026-03-07 17:51:18] SOLD_MEDIAN model=iphone 8 median=87.5 samples=20
+[2026-03-07 17:51:20] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 17:51:22] SOLD_MEDIAN model=iphone 14 pro median=346.43 samples=20
+[2026-03-07 17:51:25] SOLD_MEDIAN model=iphone 13 pro max median=338.49 samples=20
+[2026-03-07 17:51:27] SOLD_MEDIAN model=iphone xr median=135.0 samples=20
+[2026-03-07 17:51:28] SOLD_MEDIAN model=iphone 13 median=255.0 samples=20
+[2026-03-07 17:51:30] SOLD_MEDIAN model=iphone 12 mini median=175.99 samples=20
+[2026-03-07 17:51:31] SOLD_MEDIAN model=iphone xs median=162.47 samples=20
+[2026-03-07 17:51:32] SOLD_MEDIAN model=iphone 13 mini median=279.99 samples=20
+[2026-03-07 17:51:34] SOLD_MEDIAN model=iphone 15 median=435.2 samples=20
+[2026-03-07 17:51:37] SOLD_MEDIAN model=iphone x median=162.47 samples=20
+[2026-03-07 17:51:39] SOLD_MEDIAN model=iphone 15 plus median=303.45 samples=20
+[2026-03-07 17:51:40] SOLD_MEDIAN model=iphone 15 pro max median=566.77 samples=20
+[2026-03-07 17:51:42] SOLD_MEDIAN model=iphone 11 pro max median=244.99 samples=20
+[2026-03-07 17:51:45] SOLD_MEDIAN model=iphone 12 pro median=257.88 samples=20
+[2026-03-07 17:51:49] SOLD_MEDIAN model=iphone xs max median=162.45 samples=20
+[2026-03-07 17:52:26] SCAN ebay keyword=iphone broken
+[2026-03-07 17:52:26] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:52:27] SCAN ebay keyword=iphone for parts
+[2026-03-07 17:52:28] SCAN ebay keyword=iphone lot
+[2026-03-07 17:52:28] SCAN ebay keyword=ifone broken
+[2026-03-07 17:52:29] SCAN ebay keyword=iphne broken
+[2026-03-07 17:52:30] SCAN ebay keyword=i phon broken
+[2026-03-07 17:52:30] SCAN ebay keyword=ipone broken
+[2026-03-07 17:52:31] SCAN ebay keyword=iphnoe broken
+[2026-03-07 17:52:32] SCAN ebay keyword=ifhone broken
+[2026-03-07 17:52:32] SCAN ebay keyword=apl iphone
+[2026-03-07 17:52:33] SCAN ebay keyword=iphon broken
+[2026-03-07 17:52:34] SCAN ebay keyword=samsung broken
+[2026-03-07 17:52:34] SCAN ebay keyword=samsung cracked
+[2026-03-07 17:52:35] SCAN ebay keyword=samsung for parts
+[2026-03-07 17:52:36] SCAN ebay keyword=samung broken
+[2026-03-07 17:52:37] SCAN ebay keyword=samsng broken
+[2026-03-07 17:52:37] SCAN ebay keyword=samsumg broken
+[2026-03-07 17:52:38] SCAN ebay keyword=ps5 broken
+[2026-03-07 17:52:39] SCAN ebay keyword=playstation 5 broken
+[2026-03-07 17:52:39] SCAN ebay keyword=playstaton 5
+[2026-03-07 17:52:40] SCAN ebay keyword=playstatin 5
+[2026-03-07 17:52:41] SCAN ebay keyword=playsttion 5
+[2026-03-07 17:52:41] SCAN ebay keyword=xbox series x broken
+[2026-03-07 17:52:42] SCAN ebay keyword=xbox seris x
+[2026-03-07 17:52:43] SCAN ebay keyword=xbox seires x
+[2026-03-07 17:52:43] SCAN ebay keyword=nintendo switch broken
+[2026-03-07 17:52:44] SCAN ebay keyword=nintndo switch
+[2026-03-07 17:52:45] SCAN ebay keyword=nintebdo switch
+[2026-03-07 17:52:45] SCAN ebay keyword=gamecube console
+[2026-03-07 17:52:46] SCAN ebay keyword=gamecube bundle
+[2026-03-07 17:52:47] SCAN ebay keyword=game qube
+[2026-03-07 17:52:48] SCAN ebay keyword=macbook broken
+[2026-03-07 17:52:48] SCAN ebay keyword=ipad broken
+[2026-03-07 17:52:49] SCAN ebay keyword=ipd broken
+[2026-03-07 17:52:50] SCAN ebay keyword=macbok broken
+[2026-03-07 17:52:50] SCAN ebay keyword=pokemon card lot
+[2026-03-07 17:52:51] SCAN ebay keyword=pokeman cards
+[2026-03-07 17:52:52] SCAN ebay keyword=pokmon cards
+[2026-03-07 17:52:52] SCAN ebay keyword=dewalt tools
+[2026-03-07 17:52:53] SCAN ebay keyword=dewlat tools
+[2026-03-07 17:52:54] SCAN ebay keyword=milwaukee tool lot
+[2026-03-07 17:52:55] SCAN ebay keyword=milwakee tools
+[2026-03-07 17:52:55] SCAN_RESULT total_deals=168
+[2026-03-07 17:52:55] LOOP deals_returned=168
+[2026-03-07 17:55:57] D&J Deal Radar v4 running...
+[2026-03-07 17:55:57] SEEN loaded count=12
+[2026-03-07 17:55:58] SCAN ebay keyword=iphone broken
+[2026-03-07 17:55:58] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:55:59] SCAN ebay keyword=iphone for parts
+[2026-03-07 17:56:00] SCAN ebay keyword=iphone lot
+[2026-03-07 17:56:00] SCAN ebay keyword=ifone broken
+[2026-03-07 17:56:01] SCAN ebay keyword=iphne broken
+[2026-03-07 17:56:02] SCAN ebay keyword=i phon broken
+[2026-03-07 17:56:02] SCAN ebay keyword=ipone broken
+[2026-03-07 17:56:03] SCAN ebay keyword=iphnoe broken
+[2026-03-07 17:56:04] SCAN ebay keyword=ifhone broken
+[2026-03-07 17:56:04] SCAN ebay keyword=samsung broken
+[2026-03-07 17:56:05] SCAN ebay keyword=samsung cracked
+[2026-03-07 17:56:06] SCAN ebay keyword=samsung for parts
+[2026-03-07 17:56:07] SCAN ebay keyword=ps5 broken
+[2026-03-07 17:56:07] SCAN ebay keyword=playstaton 5
+[2026-03-07 17:56:08] SCAN ebay keyword=gamecube console
+[2026-03-07 17:56:09] SCAN ebay keyword=gamecube bundle
+[2026-03-07 17:56:09] SCAN ebay keyword=game qube
+[2026-03-07 17:56:10] SCAN ebay keyword=pokemon card lot
+[2026-03-07 17:56:11] SCAN ebay keyword=pokeman cards
+[2026-03-07 17:56:12] SCAN ebay keyword=dewalt tools
+[2026-03-07 17:56:13] SCAN ebay keyword=dewlat tools
+[2026-03-07 17:56:13] SCAN ebay keyword=milwaukee tool lot
+[2026-03-07 17:56:14] SCAN_RESULT total_deals=136
+[2026-03-07 17:56:14] LOOP deals_returned=136
+[2026-03-07 17:56:16] SOLD_MEDIAN model=iphone 14 pro max median=395.25 samples=20
+[2026-03-07 17:56:17] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:56:19] SOLD_MEDIAN model=iphone 12 median=193.49 samples=20
+[2026-03-07 17:56:20] SOLD_MEDIAN model=iphone 11 median=172.49 samples=20
+[2026-03-07 17:56:22] SOLD_MEDIAN model=iphone 14 median=289.97 samples=20
+[2026-03-07 17:56:23] SOLD_MEDIAN model=iphone 8 median=87.5 samples=20
+[2026-03-07 17:56:25] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 17:56:26] SOLD_MEDIAN model=iphone 14 pro median=358.49 samples=20
+[2026-03-07 17:56:28] SOLD_MEDIAN model=iphone 13 pro max median=338.49 samples=20
+[2026-03-07 17:56:30] SOLD_MEDIAN model=iphone xr median=135.0 samples=20
+[2026-03-07 17:56:31] SOLD_MEDIAN model=iphone 13 median=257.5 samples=20
+[2026-03-07 17:56:33] SOLD_MEDIAN model=iphone 12 mini median=175.99 samples=20
+[2026-03-07 17:56:34] SOLD_MEDIAN model=iphone xs median=162.47 samples=20
+[2026-03-07 17:56:35] SOLD_MEDIAN model=iphone 13 mini median=279.99 samples=20
+[2026-03-07 17:56:37] SOLD_MEDIAN model=iphone 15 median=435.2 samples=20
+[2026-03-07 17:56:39] SOLD_MEDIAN model=iphone x median=162.47 samples=20
+[2026-03-07 17:56:41] SOLD_MEDIAN model=iphone 15 plus median=303.45 samples=20
+[2026-03-07 17:56:42] SOLD_MEDIAN model=iphone 15 pro max median=566.77 samples=20
+[2026-03-07 17:56:44] SOLD_MEDIAN model=iphone 11 pro max median=244.99 samples=20
+[2026-03-07 17:56:46] SOLD_MEDIAN model=iphone 12 pro median=257.88 samples=20
+[2026-03-07 17:56:49] SOLD_MEDIAN model=iphone xs max median=162.45 samples=20
+[2026-03-07 17:57:20] SCAN ebay keyword=iphone broken
+[2026-03-07 17:57:21] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:57:22] SCAN ebay keyword=iphone for parts
+[2026-03-07 17:57:22] SCAN ebay keyword=iphone lot
+[2026-03-07 17:57:23] SCAN ebay keyword=ifone broken
+[2026-03-07 17:57:24] SCAN ebay keyword=iphne broken
+[2026-03-07 17:57:25] SCAN ebay keyword=i phon broken
+[2026-03-07 17:57:25] SCAN ebay keyword=ipone broken
+[2026-03-07 17:57:26] SCAN ebay keyword=iphnoe broken
+[2026-03-07 17:57:27] SCAN ebay keyword=ifhone broken
+[2026-03-07 17:57:28] SCAN ebay keyword=samsung broken
+[2026-03-07 17:57:28] SCAN ebay keyword=samsung cracked
+[2026-03-07 17:57:29] SCAN ebay keyword=samsung for parts
+[2026-03-07 17:57:30] SCAN ebay keyword=ps5 broken
+[2026-03-07 17:57:30] SCAN ebay keyword=playstaton 5
+[2026-03-07 17:57:31] SCAN ebay keyword=gamecube console
+[2026-03-07 17:57:32] SCAN ebay keyword=gamecube bundle
+[2026-03-07 17:57:32] SCAN ebay keyword=game qube
+[2026-03-07 17:57:33] SCAN ebay keyword=pokemon card lot
+[2026-03-07 17:57:34] SCAN ebay keyword=pokeman cards
+[2026-03-07 17:57:35] SCAN ebay keyword=dewalt tools
+[2026-03-07 17:57:35] SCAN ebay keyword=dewlat tools
+[2026-03-07 17:57:36] SCAN ebay keyword=milwaukee tool lot
+[2026-03-07 17:57:37] SCAN_RESULT total_deals=136
+[2026-03-07 17:57:37] LOOP deals_returned=136
+[2026-03-07 17:58:12] SCAN ebay keyword=iphone broken
+[2026-03-07 17:58:12] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:58:13] SCAN ebay keyword=iphone for parts
+[2026-03-07 17:58:14] SCAN ebay keyword=iphone lot
+[2026-03-07 17:58:14] SCAN ebay keyword=ifone broken
+[2026-03-07 17:58:32] D&J Deal Radar started
+[2026-03-07 17:58:32] SCAN ebay keyword=iphone broken
+[2026-03-07 17:58:33] SCAN ebay keyword=iphone cracked
+[2026-03-07 17:58:34] SCAN ebay keyword=iphone for parts
+[2026-03-07 17:58:35] SCAN ebay keyword=iphone lot
+[2026-03-07 17:58:36] SCAN ebay keyword=ifone broken
+[2026-03-07 17:58:36] SCAN ebay keyword=iphne broken
+[2026-03-07 17:58:37] SCAN ebay keyword=i phon broken
+[2026-03-07 17:58:38] SCAN ebay keyword=ipone broken
+[2026-03-07 17:58:39] SCAN ebay keyword=iphnoe broken
+[2026-03-07 17:58:39] SCAN ebay keyword=ifhone broken
+[2026-03-07 17:58:40] SCAN ebay keyword=samsung broken
+[2026-03-07 17:58:41] SCAN ebay keyword=samsung cracked
+[2026-03-07 17:58:41] SCAN ebay keyword=samsung for parts
+[2026-03-07 17:58:42] SCAN ebay keyword=ps5 broken
+[2026-03-07 17:58:43] SCAN ebay keyword=playstaton 5
+[2026-03-07 17:58:44] SCAN ebay keyword=gamecube console
+[2026-03-07 17:58:45] SCAN ebay keyword=gamecube bundle
+[2026-03-07 17:58:45] SCAN ebay keyword=game qube
+[2026-03-07 17:58:46] SCAN ebay keyword=pokemon card lot
+[2026-03-07 17:58:47] SCAN ebay keyword=pokeman cards
+[2026-03-07 17:58:47] SCAN ebay keyword=dewalt tools
+[2026-03-07 17:58:48] SCAN ebay keyword=dewlat tools
+[2026-03-07 17:58:49] SCAN ebay keyword=milwaukee tool lot
+[2026-03-07 17:58:50] SCAN_RESULT total_deals=136
+[2026-03-07 17:58:50] SCAN mercari keyword=iphone broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=iphone+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=iphone cracked
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=iphone+cracked&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=iphone for parts
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=iphone+for+parts&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=iphone lot
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=iphone+lot&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=ifone broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=ifone+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=iphne broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=iphne+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=i phon broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=i+phon+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=ipone broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=ipone+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=iphnoe broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=iphnoe+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=ifhone broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=ifhone+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=samsung broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=samsung+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=samsung cracked
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=samsung+cracked&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=samsung for parts
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=samsung+for+parts&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=ps5 broken
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=ps5+broken&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=playstaton 5
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=playstaton+5&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=gamecube console
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=gamecube+console&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=gamecube bundle
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=gamecube+bundle&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=game qube
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=game+qube&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=pokemon card lot
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=pokemon+card+lot&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=pokeman cards
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=pokeman+cards&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=dewalt tools
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=dewalt+tools&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=dewlat tools
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=dewlat+tools&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 17:58:50] ERROR mercari_scan HTTPSConnectionPool(host='api.mercari.com', port=443): Max retries exceeded with url: /v2/entities:search?keyword=milwaukee+tool+lot&limit=30&sort=created_time&order=desc (Caused by NameResolutionError("HTTPSConnection(host='api.mercari.com', port=443): Failed to resolve 'api.mercari.com' ([Errno 11001] getaddrinfo failed)"))
+[2026-03-07 17:58:50] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 17:58:50] LOOP deals_returned=136
+[2026-03-07 17:58:51] SOLD_MEDIAN model=iphone 8 median=87.5 samples=20
+[2026-03-07 17:58:53] SOLD_MEDIAN model=iphone 14 pro max median=407.75 samples=20
+[2026-03-07 17:58:54] SOLD_MEDIAN model=iphone se median=139.97 samples=20
+[2026-03-07 17:58:55] SOLD_MEDIAN model=iphone 12 median=193.49 samples=20
+[2026-03-07 17:58:57] SOLD_MEDIAN model=iphone 11 median=177.49 samples=20
+[2026-03-07 17:58:59] SOLD_MEDIAN model=iphone 14 median=289.97 samples=20
+[2026-03-07 17:59:01] SOLD_MEDIAN model=iphone 12 pro max median=326.97 samples=20
+[2026-03-07 18:01:56] D&J Deal Radar started
+[2026-03-07 18:01:56] SCAN ebay keyword=iphone broken
+[2026-03-07 18:01:57] SCAN ebay keyword=iphone cracked
+[2026-03-07 18:01:58] SCAN ebay keyword=iphone for parts
+[2026-03-07 18:01:59] SCAN ebay keyword=iphone lot
+[2026-03-07 18:01:59] SCAN ebay keyword=ifone broken
+[2026-03-07 18:02:00] SCAN ebay keyword=iphne broken
+[2026-03-07 18:02:01] SCAN ebay keyword=i phon broken
+[2026-03-07 18:02:01] SCAN ebay keyword=ipone broken
+[2026-03-07 18:02:02] SCAN ebay keyword=iphnoe broken
+[2026-03-07 18:02:03] SCAN ebay keyword=ifhone broken
+[2026-03-07 18:02:03] SCAN ebay keyword=samsung broken
+[2026-03-07 18:02:04] SCAN ebay keyword=samsung cracked
+[2026-03-07 18:02:05] SCAN ebay keyword=samsung for parts
+[2026-03-07 18:02:05] SCAN ebay keyword=ps5 broken
+[2026-03-07 18:02:06] SCAN ebay keyword=playstaton 5
+[2026-03-07 18:02:07] SCAN ebay keyword=gamecube console
+[2026-03-07 18:02:08] SCAN ebay keyword=gamecube bundle
+[2026-03-07 18:02:08] SCAN ebay keyword=game qube
+[2026-03-07 18:02:09] SCAN ebay keyword=pokemon card lot
+[2026-03-07 18:02:10] SCAN ebay keyword=pokeman cards
+[2026-03-07 18:02:10] SCAN ebay keyword=dewalt tools
+[2026-03-07 18:02:11] SCAN ebay keyword=dewlat tools
+[2026-03-07 18:02:12] SCAN ebay keyword=milwaukee tool lot
+[2026-03-07 18:02:13] SCAN_RESULT total_deals=132
+[2026-03-07 18:02:13] SCAN mercari keyword=iphone broken
+[2026-03-07 18:02:13] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:02:13] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:02:14] SCAN mercari keyword=iphone lot
+[2026-03-07 18:02:14] SCAN mercari keyword=ifone broken
+[2026-03-07 18:02:14] SCAN mercari keyword=iphne broken
+[2026-03-07 18:02:15] SCAN mercari keyword=i phon broken
+[2026-03-07 18:02:15] SCAN mercari keyword=ipone broken
+[2026-03-07 18:02:15] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:02:16] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:02:16] SCAN mercari keyword=samsung broken
+[2026-03-07 18:02:16] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:02:17] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:02:17] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:02:17] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:02:18] SCAN mercari keyword=gamecube console
+[2026-03-07 18:02:18] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:02:18] SCAN mercari keyword=game qube
+[2026-03-07 18:02:19] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:02:19] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:02:19] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:02:20] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:02:20] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:02:20] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:02:20] LOOP deals_returned=132
+[2026-03-07 18:02:21] SOLD_MEDIAN model=apple iphone 8 plus 256gb a1864 space gray (unlocked) - broken median=99.97 samples=20
+[2026-03-07 18:02:22] SOLD_MEDIAN model=apple iphone 14 pro max - deep purple - for parts only median=199.995 samples=20
+[2026-03-07 18:02:23] SOLD_MEDIAN model=apple iphone se (2nd generation) 64gb black unlocked [2] median=105.0 samples=20
+[2026-03-07 18:02:24] SOLD_MEDIAN model=broken unlocked apple iphone 12 64gb 26.3 mgfp3ll/a bad batt median=124.99000000000001 samples=20
+[2026-03-07 18:02:25] SOLD_MEDIAN model=apple iphone 11  - 128 gb - yellow (unlocked) no face id & broken screen median=119.0 samples=9
+[2026-03-07 18:02:26] SOLD_MEDIAN model=iphone 12 128gb navy blue verizon for parts- as is median=89.99 samples=20
+[2026-03-07 18:02:27] SOLD_MEDIAN model=broken unlocked apple iphone 14 256gb 26.2 mpw83ll/a cracked back median=210.20499999999998 samples=20
+[2026-03-07 18:02:28] SOLD_MEDIAN model=iphone 8 plus for parts/repair - read description median=29.994999999999997 samples=20
+[2026-03-07 18:02:29] SOLD_MEDIAN model=apple iphone 12 pro max 256gb silver (verizon only) fully working (cracked) 6292 median=179.99 samples=1
+[2026-03-07 18:02:30] SOLD_MEDIAN model=apple iphone 14 pro - 128gb - unlocked  broken screen / back median=297.49 samples=20
+[2026-03-07 18:02:31] SOLD_MEDIAN model=apple iphone 12 white– for parts only – not working median=70.69 samples=20
+[2026-03-07 18:02:31] SOLD_MEDIAN model=apple iphone 12 a2172 wifi only 128gb black good shape median=199.95 samples=7
+[2026-03-07 18:02:32] SOLD_MEDIAN model=apple iphone 11 white – bent frame – not working – for parts only median=33.985 samples=20
+[2026-03-07 18:02:33] SOLD_MEDIAN model=apple iphone 13 pro max - just for parts check carefully median=169.995 samples=20
+[2026-03-07 18:02:34] SOLD_MEDIAN model=apple iphone xr (product) black parts median=35.0 samples=20
+[2026-03-07 18:02:35] SOLD_MEDIAN model=broken unlocked apple iphone 11 64gb 18.6.2 mwl82ll/a read median=98.99 samples=20
+[2026-03-07 18:02:36] SOLD_MEDIAN model=apple iphone 14 pro - 128 gb - space black (unlocked) median=374.995 samples=20
+[2026-03-07 18:02:37] SOLD_MEDIAN model=apple iphone 11 black – for parts only median=67.995 samples=20
+[2026-03-07 18:02:38] SOLD_MEDIAN model=apple iphone 13 128gb a2482 midnight (cricket) - glass cracked median=165.43 samples=20
+[2026-03-07 18:02:39] SOLD_MEDIAN model=broken unlocked apple iphone 13 128gb mlmt3ll/a cracked back median=174.99 samples=20
+[2026-03-07 18:02:40] SOLD_MEDIAN model=apple iphone 12 unlocked blue 64gb bad speaker median=127.545 samples=20
+[2026-03-07 18:02:41] SOLD_MEDIAN model=apple iphone 13 128gb a2482 midnight (unlocked) - broken median=202.45 samples=20
+[2026-03-07 18:02:42] SOLD_MEDIAN model=apple iphone 12 blue cracked back cracked front unlocked median=147.94 samples=20
+[2026-03-07 18:02:43] SOLD_MEDIAN model=apple iphone 12 pro max 128gb a2342 pacific blue (unlocked) - broken median=239.495 samples=20
+[2026-03-07 18:02:44] SOLD_MEDIAN model=broken unlocked apple iphone 14 pro 128gb 18.5 mq0e3ll/a service battery median=264.995 samples=20
+[2026-03-07 18:02:44] SOLD_MEDIAN model=apple iphone 14 pro max – for parts / repair – shattered back – won’t power on median=94.99 samples=20
+[2026-03-07 18:02:45] SOLD_MEDIAN model=apple iphone 12 mini 64gb fully unlocked - all carriers - *read* median=159.97 samples=20
+[2026-03-07 18:02:46] SOLD_MEDIAN model=apple iphone xs - just for parts, check carefully median=75.97 samples=20
+[2026-03-07 18:02:47] SOLD_MEDIAN model=broken unlocked apple iphone 13 mini 128gb 17.6.1 mlhq3ll/a cracked back median=157.57 samples=20
+[2026-03-07 18:02:48] SOLD_MEDIAN model=apple iphone 13 128gb midnight a2482 unlocked verizon at&t cracked back #h904 median=172.5 samples=20
+[2026-03-07 18:02:49] SOLD_MEDIAN model=apple iphone xr white verizon – cracked screen – for parts or repair – as is median=54.99 samples=20
+[2026-03-07 18:02:50] SOLD_MEDIAN model=apple iphone x black – cracked back glass – for parts or repair – as is median=59.95 samples=20
+[2026-03-07 18:02:51] SOLD_MEDIAN model=broken unlocked apple iphone 13 128gb 26.0.1 mlmn3ll/a cracked cam bad batt median=169.995 samples=20
+[2026-03-07 18:02:52] SOLD_MEDIAN model=apple iphone se (2020/2022) black – cracked screen – for parts or repair  median=44.995000000000005 samples=10
+[2026-03-07 18:02:53] SOLD_MEDIAN model= apple iphone se 2nd gen 64gb cracked back 76% battery  still works median=66.495 samples=20
+[2026-03-07 18:02:54] SOLD_MEDIAN model=t-mobile apple iphone 15 plus 128gb ready to activate only cracked screen median=297.47 samples=20
+[2026-03-07 18:12:43] SEEN loaded count=12
+[2026-03-07 18:12:43] D&J Deal Radar started
+[2026-03-07 18:12:44] PARALLEL_SCAN terms=72
+[2026-03-07 18:12:52] SCAN_RESULT deals=10
+[2026-03-07 18:12:52] SCAN mercari keyword=iphone broken
+[2026-03-07 18:12:53] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:12:53] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:12:54] SCAN mercari keyword=iphone lot
+[2026-03-07 18:12:54] SCAN mercari keyword=ifone broken
+[2026-03-07 18:12:54] SCAN mercari keyword=iphne broken
+[2026-03-07 18:12:55] SCAN mercari keyword=i phon broken
+[2026-03-07 18:12:55] SCAN mercari keyword=ipone broken
+[2026-03-07 18:12:55] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:12:56] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:12:56] SCAN mercari keyword=samsung broken
+[2026-03-07 18:12:56] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:12:57] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:12:57] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:12:57] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:12:57] SCAN mercari keyword=gamecube console
+[2026-03-07 18:12:58] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:12:58] SCAN mercari keyword=game qube
+[2026-03-07 18:12:58] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:12:59] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:12:59] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:12:59] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:13:00] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:13:00] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:13:00] SCAN offerup term=iphone
+[2026-03-07 18:13:01] SCAN offerup term=samsung
+[2026-03-07 18:13:01] SCAN offerup term=ps5
+[2026-03-07 18:13:01] SCAN offerup term=gamecube
+[2026-03-07 18:13:02] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:13:02] LOOP deals_returned=10
+[2026-03-07 18:13:03] SOLD_MEDIAN model=apple iphone 13 mini a2481 - unlocked 128gb pink *parts: bad screen* median=152.595 samples=20
+[2026-03-07 18:13:04] SOLD_MEDIAN model=apple iphone 13 mini a2481 - unlocked 128gb blue *parts: screen lines* median=159.97 samples=20
+[2026-03-07 18:13:05] SOLD_MEDIAN model=apple iphone 13 (5g) a2482 - unlocked - 256gb pink *parts: no display* median=169.0 samples=1
+[2026-03-07 18:13:06] SOLD_MEDIAN model=apple iphone se (3rd gen) a2595 - unlocked 64gb midnight - *for parts or repair* median=69.0 samples=1
+[2026-03-07 18:13:06] SOLD_MEDIAN model=iphone 14 pro max for parts! median=139.995 samples=20
+[2026-03-07 18:13:07] SOLD_MEDIAN model=google pixel 6a 128gb black unlocked charging port issue – for parts  median=64.995 samples=20
+[2026-03-07 18:15:28] SEEN loaded count=12
+[2026-03-07 18:15:28] D&J Deal Radar started
+[2026-03-07 18:15:28] PARALLEL_SCAN terms=72
+[2026-03-07 18:15:37] SCAN_RESULT deals=15
+[2026-03-07 18:15:37] SCAN mercari keyword=iphone broken
+[2026-03-07 18:15:37] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:15:37] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:15:38] SCAN mercari keyword=iphone lot
+[2026-03-07 18:15:38] SCAN mercari keyword=ifone broken
+[2026-03-07 18:15:38] SCAN mercari keyword=iphne broken
+[2026-03-07 18:15:39] SCAN mercari keyword=i phon broken
+[2026-03-07 18:15:39] SCAN mercari keyword=ipone broken
+[2026-03-07 18:15:39] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:15:40] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:15:40] SCAN mercari keyword=samsung broken
+[2026-03-07 18:15:40] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:15:41] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:15:41] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:15:41] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:15:42] SCAN mercari keyword=gamecube console
+[2026-03-07 18:15:42] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:15:42] SCAN mercari keyword=game qube
+[2026-03-07 18:15:43] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:15:43] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:15:43] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:15:44] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:15:44] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:15:44] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:15:44] SCAN offerup term=iphone
+[2026-03-07 18:15:45] SCAN offerup term=samsung
+[2026-03-07 18:15:45] SCAN offerup term=ps5
+[2026-03-07 18:15:45] SCAN offerup term=gamecube
+[2026-03-07 18:15:46] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:15:46] LOOP deals_returned=15
+[2026-03-07 18:15:47] SOLD_MEDIAN model=apple iphone 13 - blue - for parts only median=99.99 samples=20
+[2026-03-07 18:15:48] SOLD_MEDIAN model=iphone 14 pro max for parts! median=139.995 samples=20
+[2026-03-07 18:15:48] SOLD_MEDIAN model=apple iphone se (2nd gen) 128gb (at&t) a2275 black - broken median=64.95 samples=1
+[2026-03-07 18:15:49] SOLD_MEDIAN model=apple iphone 13 mini a2481 - unlocked 128gb pink *parts: bad screen* median=152.595 samples=20
+[2026-03-07 18:15:50] SOLD_MEDIAN model=apple iphone 13 mini a2481 - unlocked 128gb blue *parts: screen lines* median=159.97 samples=20
+[2026-03-07 18:15:51] SOLD_MEDIAN model=apple iphone 13 (5g) a2482 - unlocked - 256gb pink *parts: no display* median=169.0 samples=1
+[2026-03-07 18:15:52] SOLD_MEDIAN model=apple iphone se (3rd gen) a2595 - unlocked 64gb midnight - *for parts or repair* median=69.0 samples=1
+[2026-03-07 18:15:53] SOLD_MEDIAN model=google pixel 6a 128gb black unlocked charging port issue – for parts  median=64.995 samples=20
+[2026-03-07 18:16:23] PARALLEL_SCAN terms=72
+[2026-03-07 18:16:31] SCAN_RESULT deals=17
+[2026-03-07 18:16:31] SCAN mercari keyword=iphone broken
+[2026-03-07 18:16:31] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:16:32] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:16:32] SCAN mercari keyword=iphone lot
+[2026-03-07 18:16:32] SCAN mercari keyword=ifone broken
+[2026-03-07 18:16:33] SCAN mercari keyword=iphne broken
+[2026-03-07 18:16:33] SCAN mercari keyword=i phon broken
+[2026-03-07 18:16:33] SCAN mercari keyword=ipone broken
+[2026-03-07 18:16:34] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:16:34] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:16:34] SCAN mercari keyword=samsung broken
+[2026-03-07 18:16:35] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:16:35] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:16:35] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:16:36] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:16:36] SCAN mercari keyword=gamecube console
+[2026-03-07 18:16:36] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:16:37] SCAN mercari keyword=game qube
+[2026-03-07 18:16:37] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:16:37] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:16:38] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:16:38] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:16:38] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:16:39] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:16:39] SCAN offerup term=iphone
+[2026-03-07 18:16:39] SCAN offerup term=samsung
+[2026-03-07 18:16:40] SCAN offerup term=ps5
+[2026-03-07 18:16:40] SCAN offerup term=gamecube
+[2026-03-07 18:16:40] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:16:40] LOOP deals_returned=17
+[2026-03-07 18:17:10] PARALLEL_SCAN terms=72
+[2026-03-07 18:17:19] SCAN_RESULT deals=14
+[2026-03-07 18:17:19] SCAN mercari keyword=iphone broken
+[2026-03-07 18:17:19] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:17:20] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:17:20] SCAN mercari keyword=iphone lot
+[2026-03-07 18:17:20] SCAN mercari keyword=ifone broken
+[2026-03-07 18:17:21] SCAN mercari keyword=iphne broken
+[2026-03-07 18:17:21] SCAN mercari keyword=i phon broken
+[2026-03-07 18:17:21] SCAN mercari keyword=ipone broken
+[2026-03-07 18:17:22] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:17:22] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:17:22] SCAN mercari keyword=samsung broken
+[2026-03-07 18:17:23] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:17:23] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:17:23] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:17:24] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:17:24] SCAN mercari keyword=gamecube console
+[2026-03-07 18:17:24] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:17:25] SCAN mercari keyword=game qube
+[2026-03-07 18:17:25] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:17:25] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:17:26] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:17:26] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:17:26] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:17:27] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:17:27] SCAN offerup term=iphone
+[2026-03-07 18:17:27] SCAN offerup term=samsung
+[2026-03-07 18:17:28] SCAN offerup term=ps5
+[2026-03-07 18:17:28] SCAN offerup term=gamecube
+[2026-03-07 18:17:28] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:17:28] LOOP deals_returned=14
+[2026-03-07 18:17:58] PARALLEL_SCAN terms=72
+[2026-03-07 18:18:07] SCAN_RESULT deals=14
+[2026-03-07 18:18:07] SCAN mercari keyword=iphone broken
+[2026-03-07 18:18:07] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:18:07] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:18:08] SCAN mercari keyword=iphone lot
+[2026-03-07 18:18:08] SCAN mercari keyword=ifone broken
+[2026-03-07 18:18:08] SCAN mercari keyword=iphne broken
+[2026-03-07 18:18:09] SCAN mercari keyword=i phon broken
+[2026-03-07 18:18:09] SCAN mercari keyword=ipone broken
+[2026-03-07 18:18:09] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:18:10] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:18:10] SCAN mercari keyword=samsung broken
+[2026-03-07 18:18:10] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:18:11] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:18:11] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:18:11] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:18:12] SCAN mercari keyword=gamecube console
+[2026-03-07 18:18:12] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:18:13] SCAN mercari keyword=game qube
+[2026-03-07 18:18:13] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:18:13] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:18:14] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:18:14] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:18:14] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:18:15] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:18:15] SCAN offerup term=iphone
+[2026-03-07 18:18:15] SCAN offerup term=samsung
+[2026-03-07 18:18:15] SCAN offerup term=ps5
+[2026-03-07 18:18:16] SCAN offerup term=gamecube
+[2026-03-07 18:18:16] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:18:16] LOOP deals_returned=14
+[2026-03-07 18:18:46] PARALLEL_SCAN terms=72
+[2026-03-07 18:18:55] SCAN_RESULT deals=14
+[2026-03-07 18:18:55] SCAN mercari keyword=iphone broken
+[2026-03-07 18:18:55] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:18:55] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:18:56] SCAN mercari keyword=iphone lot
+[2026-03-07 18:18:56] SCAN mercari keyword=ifone broken
+[2026-03-07 18:18:56] SCAN mercari keyword=iphne broken
+[2026-03-07 18:18:57] SCAN mercari keyword=i phon broken
+[2026-03-07 18:18:57] SCAN mercari keyword=ipone broken
+[2026-03-07 18:18:57] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:18:58] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:18:58] SCAN mercari keyword=samsung broken
+[2026-03-07 18:18:58] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:18:59] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:18:59] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:18:59] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:19:00] SCAN mercari keyword=gamecube console
+[2026-03-07 18:19:00] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:19:00] SCAN mercari keyword=game qube
+[2026-03-07 18:19:01] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:19:01] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:19:01] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:19:02] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:19:02] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:19:02] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:19:02] SCAN offerup term=iphone
+[2026-03-07 18:19:03] SCAN offerup term=samsung
+[2026-03-07 18:19:03] SCAN offerup term=ps5
+[2026-03-07 18:19:04] SCAN offerup term=gamecube
+[2026-03-07 18:19:04] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:19:04] LOOP deals_returned=14
+[2026-03-07 18:19:34] PARALLEL_SCAN terms=72
+[2026-03-07 18:19:42] SCAN_RESULT deals=16
+[2026-03-07 18:19:42] SCAN mercari keyword=iphone broken
+[2026-03-07 18:19:43] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:19:43] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:19:43] SCAN mercari keyword=iphone lot
+[2026-03-07 18:19:44] SCAN mercari keyword=ifone broken
+[2026-03-07 18:19:44] SCAN mercari keyword=iphne broken
+[2026-03-07 18:19:44] SCAN mercari keyword=i phon broken
+[2026-03-07 18:19:45] SCAN mercari keyword=ipone broken
+[2026-03-07 18:19:45] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:19:45] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:19:46] SCAN mercari keyword=samsung broken
+[2026-03-07 18:19:46] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:19:46] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:19:47] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:19:47] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:19:47] SCAN mercari keyword=gamecube console
+[2026-03-07 18:19:48] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:19:48] SCAN mercari keyword=game qube
+[2026-03-07 18:19:48] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:19:49] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:19:49] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:19:49] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:19:50] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:19:50] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:19:50] SCAN offerup term=iphone
+[2026-03-07 18:19:50] SCAN offerup term=samsung
+[2026-03-07 18:19:51] SCAN offerup term=ps5
+[2026-03-07 18:19:51] SCAN offerup term=gamecube
+[2026-03-07 18:19:51] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:19:51] LOOP deals_returned=16
+[2026-03-07 18:19:52] SOLD_MEDIAN model=iphone 8 plus rose gold powers on needs restored - as is for parts/repair median=29.95 samples=20
+[2026-03-07 18:20:22] PARALLEL_SCAN terms=72
+[2026-03-07 18:20:31] SCAN_RESULT deals=17
+[2026-03-07 18:20:31] SCAN mercari keyword=iphone broken
+[2026-03-07 18:20:31] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:20:31] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:20:32] SCAN mercari keyword=iphone lot
+[2026-03-07 18:20:32] SCAN mercari keyword=ifone broken
+[2026-03-07 18:20:32] SCAN mercari keyword=iphne broken
+[2026-03-07 18:20:33] SCAN mercari keyword=i phon broken
+[2026-03-07 18:20:33] SCAN mercari keyword=ipone broken
+[2026-03-07 18:20:33] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:20:34] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:20:34] SCAN mercari keyword=samsung broken
+[2026-03-07 18:20:34] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:20:35] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:20:35] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:20:35] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:20:36] SCAN mercari keyword=gamecube console
+[2026-03-07 18:20:36] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:20:36] SCAN mercari keyword=game qube
+[2026-03-07 18:20:37] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:20:37] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:20:37] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:20:38] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:20:38] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:20:38] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:20:38] SCAN offerup term=iphone
+[2026-03-07 18:20:39] SCAN offerup term=samsung
+[2026-03-07 18:20:39] SCAN offerup term=ps5
+[2026-03-07 18:20:40] SCAN offerup term=gamecube
+[2026-03-07 18:20:40] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:20:40] LOOP deals_returned=17
+[2026-03-07 18:21:10] PARALLEL_SCAN terms=72
+[2026-03-07 18:21:19] SCAN_RESULT deals=17
+[2026-03-07 18:21:19] SCAN mercari keyword=iphone broken
+[2026-03-07 18:21:19] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:21:19] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:21:20] SCAN mercari keyword=iphone lot
+[2026-03-07 18:21:20] SCAN mercari keyword=ifone broken
+[2026-03-07 18:21:20] SCAN mercari keyword=iphne broken
+[2026-03-07 18:21:21] SCAN mercari keyword=i phon broken
+[2026-03-07 18:21:21] SCAN mercari keyword=ipone broken
+[2026-03-07 18:21:21] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:21:22] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:21:22] SCAN mercari keyword=samsung broken
+[2026-03-07 18:21:22] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:21:23] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:21:23] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:21:23] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:21:24] SCAN mercari keyword=gamecube console
+[2026-03-07 18:21:24] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:21:24] SCAN mercari keyword=game qube
+[2026-03-07 18:21:25] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:21:25] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:21:25] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:21:26] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:21:26] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:21:26] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:21:26] SCAN offerup term=iphone
+[2026-03-07 18:21:27] SCAN offerup term=samsung
+[2026-03-07 18:21:27] SCAN offerup term=ps5
+[2026-03-07 18:21:28] SCAN offerup term=gamecube
+[2026-03-07 18:21:28] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:21:28] LOOP deals_returned=17
+[2026-03-07 18:21:58] PARALLEL_SCAN terms=72
+[2026-03-07 18:22:06] SCAN_RESULT deals=17
+[2026-03-07 18:22:06] SCAN mercari keyword=iphone broken
+[2026-03-07 18:22:07] SCAN mercari keyword=iphone cracked
+[2026-03-07 18:22:07] SCAN mercari keyword=iphone for parts
+[2026-03-07 18:22:07] SCAN mercari keyword=iphone lot
+[2026-03-07 18:22:08] SCAN mercari keyword=ifone broken
+[2026-03-07 18:22:08] SCAN mercari keyword=iphne broken
+[2026-03-07 18:22:08] SCAN mercari keyword=i phon broken
+[2026-03-07 18:22:09] SCAN mercari keyword=ipone broken
+[2026-03-07 18:22:09] SCAN mercari keyword=iphnoe broken
+[2026-03-07 18:22:09] SCAN mercari keyword=ifhone broken
+[2026-03-07 18:22:10] SCAN mercari keyword=samsung broken
+[2026-03-07 18:22:10] SCAN mercari keyword=samsung cracked
+[2026-03-07 18:22:10] SCAN mercari keyword=samsung for parts
+[2026-03-07 18:22:11] SCAN mercari keyword=ps5 broken
+[2026-03-07 18:22:11] SCAN mercari keyword=playstaton 5
+[2026-03-07 18:22:11] SCAN mercari keyword=gamecube console
+[2026-03-07 18:22:12] SCAN mercari keyword=gamecube bundle
+[2026-03-07 18:22:12] SCAN mercari keyword=game qube
+[2026-03-07 18:22:12] SCAN mercari keyword=pokemon card lot
+[2026-03-07 18:22:13] SCAN mercari keyword=pokeman cards
+[2026-03-07 18:22:13] SCAN mercari keyword=dewalt tools
+[2026-03-07 18:22:13] SCAN mercari keyword=dewlat tools
+[2026-03-07 18:22:14] SCAN mercari keyword=milwaukee tool lot
+[2026-03-07 18:22:14] MERCARI_SCAN_RESULT deals=0
+[2026-03-07 18:22:14] SCAN offerup term=iphone
+[2026-03-07 18:22:14] SCAN offerup term=samsung
+[2026-03-07 18:22:15] SCAN offerup term=ps5
+[2026-03-07 18:22:15] SCAN offerup term=gamecube
+[2026-03-07 18:22:15] OFFERUP_SCAN_RESULT deals=0
+[2026-03-07 18:22:15] LOOP deals_returned=17

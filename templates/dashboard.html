@@ -83,6 +83,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
     <div class="nav-links">
         <a href="/app?email={{email}}">Analyze</a>
+        <a href="/radar?email={{email}}">Radar</a>
         <a href="/settings?email={{email}}">Settings</a>
         <a href="/account?email={{email}}">Account</a>
     </div>
@@ -103,6 +104,33 @@ document.addEventListener("DOMContentLoaded", function(){
     {% if error %}
     <div class="error-box">{{ error }}</div>
     {% endif %}
+
+    <div class="compact-box radar-preview-box">
+        <div class="radar-preview-head">
+            <div>
+                <div class="section-kicker">Live Deal Alerts</div>
+                <div class="radar-status-line">
+                    <span class="radar-status-dot {{ 'online' if radar_status.live else 'offline' }}"></span>
+                    <strong>{{ 'Radar Live' if radar_status.live else 'Radar Waiting' }}</strong>
+                    {% if radar_status.last_success %}<span>· Last success {{ radar_status.last_success }}</span>{% endif %}
+                </div>
+            </div>
+            <a class="radar-open-link" href="/radar?email={{email}}">Open Radar →</a>
+        </div>
+        {% if radar_deals %}
+        <div class="radar-preview-list">
+            {% for deal in radar_deals %}
+            <div class="radar-mini-card">
+                <div class="radar-mini-title">{{ deal.title }}</div>
+                <div class="radar-mini-meta">{{ deal.source or deal.market }} · Buy ${{ '%.2f'|format(deal.price|float) }} · Profit ${{ '%.2f'|format(deal.profit|float) }} · Edge {{ deal.edge_score }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="upload-note">No vetted live alerts yet. As the worker scans and filters deals, they will appear here and in Discord.</div>
+        {% endif %}
+    </div>
+
 
     <form id="analyzer-form" method="post" action="/app" enctype="multipart/form-data">
         <input type="hidden" name="email" value="{{email}}">
@@ -362,6 +390,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
 <div class="mobile-nav">
     <a href="/app?email={{email}}"><span>Analyze</span></a>
+    <a href="/radar?email={{email}}"><span>Radar</span></a>
     <a href="/settings?email={{email}}"><span>Settings</span></a>
     <a href="/account?email={{email}}"><span>Account</span></a>
 </div>

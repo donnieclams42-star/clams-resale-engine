@@ -1,8 +1,14 @@
 from typing import List, Optional
 import os
 import re
+import sys
+import json
+import time
+import threading
 import base64
-from datetime import date
+from uuid import uuid4
+from datetime import date, datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
@@ -31,7 +37,208 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
+
+# ---------- RADAR INTEGRATION ----------
+
+RADAR_DIR = os.path.join(BASE_DIR, "dj_deal_project")
+RADAR_CACHE_DIR = os.path.join(BASE_DIR, "cache")
+RADAR_RESULTS_FILE = os.path.join(RADAR_CACHE_DIR, "radar_results.json")
+RADAR_STATUS_FILE = os.path.join(RADAR_CACHE_DIR, "radar_status.json")
+os.makedirs(RADAR_CACHE_DIR, exist_ok=True)
+
+_radar_thread = None
+_radar_started = False
+_radar_lock = threading.Lock()
+_radar_file_lock = threading.Lock()
+_radar_cycle_count = 0
+
+
+def _read_json_file(path, default):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+
+def _write_json_file(path, data):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    payload = json.dumps(data, indent=2, ensure_ascii=False)
+    with _radar_file_lock:
+        tmp_path = f"{path}.{uuid4().hex}.tmp"
+        for attempt in range(5):
+            try:
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    f.write(payload)
+                os.replace(tmp_path, path)
+                return
+            except PermissionError:
+                try:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                except Exception:
+                    pass
+                time.sleep(0.15 * (attempt + 1))
+        raise
+
+
+def get_radar_status():
+    status = _read_json_file(RADAR_STATUS_FILE, {}) or {}
+    last_success = status.get("last_success")
+    live = False
+    if last_success:
+        try:
+            last_dt = datetime.fromisoformat(last_success)
+            live = (datetime.utcnow() - last_dt).total_seconds() < 3600
+        except Exception:
+            live = False
+    status.setdefault("status", "idle")
+    status.setdefault("message", "Radar idle")
+    status.setdefault("sources", [])
+    status.setdefault("deals_found_today", 0)
+    status["live"] = live
+    return status
+
+
+def get_radar_results(limit=None):
+    deals = _read_json_file(RADAR_RESULTS_FILE, []) or []
+    if limit is not None:
+        return deals[:limit]
+    return deals
+
+
+def get_radar_dashboard_context(limit=4):
+    return {
+        "radar_status": get_radar_status(),
+        "radar_deals": get_radar_results(limit=limit),
+    }
+
+
+def _update_radar_status(**kwargs):
+    current = get_radar_status()
+    current.update(kwargs)
+    current["updated_at"] = datetime.utcnow().isoformat()
+    _write_json_file(RADAR_STATUS_FILE, current)
+
+
+def _run_radar_cycle():
+    global _radar_cycle_count
+    _radar_cycle_count += 1
+
+    if RADAR_DIR not in sys.path:
+        sys.path.insert(0, RADAR_DIR)
+
+    import config as radar_config
+    from scanners.ebay_scanner import scan_ebay
+    from scanners.mercari_scanner import scan_mercari
+    from scanners.offerup_scanner import scan_offerup
+    from scanners.fb_scanner import scan_facebook
+    from filters.profit_filter import evaluate_profit
+    from filters.scam_filter import is_scam_listing
+    from alerts.discord_alert import send_discord_alert
+    from utils.seen_deals import filter_new
+
+    fb_frequency = max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 3) or 3))
+    scanner_jobs = [
+        ("eBay", scan_ebay),
+        ("Mercari", scan_mercari),
+        ("OfferUp", scan_offerup),
+    ]
+    if _radar_cycle_count % fb_frequency == 0:
+        scanner_jobs.append(("Facebook", scan_facebook))
+
+    raw_deals = []
+    active_sources = []
+    with ThreadPoolExecutor(max_workers=len(scanner_jobs)) as executor:
+        futures = {executor.submit(fn): label for label, fn in scanner_jobs}
+        for future in as_completed(futures):
+            label = futures[future]
+            try:
+                deals = future.result() or []
+                raw_deals.extend(deals)
+                active_sources.append(label)
+            except Exception as e:
+                _update_radar_status(last_error=f"{label}: {e}")
+
+    new_deals = filter_new(raw_deals)
+    approved = []
+    for deal in new_deals:
+        try:
+            title = str(deal.get("title", "") or "")
+            if title and is_scam_listing(title):
+                continue
+            result = evaluate_profit(deal)
+            if not result:
+                continue
+            result["source"] = result.get("source") or result.get("market") or deal.get("market") or ""
+            result["url"] = result.get("url") or result.get("link") or deal.get("link") or deal.get("url") or ""
+            result["edge_score"] = int(round(float(result.get("deal_score", 0) or 0)))
+            approved.append(result)
+        except Exception as e:
+            _update_radar_status(last_error=f"filter: {e}")
+
+    approved.sort(key=lambda d: (float(d.get("edge_score", 0)), float(d.get("profit", 0))), reverse=True)
+    approved = approved[:50]
+    _write_json_file(RADAR_RESULTS_FILE, approved)
+
+    status_msg = f"{len(approved)} vetted deals ready" if approved else "No vetted deals in the latest cycle"
+    _update_radar_status(
+        running=True,
+        live=True,
+        status="live",
+        message=status_msg,
+        last_cycle=datetime.utcnow().isoformat(),
+        last_success=datetime.utcnow().isoformat(),
+        deals_found_today=len(approved),
+        sources=active_sources,
+        last_error="",
+    )
+
+    if approved:
+        alert_errors = []
+        for deal in approved[: min(5, len(approved))]:
+            try:
+                send_discord_alert(deal)
+            except Exception as e:
+                alert_errors.append(str(e))
+        if alert_errors:
+            _update_radar_status(last_error="; ".join(alert_errors[:3]))
+
+    return approved
+
+
+def _radar_background_loop():
+    while True:
+        try:
+            _update_radar_status(running=True, status="scanning", message="Scanning for vetted deals...")
+            deals = _run_radar_cycle()
+            wait_time = 900 if deals else 1800
+        except Exception as e:
+            _update_radar_status(running=False, status="error", message="Radar hit an error", last_error=str(e), last_cycle=datetime.utcnow().isoformat())
+            wait_time = 1800
+        time.sleep(wait_time)
+
+
+@app.on_event("startup")
+def start_radar_background_worker():
+    global _radar_thread, _radar_started
+    if os.getenv("RADAR_AUTOSTART", "1") != "1":
+        _update_radar_status(running=False, status="disabled", message="Radar autostart is disabled")
+        return
+    with _radar_lock:
+        if _radar_started:
+            return
+        _radar_started = True
+        _radar_thread = threading.Thread(target=_radar_background_loop, daemon=True, name="clams-radar-worker")
+        _radar_thread.start()
+        try:
+            _update_radar_status(running=True, status="starting", message="Radar worker booting...")
+        except Exception:
+            pass
+
+
 # ---------- FALLBACK USER STORAGE ----------
+
 
 users = {}
 
@@ -718,6 +925,7 @@ async def app_page(request: Request, email: str = ""):
             "free_limit": FREE_LIMIT,
             "pro_price": PRO_PRICE,
             "reseller_price": RESELLER_PRICE,
+            **get_radar_dashboard_context(),
             **plan_ui,
         },
     )
@@ -886,7 +1094,30 @@ async def analyze(
             "free_limit": FREE_LIMIT,
             "pro_price": PRO_PRICE,
             "reseller_price": RESELLER_PRICE,
+            **get_radar_dashboard_context(),
             **plan_ui,
+        },
+    )
+
+
+# ---------- RADAR PAGE ----------
+
+@app.get("/radar", response_class=HTMLResponse)
+async def radar_page(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
+    user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
+    return templates.TemplateResponse(
+        "radar.html",
+        {
+            "request": request,
+            "email": email,
+            "user": user,
+            "radar_status": get_radar_status(),
+            "radar_deals": get_radar_results(limit=50),
         },
     )
 

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar | Market Radar | CLAMS Intelligence</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="header">
+    <div class="logo">
+        <div class="logo-main">Market Radar</div>
+        <div class="logo-sub">Powered by CLAMS Intelligence</div>
+        <div class="logo-quote">Discord-first vetted alerts with app-side status tracking.</div>
+    </div>
+    <div class="nav-links">
+        <a href="/app?email={{email}}">Analyze</a>
+        <a href="/radar?email={{email}}">Radar</a>
+        <a href="/settings?email={{email}}">Settings</a>
+        <a href="/account?email={{email}}">Account</a>
+    </div>
+</div>
+<div class="app-container compact-app">
+    <div class="radar-page-top compact-box">
+        <div>
+            <div class="section-kicker">CLAMS Deal Radar</div>
+            <h1 class="radar-page-title">Live vetted deal alerts</h1>
+            <div class="radar-page-sub">Alerts are written to app cache, sent to Discord, and shown here. Discord is notified first, but it is not the system of record.</div>
+        </div>
+        <div class="radar-health-card {{ 'is-live' if radar_status.live else 'is-offline' }}">
+            <div class="radar-health-label">Service Status</div>
+            <div class="radar-health-main">{{ 'LIVE' if radar_status.live else 'WAITING' }}</div>
+            <div class="radar-health-sub">{{ radar_status.message }}</div>
+            {% if radar_status.last_success %}<div class="radar-health-sub">Last success: {{ radar_status.last_success }}</div>{% endif %}
+            {% if radar_status.sources %}<div class="radar-health-sub">Sources: {{ radar_status.sources|join(', ') }}</div>{% endif %}
+            {% if radar_status.last_error %}<div class="radar-health-error">Last error: {{ radar_status.last_error }}</div>{% endif %}
+        </div>
+    </div>
+
+    {% if radar_deals %}
+    <div class="radar-grid">
+        {% for deal in radar_deals %}
+        <div class="radar-deal-card">
+            <div class="radar-deal-top">
+                <div class="radar-deal-source">{{ deal.source or deal.market }}</div>
+                <div class="radar-deal-score">Edge {{ deal.edge_score or deal.deal_score }}</div>
+            </div>
+            <div class="radar-deal-title">{{ deal.title }}</div>
+            <div class="radar-metrics-row">
+                <div class="radar-metric"><span>Buy</span><strong>${{ '%.2f'|format(deal.price|float) }}</strong></div>
+                <div class="radar-metric"><span>Value</span><strong>${{ '%.2f'|format(deal.market_value|float) }}</strong></div>
+                <div class="radar-metric"><span>Profit</span><strong>${{ '%.2f'|format(deal.profit|float) }}</strong></div>
+            </div>
+            <div class="radar-deal-bottom">
+                {% if deal.url %}<a href="{{ deal.url }}" target="_blank">Open listing</a>{% elif deal.link %}<a href="{{ deal.link }}" target="_blank">Open listing</a>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="compact-box">
+        <div class="section-kicker">No alerts yet</div>
+        <p class="tool-intro">The radar worker is live, but it has not found a deal that passed the profit and scam filters yet. That is normal during a fresh boot.</p>
+    </div>
+    {% endif %}
+</div>
+<div class="mobile-nav">
+    <a href="/app?email={{email}}"><span>Analyze</span></a>
+    <a href="/radar?email={{email}}"><span>Radar</span></a>
+    <a href="/settings?email={{email}}"><span>Settings</span></a>
+    <a href="/account?email={{email}}"><span>Account</span></a>
+</div>
+</body>
+</html>
