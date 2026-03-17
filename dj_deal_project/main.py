@@ -1,3 +1,4 @@
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -100,11 +101,10 @@ def process_deals(deals: list[dict]) -> list[dict]:
             log_event(f"PROFIT_FILTER_ERROR title={title[:80]} error={e}")
             continue
 
- if evaluated is None:
-    evaluated = deal
-    evaluated["profit"] = 0
+        if not evaluated:
+            continue
 
-profitable.append(evaluated)
+        profitable.append(evaluated)
 
     profitable.sort(
         key=lambda d: (
@@ -171,20 +171,9 @@ def main() -> None:
         time.sleep(wait_time)
 
 
-
-import threading
-
-def start_background_radar():
-    try:
-        t = threading.Thread(target=main, daemon=True)
-        t.start()
-        log_event("RADAR BACKGROUND THREAD STARTED")
-    except Exception as e:
-        log_event(f"RADAR_START_ERROR {e}")
-
-# When running under Uvicorn / Render (module import), auto-start radar
-if __name__ != "__main__":
-    start_background_radar()
-
 if __name__ == "__main__":
     main()
+
+def start_radar_background():
+    thread = threading.Thread(target=run_radar, daemon=True)
+    thread.start()
