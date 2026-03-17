@@ -19,9 +19,10 @@ from ebay import search_ebay
 from market_analysis import analyze_market
 from listing_generator import generate_listings
 
-# from openai import OpenAIimport stripe
-from supabase import create_client, Client
 
+# from openai import OpenAI
+import stripe
+from supabase import create_client, Client
 
 app = FastAPI()
 
