@@ -114,13 +114,21 @@ def scan_facebook():
                 continue
 
             price = extract_price(text)
+            # LOOSENED FILTER (SAFE)
             if price is None:
-                continue
-            if price < MIN_PRICE or price > MAX_PRICE:
-                continue
+                # allow no-price listings if strong signal
+                if not _text_has_loose_signal(text, keyword):
+                    continue
+            else:
+                # widen price bounds instead of strict cut
+                if price < (MIN_PRICE * 0.5) or price > (MAX_PRICE * 1.5):
+                    continue
 
+            # loosen candidate requirement
             if not is_deal_candidate(text) and not _text_has_loose_signal(text, keyword):
-                continue
+                # allow weak matches occasionally
+                if "lot" not in text and "bundle" not in text:
+                    continue
 
             seen_links.add(link)
             deals.append({
