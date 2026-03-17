@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Market Radar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f1115;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 5px;
+        }
+
+        .sub {
+            color: #aaa;
+            margin: 5px 0;
+        }
+
+        .tagline {
+            font-size: 14px;
+            color: #777;
+        }
+
+        .search-box {
+            margin-top: 25px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 6px;
+            border: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #00c853;
+            color: #fff;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Market Radar</h1>
+        <p class="sub">Powered by CLAMS Intelligence</p>
+        <p class="tagline">Discord-first vetted alerts with app-side status tracking.</p>
+
+        <div style="margin-top:10px; font-size:14px; color:#aaa;">
+            <p id="motivation-text">Scanning for opportunity...</p>
+        </div>
+    </div>
+
+    <div class="search-box">
+        <form method="POST">
+            <input type="text" name="query" placeholder="Search item...">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+<script>
+const messages = [
+    "Deals don’t wait. Neither should you.",
+    "You’re one deal away from momentum.",
+    "Fast cash > perfect plan.",
+    "Someone is underpricing something right now.",
+    "Scan. Decide. Execute.",
+    "Discipline beats luck in this game."
+];
+
+let index = 0;
+
+function rotateMessage() {
+    const el = document.getElementById("motivation-text");
+    if (!el) return;
+
+    el.textContent = messages[index];
+    index = (index + 1) % messages.length;
+}
+
+setInterval(rotateMessage, 4000);
+rotateMessage();
+</script>
+
+</body>
+</html>
