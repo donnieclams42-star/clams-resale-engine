@@ -26,6 +26,10 @@ ENABLE_EBAY_AUCTIONS = getattr(config, "ENABLE_EBAY_AUCTIONS", True)
 ENABLE_MERCARI = getattr(config, "ENABLE_MERCARI", True)
 ENABLE_CRAIGSLIST = getattr(config, "ENABLE_CRAIGSLIST", True)
 ENABLE_OFFERUP = getattr(config, "ENABLE_OFFERUP", False)
+ENABLE_FACEBOOK = getattr(config, "ENABLE_FACEBOOK", True)
+
+_radar_thread = None
+_radar_lock = threading.Lock()
 
 
 def _run_named_scan(name: str, func):
@@ -54,11 +58,14 @@ def run_market_scans(cycle: int) -> list[dict]:
     if ENABLE_OFFERUP:
         scan_jobs.append(("OFFERUP", scan_offerup))
 
-    if cycle % FB_SCAN_FREQUENCY == 0:
-        scan_jobs.append(("FACEBOOK", scan_facebook))
-        log_event("FACEBOOK SCAN ACTIVE THIS CYCLE")
+    if ENABLE_FACEBOOK:
+        if cycle % FB_SCAN_FREQUENCY == 0:
+            scan_jobs.append(("FACEBOOK", scan_facebook))
+            log_event("FACEBOOK SCAN ACTIVE THIS CYCLE")
+        else:
+            log_event("FACEBOOK SKIPPED THIS CYCLE")
     else:
-        log_event("FACEBOOK SKIPPED THIS CYCLE")
+        log_event("FACEBOOK DISABLED")
 
     if not scan_jobs:
         log_event("NO SCANNERS ENABLED")
@@ -135,9 +142,8 @@ def send_top_alerts(deals: list[dict]) -> int:
     return sent
 
 
-def main() -> None:
+def run_radar() -> None:
     cycle = 0
-
     log_event("D&J DEAL RADAR STARTED")
 
     while True:
@@ -147,33 +153,44 @@ def main() -> None:
         raw_deals = run_market_scans(cycle)
         log_event(f"RAW DEALS FOUND {len(raw_deals)}")
 
-        # First dedupe pass: stop repeated raw listings immediately
         unique_raw = filter_new(raw_deals)
         log_event(f"UNIQUE RAW DEALS {len(unique_raw)}")
 
         profitable = process_deals(unique_raw)
         log_event(f"PROFITABLE DEALS {len(profitable)}")
 
-        # Optional second dedupe pass after enrichment
         fresh_profitable = filter_new(profitable)
         log_event(f"FRESH PROFITABLE DEALS {len(fresh_profitable)}")
 
         sent_count = send_top_alerts(fresh_profitable)
         log_event(f"ALERTS SENT {sent_count}")
 
-        if len(fresh_profitable) >= 15:
-            log_event("HIGH ACTIVITY MARKET")
-            wait_time = 10
-        else:
-            wait_time = SCAN_INTERVAL
-
+        wait_time = 10 if len(fresh_profitable) >= 15 else SCAN_INTERVAL
         log_event(f"WAITING {wait_time} SECONDS")
         time.sleep(wait_time)
 
 
+def start_radar_background() -> threading.Thread:
+    global _radar_thread
+
+    with _radar_lock:
+        if _radar_thread and _radar_thread.is_alive():
+            log_event("RADAR BACKGROUND THREAD ALREADY RUNNING")
+            return _radar_thread
+
+        _radar_thread = threading.Thread(
+            target=run_radar,
+            name="market-radar-thread",
+            daemon=True,
+        )
+        _radar_thread.start()
+        log_event("RADAR BACKGROUND THREAD STARTED")
+        return _radar_thread
+
+
+def main() -> None:
+    run_radar()
+
+
 if __name__ == "__main__":
     main()
-
-def start_radar_background():
-    thread = threading.Thread(target=run_radar, daemon=True)
-    thread.start()
