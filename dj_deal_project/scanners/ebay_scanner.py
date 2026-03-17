@@ -1,3 +1,5 @@
+print("🔥 EBAY PATCH LOADED")
+
 import requests
 
 from keywords.keyword_engine import get_keywords_for_cycle
