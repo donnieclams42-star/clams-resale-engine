@@ -100,10 +100,11 @@ def process_deals(deals: list[dict]) -> list[dict]:
             log_event(f"PROFIT_FILTER_ERROR title={title[:80]} error={e}")
             continue
 
-        if not evaluated:
-            continue
+ if evaluated is None:
+    evaluated = deal
+    evaluated["profit"] = 0
 
-        profitable.append(evaluated)
+profitable.append(evaluated)
 
     profitable.sort(
         key=lambda d: (
