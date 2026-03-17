@@ -19,8 +19,7 @@ from ebay import search_ebay
 from market_analysis import analyze_market
 from listing_generator import generate_listings
 
-from openai import OpenAI
-import stripe
+# from openai import OpenAIimport stripe
 from supabase import create_client, Client
 
 
@@ -132,13 +131,34 @@ def _set_analysis_cache(cache):
 
 def _clean_radar_query(deal: dict) -> str:
     query = str(deal.get("search_keyword") or "").strip().lower()
-    if query:
-        return query
+    source = str(deal.get("source") or deal.get("market") or "").strip().lower()
     title = str(deal.get("title") or "").lower()
     title = re.sub(r"\$[\d,]+(?:\.\d{1,2})?", " ", title)
     title = re.sub(r"[^a-z0-9 ]+", " ", title)
     title = re.sub(r"\s+", " ", title).strip()
-    return " ".join(title.split()[:6])
+    cleaned_title = " ".join(title.split()[:6])
+    if source == "facebook" and cleaned_title:
+        return cleaned_title
+    if query:
+        return query
+    return cleaned_title
+
+
+def _is_loose_fb_candidate(deal: dict, profit: float, margin: float) -> bool:
+    source = str(deal.get("source") or deal.get("market") or "").strip().lower()
+    if source != "facebook":
+        return False
+    title = str(deal.get("title") or "").lower()
+    keyword = str(deal.get("search_keyword") or "").lower()
+    text = f"{title} {keyword}".strip()
+    trigger_terms = [
+        "bundle", "lot", "broken", "cracked", "untested", "as is", "for parts", "parts only",
+        "locked", "icloud", "no power", "must sell", "moving", "garage sale", "estate", "cheap",
+        "no charger", "no cords", "random electronics", "junk drawer", "tool bundle", "video game lot",
+    ]
+    low_price = float(deal.get("price") or 0) <= 120
+    triggered = any(term in text for term in trigger_terms)
+    return triggered and (profit >= 10 or margin >= 0.05 or low_price)
 
 
 def _source_enabled_for_cycle(source_name: str, cycle_count: int, radar_config) -> bool:
@@ -181,8 +201,13 @@ def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
     margin = profit / asking_price if asking_price > 0 else 0
     min_profit = float(getattr(radar_config, "MIN_PROFIT", 35) or 35)
     min_margin = float(getattr(radar_config, "RADAR_MIN_MARGIN", 0.25) or 0.25)
+    source_name = str(deal.get("source") or deal.get("market") or "").strip().lower()
+    if source_name == "facebook":
+        min_profit = float(getattr(radar_config, "FB_MIN_PROFIT", 10) or 10)
+        min_margin = float(getattr(radar_config, "FB_MIN_MARGIN", 0.05) or 0.05)
     if profit < min_profit or margin < min_margin:
-        return None
+        if not _is_loose_fb_candidate(deal, profit, margin):
+            return None
     result = dict(deal)
     result["market_value"] = round(float(analysis.get("local_market_value") or analysis.get("market_price") or 0), 2)
     result["resale"] = result["market_value"]
@@ -699,8 +724,7 @@ def get_plan_ui_context(user: dict):
 # ---------- OPENAI CLIENT ----------
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
-
+client = None
 
 # ---------- IMAGE DETECTION ----------
 
