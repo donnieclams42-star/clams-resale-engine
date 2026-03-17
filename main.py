@@ -278,6 +278,10 @@ def _run_radar_cycle():
                 _update_radar_status(last_error=f"{label}: {e}")
 
     new_deals = filter_new(raw_deals)
+    _update_radar_status(
+        raw_deals_this_cycle=len(raw_deals),
+        new_raw_deals_this_cycle=len(new_deals),
+    )
     analysis_cache = _get_analysis_cache()
     max_calls = int(getattr(radar_config, "RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", 6) or 6)
     approved = []
@@ -305,12 +309,33 @@ def _run_radar_cycle():
             _update_radar_status(last_error=f"analysis: {e}")
 
     _set_analysis_cache(analysis_cache)
-    approved = filter_new(approved)
+
+    # Do NOT persistently filter approved deals a second time.
+    # raw_deals were already deduped via filter_new(raw_deals) above.
+    # A second persistent filter here can hide legitimate approved deals.
+    seen_cycle = set()
+    unique_approved = []
+    for deal in approved:
+        key = (
+            str(deal.get("url") or deal.get("link") or "").strip().lower(),
+            str(deal.get("title") or "").strip().lower(),
+            round(float(deal.get("price") or 0), 2),
+        )
+        if key in seen_cycle:
+            continue
+        seen_cycle.add(key)
+        unique_approved.append(deal)
+
+    approved = unique_approved
     approved.sort(key=lambda d: (float(d.get("edge_score", 0)), float(d.get("profit", 0))), reverse=True)
     approved = approved[:25]
     _write_json_file(RADAR_RESULTS_FILE, approved)
 
-    status_msg = f"{len(approved)} vetted deals ready" if approved else "No vetted deals in the latest cycle"
+    status_msg = (
+        f"{len(approved)} vetted deals ready from {len(new_deals)} new raw deals"
+        if approved else
+        f"No vetted deals in the latest cycle ({len(new_deals)} new raw deals scanned)"
+    )
     _update_radar_status(
         running=True,
         live=True,
