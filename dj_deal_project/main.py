@@ -1,196 +1,78 @@
-import threading
+
 import time
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import config
+# CONFIG
+SCAN_INTERVAL = 60
+MAX_DEALS = 5
+ENABLE_FACEBOOK = False
 
-from alerts.discord_alert import send_discord_alert
-from filters.profit_filter import evaluate_profit
-from filters.scam_filter import is_scam_listing
-from scanners.craigslist_scanner import scan_craigslist
-from scanners.ebay_auction_scanner import scan_ebay_auctions
-from scanners.ebay_scanner import scan_ebay
-from scanners.fb_scanner import scan_facebook
-from scanners.mercari_scanner import scan_mercari
-from scanners.offerup_scanner import scan_offerup
-from utils.logger import log_event
-from utils.seen_deals import filter_new
+# MOCK SCANNERS (replace with your real ones)
+def scan_ebay():
+    print("[RADAR] EBAY SCAN")
+    return [{"title": "Deal "+str(i)} for i in range(20)]
 
+def scan_mercari():
+    print("[RADAR] MERCARI SCAN")
+    return [{"title": "Mercari "+str(i)} for i in range(10)]
 
-SCAN_INTERVAL = getattr(config, "SCAN_INTERVAL", 60)
-FB_SCAN_FREQUENCY = getattr(config, "FB_SCAN_FREQUENCY", 3)
-ALERT_TOP_N = getattr(config, "ALERT_TOP_N", 5)
+def scan_facebook():
+    print("[RADAR] FACEBOOK SCAN")
+    time.sleep(2)
+    return [{"title": "FB Deal"}]
 
-ENABLE_EBAY = getattr(config, "ENABLE_EBAY", True)
-ENABLE_EBAY_AUCTIONS = getattr(config, "ENABLE_EBAY_AUCTIONS", True)
-ENABLE_MERCARI = getattr(config, "ENABLE_MERCARI", True)
-ENABLE_CRAIGSLIST = getattr(config, "ENABLE_CRAIGSLIST", True)
-ENABLE_OFFERUP = getattr(config, "ENABLE_OFFERUP", False)
-ENABLE_FACEBOOK = getattr(config, "ENABLE_FACEBOOK", True)
+def send_to_discord(deals):
+    print(f"[DISCORD] Sending {len(deals)} deals")
 
-_radar_thread = None
-_radar_lock = threading.Lock()
-
-
-def _run_named_scan(name: str, func):
-    log_event(f"{name} SCAN START")
-    deals = func() or []
-    log_event(f"{name} SCAN DONE deals={len(deals)}")
-    return deals
-
-
-def run_market_scans(cycle: int) -> list[dict]:
-    all_deals: list[dict] = []
-    scan_jobs = []
-
-    if ENABLE_EBAY:
-        scan_jobs.append(("EBAY", scan_ebay))
-
-    if ENABLE_EBAY_AUCTIONS:
-        scan_jobs.append(("EBAY_AUCTIONS", scan_ebay_auctions))
-
-    if ENABLE_MERCARI:
-        scan_jobs.append(("MERCARI", scan_mercari))
-
-    if ENABLE_CRAIGSLIST:
-        scan_jobs.append(("CRAIGSLIST", scan_craigslist))
-
-    if ENABLE_OFFERUP:
-        scan_jobs.append(("OFFERUP", scan_offerup))
-
-    if ENABLE_FACEBOOK:
-        if cycle % FB_SCAN_FREQUENCY == 0:
-            scan_jobs.append(("FACEBOOK", scan_facebook))
-            log_event("FACEBOOK SCAN ACTIVE THIS CYCLE")
-        else:
-            log_event("FACEBOOK SKIPPED THIS CYCLE")
-    else:
-        log_event("FACEBOOK DISABLED")
-
-    if not scan_jobs:
-        log_event("NO SCANNERS ENABLED")
-        return all_deals
-
-    log_event("STARTING PARALLEL SCANS")
-
-    with ThreadPoolExecutor(max_workers=len(scan_jobs)) as executor:
-        future_map = {
-            executor.submit(_run_named_scan, name, func): name
-            for name, func in scan_jobs
-        }
-
-        for future in as_completed(future_map):
-            name = future_map[future]
-            try:
-                deals = future.result() or []
-                all_deals.extend(deals)
-            except Exception as e:
-                log_event(f"{name} ERROR {e}")
-
-    return all_deals
-
-
-def process_deals(deals: list[dict]) -> list[dict]:
-    profitable: list[dict] = []
-
-    for deal in deals:
-        title = str(deal.get("title", "")).strip()
-
-        if not title:
-            continue
-
-        if is_scam_listing(title):
-            continue
-
-        try:
-            evaluated = evaluate_profit(deal)
-        except Exception as e:
-            log_event(f"PROFIT_FILTER_ERROR title={title[:80]} error={e}")
-            continue
-
-        if not evaluated:
-            continue
-
-        profitable.append(evaluated)
-
-    profitable.sort(
-        key=lambda d: (
-            d.get("score", 0),
-            d.get("profit", 0),
-            d.get("resale", 0),
-        ),
-        reverse=True,
-    )
-
-    return profitable
-
-
-def send_top_alerts(deals: list[dict]) -> int:
-    if not deals:
-        return 0
-
-    sent = 0
-    top_deals = deals[:ALERT_TOP_N]
-
-    for deal in top_deals:
-        try:
-            send_discord_alert(deal)
-            sent += 1
-        except Exception as e:
-            log_event(f"ALERT ERROR {e}")
-
-    return sent
-
-
-def run_radar() -> None:
-    cycle = 0
-    log_event("D&J DEAL RADAR STARTED")
+# RADAR LOOP
+def run_radar():
+    print("[RADAR] STARTED")
 
     while True:
-        cycle += 1
-        log_event(f"SCAN CYCLE {cycle}")
+        try:
+            print("[RADAR] NEW CYCLE")
 
-        raw_deals = run_market_scans(cycle)
-        log_event(f"RAW DEALS FOUND {len(raw_deals)}")
+            scan_jobs = {
+                "EBAY": scan_ebay,
+                "MERCARI": scan_mercari,
+            }
 
-        unique_raw = filter_new(raw_deals)
-        log_event(f"UNIQUE RAW DEALS {len(unique_raw)}")
+            if ENABLE_FACEBOOK:
+                scan_jobs["FACEBOOK"] = scan_facebook
 
-        profitable = process_deals(unique_raw)
-        log_event(f"PROFITABLE DEALS {len(profitable)}")
+            all_deals = []
 
-        fresh_profitable = filter_new(profitable)
-        log_event(f"FRESH PROFITABLE DEALS {len(fresh_profitable)}")
+            with ThreadPoolExecutor(max_workers=len(scan_jobs)) as executor:
+                future_map = {
+                    executor.submit(job): name
+                    for name, job in scan_jobs.items()
+                }
 
-        sent_count = send_top_alerts(fresh_profitable)
-        log_event(f"ALERTS SENT {sent_count}")
+                for future in as_completed(future_map, timeout=30):
+                    name = future_map[future]
+                    try:
+                        deals = future.result(timeout=5) or []
+                        print(f"[RADAR] {name} returned {len(deals)} deals")
+                        all_deals.extend(deals)
+                    except Exception as e:
+                        print(f"[RADAR ERROR] {name}: {e}")
 
-        wait_time = 10 if len(fresh_profitable) >= 15 else SCAN_INTERVAL
-        log_event(f"WAITING {wait_time} SECONDS")
-        time.sleep(wait_time)
+            top_deals = all_deals[:MAX_DEALS]
 
+            try:
+                send_to_discord(top_deals)
+            except Exception as e:
+                print(f"[DISCORD ERROR] {e}")
 
-def start_radar_background() -> threading.Thread:
-    global _radar_thread
+            print("[RADAR] SLEEPING...")
+            time.sleep(SCAN_INTERVAL)
 
-    with _radar_lock:
-        if _radar_thread and _radar_thread.is_alive():
-            log_event("RADAR BACKGROUND THREAD ALREADY RUNNING")
-            return _radar_thread
+        except Exception as e:
+            print(f"[RADAR LOOP ERROR] {e}")
+            time.sleep(10)
 
-        _radar_thread = threading.Thread(
-            target=run_radar,
-            name="market-radar-thread",
-            daemon=True,
-        )
-        _radar_thread.start()
-        log_event("RADAR BACKGROUND THREAD STARTED")
-        return _radar_thread
-
-
-def main() -> None:
-    run_radar()
-
-
-if __name__ == "__main__":
-    main()
+# STARTER
+def start_radar():
+    thread = threading.Thread(target=run_radar, daemon=True)
+    thread.start()
