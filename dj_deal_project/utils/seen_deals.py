@@ -1,10 +1,15 @@
+
 import json
 import os
 
 from utils.deal_fingerprint import generate_fingerprint
 
-SEEN_FILE = "seen_deals.json"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CACHE_DIR = os.path.join(BASE_DIR, "cache")
+SEEN_FILE = os.path.join(CACHE_DIR, "seen_deals.json")
 MAX_MEMORY = 5000
+
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 
 def load_seen() -> dict:
@@ -33,7 +38,7 @@ def save_seen(seen: dict) -> None:
     }
 
     with open(SEEN_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
 
 
 def filter_new(deals: list[dict]) -> list[dict]:
@@ -41,7 +46,7 @@ def filter_new(deals: list[dict]) -> list[dict]:
     fresh: list[dict] = []
 
     for deal in deals:
-        link = str(deal.get("link", "")).strip()
+        link = str(deal.get("link") or deal.get("url") or "").strip()
         fingerprint = generate_fingerprint(deal)
 
         if link and link in seen["links"]:
