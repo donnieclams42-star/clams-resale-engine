@@ -1,15 +1,5 @@
-CLAMS CLEAN REBUILT
-
-This package was rebuilt from the uploaded tree and cleaned into a single canonical folder.
-
-Changes made:
-- Removed all __pycache__ folders and compiled .pyc files
-- Removed patch/debris files: clams_auth_patch.diff, tree.txt, new phase text.txt
-- Removed non-program clutter: dj_deal_project/afsd.pdf, dj_deal_project/radar.log, dj_deal_project/radar_log.txt
-- Removed duplicate/empty dj_deal_project/requirements.txt
-- Removed radar_engine.py because it was a simulated/demo file and not part of the live runtime path
-- Patched main.py so every dashboard error return includes radar context, which should prevent the white-page failure on handled image-search errors
-
-Important:
-- This rebuild preserves the app program structure from the uploaded tree under one clean root.
-- The uploaded dj_deal_project/scanners/ebay_scanner.py is still the same file from your source tree. I did not invent new scanner logic.
+patch_v4_full_files_only
+- loosened the radar approval thresholds by source so raw eBay candidates have a better chance to surface
+- expanded and source-focused keyword pools using dj_deal_project/keywords/search_terms.py
+- improved Mercari and OfferUp scanners with stronger HTML + embedded JSON parsing and per-keyword result logging
+- kept full replacement files only; .env not included

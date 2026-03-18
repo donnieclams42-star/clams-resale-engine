@@ -204,14 +204,23 @@ def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
         return None
     profit = float(analysis.get("profit_delta") or 0)
     margin = profit / asking_price if asking_price > 0 else 0
-    min_profit = float(getattr(radar_config, "MIN_PROFIT", 35) or 35)
-    min_margin = float(getattr(radar_config, "RADAR_MIN_MARGIN", 0.25) or 0.25)
     source_name = str(deal.get("source") or deal.get("market") or "").strip().lower()
+    min_profit = float(getattr(radar_config, "MIN_PROFIT", 10) or 10)
+    min_margin = float(getattr(radar_config, "RADAR_MIN_MARGIN", 0.10) or 0.10)
     if source_name == "facebook":
         min_profit = float(getattr(radar_config, "FB_MIN_PROFIT", 10) or 10)
         min_margin = float(getattr(radar_config, "FB_MIN_MARGIN", 0.05) or 0.05)
+    elif source_name == "ebay":
+        min_profit = float(getattr(radar_config, "EBAY_MIN_PROFIT", min_profit) or min_profit)
+        min_margin = float(getattr(radar_config, "EBAY_MIN_MARGIN", min_margin) or min_margin)
+    elif source_name == "mercari":
+        min_profit = float(getattr(radar_config, "MERCARI_MIN_PROFIT", min_profit) or min_profit)
+        min_margin = float(getattr(radar_config, "MERCARI_MIN_MARGIN", min_margin) or min_margin)
+    elif source_name == "offerup":
+        min_profit = float(getattr(radar_config, "OFFERUP_MIN_PROFIT", min_profit) or min_profit)
+        min_margin = float(getattr(radar_config, "OFFERUP_MIN_MARGIN", min_margin) or min_margin)
     if profit < min_profit or margin < min_margin:
-        if not _is_loose_fb_candidate(deal, profit, margin):
+        if source_name != "facebook" or not _is_loose_fb_candidate(deal, profit, margin):
             return None
     result = dict(deal)
     result["market_value"] = round(float(analysis.get("local_market_value") or analysis.get("market_price") or 0), 2)
@@ -275,6 +284,7 @@ def _run_radar_cycle():
                 deals = future.result() or []
                 raw_deals.extend(deals)
                 active_sources.append(label)
+                _update_radar_status(message=f"{label} returned {len(deals)} raw deals", source_state=source_state)
                 source_state[label] = {"last_success": datetime.utcnow().isoformat(), "cooldown_until": 0, "last_error": ""}
             except Exception as e:
                 cooldown = int(getattr(radar_config, "SOURCE_FAILURE_COOLDOWN_SECONDS", 1800) or 1800)
@@ -336,9 +346,9 @@ def _run_radar_cycle():
     _write_json_file(RADAR_RESULTS_FILE, approved)
 
     status_msg = (
-        f"{len(approved)} vetted deals ready from {len(new_deals)} new raw deals"
+        f"{len(approved)} vetted deals ready from {len(new_deals)} new raw deals (analysis calls: {analysis_calls})"
         if approved else
-        f"No vetted deals in the latest cycle ({len(new_deals)} new raw deals scanned)"
+        f"No vetted deals in the latest cycle ({len(new_deals)} new raw deals scanned, analysis calls: {analysis_calls})"
     )
     _update_radar_status(
         running=True,

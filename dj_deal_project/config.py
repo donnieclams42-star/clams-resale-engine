@@ -1,11 +1,29 @@
-
 import os
+
+try:
+    from keywords.search_terms import SEARCH_TERMS
+except Exception:
+    SEARCH_TERMS = []
+
 
 def env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
     if value is None:
         return default
-    return value.strip().lower() in {"1","true","yes","on"}
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _dedupe_keep_order(values: list[str]) -> list[str]:
+    seen = set()
+    ordered = []
+    for value in values:
+        item = str(value or '').strip().lower()
+        if not item or item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
+
 
 LOG_FILE = os.getenv("LOG_FILE", "radar_log.txt")
 
@@ -38,19 +56,57 @@ CRAIGSLIST_REGIONS = [
     "southjersey",
     "jerseyshore",
     "delaware",
-    "baltimore"
+    "baltimore",
 ]
 
 # --- KEYWORDS ---
-KEYWORDS = [
-    "iphone","iphone cracked","samsung phone",
-    "macbook","macbook pro","ipad","ipad pro",
-    "playstation","playstaton","xbox",
-    "video game lot","pokemon","pokmon",
-    "mechanic tools","tool lot",
-    "garage cleanout","moving sale",
-    "first come first serve","bulk lot"
+_BASE_KEYWORDS = [
+    "iphone", "iphone cracked", "iphone for parts", "broken iphone",
+    "samsung phone", "android phone", "pixel phone",
+    "macbook", "macbook pro", "ipad", "ipad pro",
+    "playstation", "playstaton", "ps5", "ps4", "xbox", "xobx",
+    "video game lot", "game lot", "pokemon", "pokmon",
+    "mechanic tools", "tool lot", "power tools",
+    "garage cleanout", "moving sale", "estate sale", "first come first serve",
+    "bulk lot", "bundle", "need gone", "must sell", "for parts", "not working",
 ]
+
+KEYWORDS = _dedupe_keep_order(list(SEARCH_TERMS) + _BASE_KEYWORDS)
+
+# Source-focused keyword pools so each scanner cycles through terms more likely to work there.
+EBAY_KEYWORDS = _dedupe_keep_order([
+    kw for kw in KEYWORDS
+    if any(token in kw for token in [
+        "iphone", "ipad", "macbook", "playstation", "ps5", "ps4", "xbox", "switch",
+        "video game", "tool", "pokemon", "cards", "bundle", "lot", "for parts",
+    ])
+])
+
+MERCARI_KEYWORDS = _dedupe_keep_order([
+    kw for kw in KEYWORDS
+    if any(token in kw for token in [
+        "iphone", "ipad", "macbook", "playstation", "ps5", "ps4", "xbox", "switch",
+        "pokemon", "cards", "bundle", "lot", "for parts", "broken", "cracked",
+        "need gone", "must sell", "moving sale", "garage cleanout",
+    ])
+])
+
+OFFERUP_KEYWORDS = _dedupe_keep_order([
+    kw for kw in KEYWORDS
+    if any(token in kw for token in [
+        "iphone", "ipad", "macbook", "playstation", "ps5", "ps4", "xbox",
+        "tool", "mechanic", "pokemon", "cards", "bundle", "lot", "need gone",
+        "must sell", "moving sale", "garage cleanout", "estate sale",
+    ])
+])
+
+FACEBOOK_KEYWORDS = _dedupe_keep_order([
+    kw for kw in KEYWORDS
+    if any(token in kw for token in [
+        "iphone", "ipad", "macbook", "playstation", "xbox", "tool", "lot",
+        "moving sale", "garage cleanout", "estate sale", "must sell", "need gone",
+    ])
+])
 
 KEYWORDS_PER_CYCLE = int(os.getenv("KEYWORDS_PER_CYCLE", 18))
 DEFAULT_KEYWORDS_PER_CYCLE = KEYWORDS_PER_CYCLE
@@ -72,12 +128,21 @@ MERCARI_SCAN_FREQUENCY = int(os.getenv("MERCARI_SCAN_FREQUENCY", 1))
 OFFERUP_SCAN_FREQUENCY = int(os.getenv("OFFERUP_SCAN_FREQUENCY", 2))
 
 EBAY_KEYWORDS_PER_CYCLE = int(os.getenv("EBAY_KEYWORDS_PER_CYCLE", 6))
-MERCARI_KEYWORDS_PER_CYCLE = int(os.getenv("MERCARI_KEYWORDS_PER_CYCLE", 8))
-OFFERUP_KEYWORDS_PER_CYCLE = int(os.getenv("OFFERUP_KEYWORDS_PER_CYCLE", 5))
+MERCARI_KEYWORDS_PER_CYCLE = int(os.getenv("MERCARI_KEYWORDS_PER_CYCLE", 10))
+OFFERUP_KEYWORDS_PER_CYCLE = int(os.getenv("OFFERUP_KEYWORDS_PER_CYCLE", 8))
 FACEBOOK_KEYWORDS_PER_CYCLE = int(os.getenv("FACEBOOK_KEYWORDS_PER_CYCLE", 5))
 
-RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE = int(os.getenv("RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", 6))
+RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE = int(os.getenv("RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", 8))
 
 RADAR_ANALYSIS_CACHE_SECONDS = int(os.getenv("RADAR_ANALYSIS_CACHE_SECONDS", 21600))
-RADAR_MIN_MARGIN = float(os.getenv("RADAR_MIN_MARGIN", 0.15))
+RADAR_MIN_MARGIN = float(os.getenv("RADAR_MIN_MARGIN", 0.10))
 SOURCE_FAILURE_COOLDOWN_SECONDS = int(os.getenv("SOURCE_FAILURE_COOLDOWN_SECONDS", 1800))
+
+EBAY_MIN_PROFIT = float(os.getenv("EBAY_MIN_PROFIT", 8))
+EBAY_MIN_MARGIN = float(os.getenv("EBAY_MIN_MARGIN", 0.08))
+MERCARI_MIN_PROFIT = float(os.getenv("MERCARI_MIN_PROFIT", 8))
+MERCARI_MIN_MARGIN = float(os.getenv("MERCARI_MIN_MARGIN", 0.08))
+OFFERUP_MIN_PROFIT = float(os.getenv("OFFERUP_MIN_PROFIT", 8))
+OFFERUP_MIN_MARGIN = float(os.getenv("OFFERUP_MIN_MARGIN", 0.08))
+FB_MIN_PROFIT = float(os.getenv("FB_MIN_PROFIT", 10))
+FB_MIN_MARGIN = float(os.getenv("FB_MIN_MARGIN", 0.05))
