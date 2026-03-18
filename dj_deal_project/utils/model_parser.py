@@ -1,3 +1,5 @@
+import re
+
 PHONE_MODELS = [
     "iphone 8",
     "iphone x",
@@ -23,6 +25,9 @@ PHONE_MODELS = [
     "iphone 15 plus",
     "iphone 15 pro",
     "iphone 15 pro max",
+    "iphone 16",
+    "iphone 16 pro",
+    "iphone 16 pro max",
     "samsung s20",
     "samsung s21",
     "samsung s22",
@@ -36,6 +41,8 @@ ACCESSORY_WORDS = [
     "strap", "band", "stylus", "pen only", "battery only", "tool only", "bag only", "remote only",
     "stand only", "faceplate", "housing", "replacement shell", "replacement part", "lens cap", "tripod",
     "motherboard only", "frame only", "back cover", "tempered glass", "keyboard cover", "joycon shell",
+    "dust cover", "skin", "wrap", "shell", "rear cover", "back glass", "camera lens", "lens protector",
+    "sim tray", "enclosure", "mouse", "mice", "keyboard", "controller shell", "controller case",
 ]
 
 PARTIAL_ITEM_PHRASES = [
@@ -94,29 +101,130 @@ FULL_ITEM_SIGNALS = [
     "switch", "drill", "impact", "tool lot", "tool bundle", "card lot", "collection", "bundle", "lot",
 ]
 
+CONSOLE_PLATFORM_WORDS = [
+    "playstation", "ps5", "ps4", "xbox", "xbox one", "xbox series x", "xbox series s", "switch", "nintendo switch", "gamecube", "wii",
+]
+
+PHONE_PLATFORM_WORDS = [
+    "iphone", "samsung", "galaxy", "pixel", "android", "phone", "smartphone",
+]
+
+DEVICE_PLATFORM_WORDS = [
+    "macbook", "ipad", "imac", "laptop", "tablet", "pc", "computer",
+]
+
+CONSOLE_ACCESSORY_TERMS = [
+    "dust cover", "cover", "protector", "shell", "skin", "wrap", "case", "stand", "dock",
+    "faceplate", "power cord", "hdmi cable", "adapter", "charger", "controller shell", "controller case",
+]
+
+CONSOLE_GAME_TERMS = [
+    " game ", " game", "game ", "game only", "disc", "disc only", "software", "ntsc", "cib", "complete in box",
+    "e10", "teen", "mature", "ea sports", "warner bros", "ubisoft", "activision", "capcom",
+    "sonic frontiers", "lego star wars", "skywalker saga", "ufc 4", "ultimate fighting championship",
+]
+
+PHONE_PART_TERMS = [
+    "back glass", "rear cover", "replacement", "housing", "battery cover", "frame", "lens",
+    "camera lens", "part", "parts", "for iphone", "back cover", "sim tray", "enclosure",
+]
+
+DEVICE_ACCESSORY_TERMS = [
+    "mouse", "mice", "keyboard", "bluetooth mouse", "wireless mouse", "accessory",
+    "for macbook", "for ipad", "for laptop", "adapter", "charger", "case", "cover",
+]
+
+SAFE_BUNDLE_PHRASES = [
+    "with console", "with phone", "with tablet", "with laptop", "with macbook", "with ipad",
+]
+
 
 def normalize_text(text: str) -> str:
     text = (text or "").lower()
     for correct, mistakes in MISSPELLINGS.items():
         for mistake in mistakes:
             text = text.replace(mistake, correct)
-    return " ".join(text.split())
+    text = re.sub(r"[^a-z0-9+]+", " ", text)
+    return f" {' '.join(text.split())} "
+
+
+
+def _contains_any(text: str, terms: list[str]) -> bool:
+    return any(f" {term} " in text or term in text for term in terms)
+
+
+
+def _looks_like_full_bundle(title_n: str) -> bool:
+    if _contains_any(title_n, SAFE_BUNDLE_PHRASES):
+        return True
+    if " bundle " in title_n and any(word in title_n for word in [" console ", " phone ", " laptop ", " tablet ", " system "]):
+        return True
+    return False
+
+
+
+def _is_console_accessory_or_game(title_n: str) -> bool:
+    if not _contains_any(title_n, CONSOLE_PLATFORM_WORDS):
+        return False
+    if _contains_any(title_n, CONSOLE_ACCESSORY_TERMS):
+        if not _looks_like_full_bundle(title_n):
+            return True
+    if _contains_any(title_n, CONSOLE_GAME_TERMS):
+        if " console " not in title_n and " system " not in title_n and not _looks_like_full_bundle(title_n):
+            return True
+    return False
+
+
+
+def _is_phone_part_listing(title_n: str) -> bool:
+    has_platform = _contains_any(title_n, PHONE_PLATFORM_WORDS) or any(f" {model} " in title_n for model in PHONE_MODELS)
+    if not has_platform:
+        return False
+    if _contains_any(title_n, PHONE_PART_TERMS):
+        if " unlocked " not in title_n and " works " not in title_n and " working " not in title_n and not _looks_like_full_bundle(title_n):
+            return True
+    return False
+
+
+
+def _is_device_accessory_listing(title_n: str) -> bool:
+    if not _contains_any(title_n, DEVICE_PLATFORM_WORDS):
+        return False
+    if _contains_any(title_n, DEVICE_ACCESSORY_TERMS):
+        if not _looks_like_full_bundle(title_n):
+            return True
+    return False
+
 
 
 def is_accessory(title: str) -> bool:
-    title = normalize_text(title)
-    return any(word in title for word in ACCESSORY_WORDS)
+    title_n = normalize_text(title)
+    return (
+        any(word in title_n for word in ACCESSORY_WORDS)
+        or _is_console_accessory_or_game(title_n)
+        or _is_phone_part_listing(title_n)
+        or _is_device_accessory_listing(title_n)
+    )
+
 
 
 def is_accessory_listing(title: str, keyword: str = "") -> bool:
     title_n = normalize_text(title)
     keyword_n = normalize_text(keyword)
-    text = f"{title_n} {keyword_n}".strip()
 
-    if any(phrase in title_n for phrase in PARTIAL_ITEM_PHRASES):
+    if any(f" {phrase} " in title_n for phrase in PARTIAL_ITEM_PHRASES):
         return True
 
-    if any(hint in title_n for hint in EXACT_ACCESSORY_HINTS):
+    if any(f" {hint} " in title_n for hint in EXACT_ACCESSORY_HINTS):
+        return True
+
+    if _is_console_accessory_or_game(title_n):
+        return True
+
+    if _is_phone_part_listing(title_n):
+        return True
+
+    if _is_device_accessory_listing(title_n):
         return True
 
     accessory_hit = any(word in title_n for word in ACCESSORY_WORDS)
@@ -127,57 +235,68 @@ def is_accessory_listing(title: str, keyword: str = "") -> bool:
     category_intent = detect_category(keyword_n) or detect_category(title_n)
     if category_intent in {"phone", "console", "tool", "electronics"}:
         reject_map = {
-            "phone": ["case", "cover", "screen protector", "charger", "cable", "cord", "adapter", "sim tray", "lens protector"],
-            "console": ["controller", "remote", "power cord", "hdmi cable", "dock", "stand", "faceplate", "skin"],
+            "phone": [
+                "case", "cover", "screen protector", "charger", "cable", "cord", "adapter",
+                "sim tray", "lens protector", "back glass", "rear cover", "replacement", "housing",
+            ],
+            "console": [
+                "controller", "remote", "power cord", "hdmi cable", "dock", "stand", "faceplate",
+                "skin", "dust cover", "cover", "protector", "shell", "wrap", "case", "game", "disc", "software",
+            ],
             "tool": ["battery only", "charger only", "tool bag", "attachment only", "empty case"],
-            "electronics": ["cable", "charger", "adapter", "dock", "stand", "case"],
+            "electronics": ["cable", "charger", "adapter", "dock", "stand", "case", "mouse", "keyboard"],
         }
-        if any(term in title_n for term in reject_map.get(category_intent, [])):
-            if not any(signal in title_n for signal in ["bundle", "lot", "with console", "with phone", "with tablet", "with charger", "with controller"]):
+        if any(f" {term} " in title_n or term in title_n for term in reject_map.get(category_intent, [])):
+            if not any(signal in title_n for signal in [" bundle ", " lot ", " with charger ", " with controller "]) and not _looks_like_full_bundle(title_n):
                 return True
 
     return False
 
 
+
 def contains_phone_model(title: str) -> bool:
-    title = normalize_text(title)
-    if is_accessory_listing(title):
+    title_n = normalize_text(title)
+    if is_accessory_listing(title_n):
         return False
-    return any(model in title for model in PHONE_MODELS)
+    return any(f" {model} " in title_n for model in PHONE_MODELS)
+
 
 
 def detect_category(title: str) -> str | None:
-    title = normalize_text(title)
-    if any(word in title for word in GENERIC_PHONE_WORDS):
+    title_n = normalize_text(title)
+    if any(word in title_n for word in GENERIC_PHONE_WORDS):
         return "phone"
-    if any(word in title for word in GENERIC_CONSOLE_WORDS):
+    if any(word in title_n for word in GENERIC_CONSOLE_WORDS):
         return "console"
-    if any(word in title for word in GENERIC_TOOL_WORDS):
+    if any(word in title_n for word in GENERIC_TOOL_WORDS):
         return "tool"
-    if any(word in title for word in GENERIC_CARD_WORDS):
+    if any(word in title_n for word in GENERIC_CARD_WORDS):
         return "cards"
-    if any(word in title for word in GENERIC_ELECTRONICS_WORDS):
+    if any(word in title_n for word in GENERIC_ELECTRONICS_WORDS):
         return "electronics"
     return None
 
 
+
 def extract_phone_model(title: str) -> str | None:
-    title = normalize_text(title)
-    if is_accessory_listing(title):
+    title_n = normalize_text(title)
+    if is_accessory_listing(title_n):
         return None
     for model in PHONE_MODELS:
-        if model in title:
+        if f" {model} " in title_n:
             return model
     return None
 
 
+
 def has_liquidation_signal(title: str) -> bool:
-    title = normalize_text(title)
-    return any(word in title for word in LIQUIDATION_WORDS)
+    title_n = normalize_text(title)
+    return any(word in title_n for word in LIQUIDATION_WORDS)
+
 
 
 def is_deal_candidate(title: str) -> bool:
-    title = normalize_text(title)
-    if is_accessory_listing(title):
+    title_n = normalize_text(title)
+    if is_accessory_listing(title_n):
         return False
-    return contains_phone_model(title) or detect_category(title) is not None or has_liquidation_signal(title)
+    return contains_phone_model(title_n) or detect_category(title_n) is not None or has_liquidation_signal(title_n)

@@ -4,6 +4,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar | Market Radar | CLAMS Intelligence</title>
 <link rel="stylesheet" href="/static/styles.css">
+<style>
+.radar-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin-top:14px}
+.radar-filter-block{display:flex;flex-direction:column;gap:6px}
+.radar-filter-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+.radar-filter-select{min-width:220px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#111;color:#fff}
+.radar-group-box[hidden]{display:none !important}
+.radar-results-count{font-size:13px;opacity:.8}
+</style>
 </head>
 <body>
 <div class="header">
@@ -36,6 +44,27 @@
             {% if radar_status.last_error %}<div class="radar-health-error">Last error: {{ radar_status.last_error }}</div>{% endif %}
         </div>
     </div>
+
+    {% if radar_groups %}
+    <div class="compact-box radar-toolbar-box">
+        <div class="radar-toolbar">
+            <div>
+                <div class="section-kicker">Radar Controls</div>
+                <div class="radar-page-sub">Use the dropdown to focus one category at a time and keep the board cleaner.</div>
+            </div>
+            <div class="radar-filter-block">
+                <label class="radar-filter-label" for="radarCategoryFilter">Show category</label>
+                <select id="radarCategoryFilter" class="radar-filter-select">
+                    <option value="all">All categories</option>
+                    {% for group in radar_groups %}
+                    <option value="{{ group.label|lower|replace(' ', '-') }}">{{ group.label }}</option>
+                    {% endfor %}
+                </select>
+                <div class="radar-results-count" id="radarResultsCount"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     {% if radar_top_deals %}
     <div class="compact-box radar-top-wrap">
@@ -76,7 +105,7 @@
 
     {% if radar_groups %}
         {% for group in radar_groups %}
-        <div class="compact-box radar-group-box">
+        <div class="compact-box radar-group-box" data-group="{{ group.label|lower|replace(' ', '-') }}" data-count="{{ group.deals|length }}">
             <div class="radar-group-head">
                 <div>
                     <div class="section-kicker">{{ group.label }}</div>
@@ -128,5 +157,31 @@
     <a href="/settings?email={{email}}"><span>Settings</span></a>
     <a href="/account?email={{email}}"><span>Account</span></a>
 </div>
+<script>
+(function () {
+    const select = document.getElementById('radarCategoryFilter');
+    const groups = Array.from(document.querySelectorAll('.radar-group-box'));
+    const countEl = document.getElementById('radarResultsCount');
+    if (!select || !groups.length) return;
+
+    function updateView() {
+        const value = select.value;
+        let visibleGroups = 0;
+        let visibleDeals = 0;
+        groups.forEach((group) => {
+            const match = value === 'all' || group.dataset.group === value;
+            group.hidden = !match;
+            if (match) {
+                visibleGroups += 1;
+                visibleDeals += Number(group.dataset.count || 0);
+            }
+        });
+        countEl.textContent = visibleGroups + ' section' + (visibleGroups === 1 ? '' : 's') + ' • ' + visibleDeals + ' deal' + (visibleDeals === 1 ? '' : 's');
+    }
+
+    select.addEventListener('change', updateView);
+    updateView();
+})();
+</script>
 </body>
 </html>
