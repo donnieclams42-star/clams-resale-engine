@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Console | Market Radar</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="header">
+    <div class="logo">
+        <div class="logo-main">Market Radar</div>
+        <div class="logo-sub">Admin Console</div>
+        <div class="logo-quote">Live controls and launch checks.</div>
+    </div>
+    <div class="nav-links">
+        <a href="/app?email={{email}}">Analyze</a>
+        <a href="/radar?email={{email}}" class="{{ 'nav-radar-live' if radar_has_hits else '' }}">Radar{% if radar_results_count %} <span class="nav-radar-badge">{{ radar_results_count }}</span>{% endif %}</a>
+        <a href="/settings?email={{email}}">Settings</a>
+        <a href="/account?email={{email}}">Account</a>
+        <a href="/admin?email={{email}}">Admin</a>
+    </div>
+</div>
+<div class="app-container compact-app">
+    <div class="compact-box">
+        <div class="section-kicker">Launch Status</div>
+        <h1>Admin Console</h1>
+        <div class="upload-note">Use this page for final beta checks, clearing deals, and watching the worker state without cluttering the analyzer.</div>
+    </div>
+    <div class="dashboard-status-bar">
+        <div class="dashboard-status-pill">{{ 'LIVE' if radar_status.live else 'WAITING' }}</div>
+        <div class="dashboard-status-sub">{{ radar_status.message }}</div>
+    </div>
+    <div class="radar-top-grid">
+        <div class="compact-box">
+            <div class="section-kicker">Board</div>
+            <h2>{{ radar_results_count }}</h2>
+            <div class="upload-note">Current vetted deals waiting in Radar.</div>
+            <form method="post" action="/radar/clear" style="margin-top:14px;">
+                <input type="hidden" name="email" value="{{email}}">
+                <button type="submit" class="danger-btn">Clear Deals + Reset Seen Cache</button>
+            </form>
+        </div>
+        <div class="compact-box">
+            <div class="section-kicker">Worker</div>
+            <div class="upload-note">Last success: {{ radar_status.last_success or '—' }}</div>
+            <div class="upload-note">Sources: {% if radar_status.sources %}{{ radar_status.sources|join(', ') }}{% else %}—{% endif %}</div>
+            <div class="upload-note">Last error: {{ radar_status.last_error or 'None' }}</div>
+            <div style="margin-top:14px;"><a href="/radar/test-discord?email={{email}}" target="_blank"><button type="button">Send Discord Test</button></a></div>
+        </div>
+        <div class="compact-box">
+            <div class="section-kicker">Environment Snapshot</div>
+            {% for key, value in env_snapshot.items() %}<div class="account-row"><div class="account-label">{{ key }}</div><div class="account-value">{{ value }}</div></div>{% endfor %}
+        </div>
+    </div>
+    <div class="compact-box">
+        <div class="section-kicker">Latest Titles</div>
+        {% if latest_titles %}
+            <div class="radar-preview-list">
+            {% for title in latest_titles %}<div class="radar-mini-card"><div class="radar-mini-title">{{ title }}</div></div>{% endfor %}
+            </div>
+        {% else %}<div class="upload-note">No current deals on the board.</div>{% endif %}
+    </div>
+</div>
+</body>
+</html>

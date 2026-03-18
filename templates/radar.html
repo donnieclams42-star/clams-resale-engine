@@ -4,67 +4,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar | Market Radar | CLAMS Intelligence</title>
 <link rel="stylesheet" href="/static/styles.css">
-<style>
-.radar-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin-top:14px}
-.radar-filter-block{display:flex;flex-direction:column;gap:6px}
-.radar-filter-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
-.radar-filter-select{min-width:220px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#111;color:#fff}
-.radar-group-box[hidden]{display:none !important}
-.radar-results-count{font-size:13px;opacity:.8}
-</style>
 </head>
 <body>
 <div class="header">
     <div class="logo">
         <div class="logo-main">Market Radar</div>
         <div class="logo-sub">Powered by CLAMS Intelligence</div>
-        <div class="logo-quote">Discord-first vetted alerts with app-side status tracking.</div>
+        <div class="logo-quote">Accuracy-first live deal board.</div>
     </div>
     <div class="nav-links">
         <a href="/app?email={{email}}">Analyze</a>
-        <a href="/radar?email={{email}}">Radar</a>
+        <a href="/radar?email={{email}}" class="{{ 'nav-radar-live' if radar_has_hits else '' }}">Radar{% if radar_indicator_count %} <span class="nav-radar-badge">{{ radar_indicator_count }}</span>{% endif %}</a>
         <a href="/settings?email={{email}}">Settings</a>
         <a href="/account?email={{email}}">Account</a>
+        {% if user.is_admin %}<a href="/admin?email={{email}}">Admin</a>{% endif %}
     </div>
 </div>
 <div class="app-container compact-app radar-shell">
-    <div class="radar-page-top compact-box">
+    {% if notice %}<div class="success-box">{{ notice }}</div>{% endif %}
+    <div class="compact-box radar-page-top">
         <div>
             <div class="section-kicker">CLAMS Deal Radar</div>
             <h1 class="radar-page-title">Live vetted deal alerts</h1>
-            <div class="radar-page-sub">Alerts are written to app cache, sent to Discord, and shown here. Discord is notified first, but it is not the system of record.</div>
-            <div class="radar-page-sub"><a href="/radar/test-discord?email={{email}}" target="_blank">Send Discord test notification</a></div>
+            <div class="radar-page-sub">Strict filters are active. This page only shows vetted hits that made it through duplicate checks, accessory blocking, and market analysis.</div>
         </div>
         <div class="radar-health-card {{ 'is-live' if radar_status.live else 'is-offline' }}">
             <div class="radar-health-label">Service Status</div>
             <div class="radar-health-main">{{ 'LIVE' if radar_status.live else 'WAITING' }}</div>
             <div class="radar-health-sub">{{ radar_status.message }}</div>
             {% if radar_status.last_success %}<div class="radar-health-sub">Last success: {{ radar_status.last_success }}</div>{% endif %}
-            {% if radar_status.sources %}<div class="radar-health-sub">Sources: {{ radar_status.sources|join(', ') }}</div>{% endif %}
             {% if radar_status.last_error %}<div class="radar-health-error">Last error: {{ radar_status.last_error }}</div>{% endif %}
         </div>
     </div>
 
-    {% if radar_groups %}
-    <div class="compact-box radar-toolbar-box">
-        <div class="radar-toolbar">
-            <div>
-                <div class="section-kicker">Radar Controls</div>
-                <div class="radar-page-sub">Use the dropdown to focus one category at a time and keep the board cleaner.</div>
-            </div>
-            <div class="radar-filter-block">
-                <label class="radar-filter-label" for="radarCategoryFilter">Show category</label>
-                <select id="radarCategoryFilter" class="radar-filter-select">
-                    <option value="all">All categories</option>
-                    {% for group in radar_groups %}
-                    <option value="{{ group.label|lower|replace(' ', '-') }}">{{ group.label }}</option>
-                    {% endfor %}
-                </select>
-                <div class="radar-results-count" id="radarResultsCount"></div>
-            </div>
+    <div class="compact-box radar-action-bar">
+        <div>
+            <div class="section-kicker">Radar Controls</div>
+            <div class="upload-note">Use Clear Deals to empty the current board and reset seen titles/links/fingerprints for a fresh review cycle.</div>
+        </div>
+        <div class="radar-action-buttons">
+            <a href="/radar/test-discord?email={{email}}" target="_blank"><button type="button">Test Discord</button></a>
+            <form method="post" action="/radar/clear" style="display:inline;">
+                <input type="hidden" name="email" value="{{email}}">
+                <button type="submit" class="danger-btn">Clear Deals</button>
+            </form>
         </div>
     </div>
-    {% endif %}
 
     {% if radar_top_deals %}
     <div class="compact-box radar-top-wrap">
@@ -73,115 +58,37 @@
         <div class="radar-top-grid">
             {% for deal in radar_top_deals %}
             <div class="radar-deal-card radar-top-card">
-                <div class="radar-card-media">
-                    {% if deal.display_image %}
-                    <img src="{{ deal.display_image }}" alt="{{ deal.title }}">
-                    {% else %}
-                    <div class="radar-no-image">No Image</div>
-                    {% endif %}
-                </div>
-                <div class="radar-deal-top">
-                    <div class="radar-deal-source">{{ deal.source or deal.market }}</div>
-                    <div class="radar-deal-score">Edge {{ deal.edge_score or deal.deal_score }}</div>
-                </div>
-                <div class="radar-chip-row">
-                    <span class="radar-chip">{{ deal.category_label }}</span>
-                    {% if deal.confidence %}<span class="radar-chip muted-chip">{{ deal.confidence }}</span>{% endif %}
-                </div>
-                <div class="radar-deal-title">{{ deal.title }}</div>
-                <div class="radar-metrics-row">
-                    <div class="radar-metric"><span>Buy</span><strong>${{ '%.2f'|format(deal.price|float) }}</strong></div>
-                    <div class="radar-metric"><span>Value</span><strong>${{ '%.2f'|format(deal.market_value|float) }}</strong></div>
-                    <div class="radar-metric"><span>Profit</span><strong>${{ '%.2f'|format(deal.profit|float) }}</strong></div>
-                </div>
-                <div class="radar-deal-bottom">
-                    {% if deal.url %}<a href="{{ deal.url }}" target="_blank">Open listing</a>{% elif deal.link %}<a href="{{ deal.link }}" target="_blank">Open listing</a>{% endif %}
-                </div>
+                <div class="radar-card-title">{{ deal.title }}</div>
+                <div class="radar-card-meta">{{ deal.category_label or deal.category }} · {{ deal.source or deal.market }}</div>
+                <div class="radar-card-price">Buy ${{ '%.2f'|format(deal.price|float) }}</div>
+                <div class="radar-card-profit">Profit ${{ '%.2f'|format(deal.profit|float) }} · Value ${{ '%.2f'|format(deal.market_value|float) }}</div>
+                <div class="radar-card-meta">Confidence {{ deal.confidence }} · Edge {{ deal.edge_score }}</div>
+                {% if deal.url %}<div style="margin-top:10px;"><a href="{{ deal.url }}" target="_blank">Open source →</a></div>{% endif %}
             </div>
             {% endfor %}
         </div>
     </div>
     {% endif %}
 
-    {% if radar_groups %}
-        {% for group in radar_groups %}
-        <div class="compact-box radar-group-box" data-group="{{ group.label|lower|replace(' ', '-') }}" data-count="{{ group.deals|length }}">
-            <div class="radar-group-head">
-                <div>
-                    <div class="section-kicker">{{ group.label }}</div>
-                    <div class="radar-page-sub">{{ group.deals|length }} surfaced deal{{ '' if group.deals|length == 1 else 's' }}</div>
-                </div>
+    <div class="compact-box radar-list-wrap">
+        <div class="section-kicker">All Vetted Deals</div>
+        {% if radar_deals %}
+        <div class="radar-list-grid">
+            {% for deal in radar_deals %}
+            <div class="radar-deal-card">
+                <div class="radar-card-title">{{ deal.title }}</div>
+                <div class="radar-card-meta">{{ deal.category_label or deal.category }} · {{ deal.source or deal.market }}</div>
+                <div class="radar-card-price">Buy ${{ '%.2f'|format(deal.price|float) }}</div>
+                <div class="radar-card-profit">Profit ${{ '%.2f'|format(deal.profit|float) }} · Value ${{ '%.2f'|format(deal.market_value|float) }}</div>
+                <div class="radar-card-meta">Confidence {{ deal.confidence }} · Edge {{ deal.edge_score }}</div>
+                {% if deal.url %}<div style="margin-top:10px;"><a href="{{ deal.url }}" target="_blank">Open source →</a></div>{% endif %}
             </div>
-            <div class="radar-grid">
-                {% for deal in group.deals %}
-                <div class="radar-deal-card">
-                    <div class="radar-card-media">
-                        {% if deal.display_image %}
-                        <img src="{{ deal.display_image }}" alt="{{ deal.title }}">
-                        {% else %}
-                        <div class="radar-no-image">No Image</div>
-                        {% endif %}
-                    </div>
-                    <div class="radar-deal-top">
-                        <div class="radar-deal-source">{{ deal.source or deal.market }}</div>
-                        <div class="radar-deal-score">Edge {{ deal.edge_score or deal.deal_score }}</div>
-                    </div>
-                    <div class="radar-chip-row">
-                        <span class="radar-chip">{{ deal.category_label }}</span>
-                        {% if deal.confidence %}<span class="radar-chip muted-chip">{{ deal.confidence }}</span>{% endif %}
-                    </div>
-                    <div class="radar-deal-title">{{ deal.title }}</div>
-                    <div class="radar-metrics-row">
-                        <div class="radar-metric"><span>Buy</span><strong>${{ '%.2f'|format(deal.price|float) }}</strong></div>
-                        <div class="radar-metric"><span>Value</span><strong>${{ '%.2f'|format(deal.market_value|float) }}</strong></div>
-                        <div class="radar-metric"><span>Profit</span><strong>${{ '%.2f'|format(deal.profit|float) }}</strong></div>
-                    </div>
-                    <div class="radar-deal-bottom">
-                        {% if deal.url %}<a href="{{ deal.url }}" target="_blank">Open listing</a>{% elif deal.link %}<a href="{{ deal.link }}" target="_blank">Open listing</a>{% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    {% else %}
-    <div class="compact-box">
-        <div class="section-kicker">No alerts yet</div>
-        <p class="tool-intro">The radar worker is live, but it has not found a deal that passed the profit, duplicate, accessory, and scam filters yet. That is normal during a fresh boot.</p>
+        {% else %}
+        <div class="upload-note">No vetted deals are currently waiting. Leave Radar running and this page will populate when real hits make it through the filters.</div>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
-<div class="mobile-nav">
-    <a href="/app?email={{email}}"><span>Analyze</span></a>
-    <a href="/radar?email={{email}}"><span>Radar</span></a>
-    <a href="/settings?email={{email}}"><span>Settings</span></a>
-    <a href="/account?email={{email}}"><span>Account</span></a>
-</div>
-<script>
-(function () {
-    const select = document.getElementById('radarCategoryFilter');
-    const groups = Array.from(document.querySelectorAll('.radar-group-box'));
-    const countEl = document.getElementById('radarResultsCount');
-    if (!select || !groups.length) return;
-
-    function updateView() {
-        const value = select.value;
-        let visibleGroups = 0;
-        let visibleDeals = 0;
-        groups.forEach((group) => {
-            const match = value === 'all' || group.dataset.group === value;
-            group.hidden = !match;
-            if (match) {
-                visibleGroups += 1;
-                visibleDeals += Number(group.dataset.count || 0);
-            }
-        });
-        countEl.textContent = visibleGroups + ' section' + (visibleGroups === 1 ? '' : 's') + ' • ' + visibleDeals + ' deal' + (visibleDeals === 1 ? '' : 's');
-    }
-
-    select.addEventListener('change', updateView);
-    updateView();
-})();
-</script>
 </body>
 </html>

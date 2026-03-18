@@ -170,11 +170,47 @@ def build_radar_page_context(limit: int = 50) -> dict:
             continue
         items = sorted(items, key=_deal_sort_key, reverse=True)[:12]
         grouped.append({"key": key, "label": _category_label(key), "deals": items})
-    return {"radar_status": get_radar_status(), "radar_deals": deals, "radar_top_deals": top_deals, "radar_groups": grouped}
+    return {"radar_status": get_radar_status(), "radar_deals": deals, "radar_top_deals": top_deals, "radar_groups": grouped, "radar_indicator_count": len(deals), "radar_has_hits": len(deals) > 0}
 
 
 def get_radar_dashboard_context(limit=4):
     return build_radar_page_context(limit=limit)
+
+def clear_radar_deals_state():
+    try:
+        from dj_deal_project.utils.seen_deals import clear_seen_cache
+        clear_seen_cache()
+    except Exception:
+        pass
+    _write_json_file(RADAR_RESULTS_FILE, [])
+    status = get_radar_status()
+    status.update({
+        "message": "Radar deals cleared",
+        "deals_found_today": 0,
+        "last_error": "",
+        "updated_at": datetime.utcnow().isoformat(),
+    })
+    _write_json_file(RADAR_STATUS_FILE, status)
+
+
+def get_admin_console_context() -> dict:
+    results = get_radar_results(limit=200)
+    status = get_radar_status()
+    return {
+        "radar_status": status,
+        "radar_results_count": len(results),
+        "radar_live_count": len(results),
+        "radar_has_hits": len(results) > 0,
+        "latest_titles": [str(d.get("title") or "") for d in results[:10]],
+        "env_snapshot": {
+            "RADAR_AUTOSTART": os.getenv("RADAR_AUTOSTART", "1"),
+            "SCAN_INTERVAL": os.getenv("SCAN_INTERVAL", "90"),
+            "STRICT_FILTER_MODE": os.getenv("STRICT_FILTER_MODE", "true"),
+            "MIN_PROFIT": os.getenv("MIN_PROFIT", "15"),
+            "LOCAL_RESALE_FACTOR": os.getenv("LOCAL_RESALE_FACTOR", "0.82"),
+            "RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE": os.getenv("RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", "8"),
+        },
+    }
 
 
 def _update_radar_status(**kwargs):
@@ -902,7 +938,7 @@ async def landing(request: Request):
     email = request.cookies.get("clams_user", "").strip().lower()
     if email:
         return RedirectResponse(f"/app?email={email}", status_code=303)
-    return templates.TemplateResponse("landing.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 # ---------- LOGIN PAGE ----------
@@ -1360,7 +1396,7 @@ async def analyze(
 # ---------- RADAR PAGE ----------
 
 @app.get("/radar", response_class=HTMLResponse)
-async def radar_page(request: Request, email: str = ""):
+async def radar_page(request: Request, email: str = "", notice: str = ""):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
@@ -1373,6 +1409,7 @@ async def radar_page(request: Request, email: str = ""):
             "request": request,
             "email": email,
             "user": user,
+            "notice": notice,
             **build_radar_page_context(limit=50),
         },
     )
@@ -1380,6 +1417,42 @@ async def radar_page(request: Request, email: str = ""):
 
 # ---------- SETTINGS PAGE ----------
 
+
+
+@app.get("/api/radar/summary")
+async def radar_summary_api(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return JSONResponse({"ok": False, "error": "Not authenticated"}, status_code=401)
+    data = build_radar_page_context(limit=50)
+    return JSONResponse({
+        "ok": True,
+        "live": bool(data.get("radar_status", {}).get("live")),
+        "count": int(data.get("radar_indicator_count", 0)),
+        "message": str(data.get("radar_status", {}).get("message") or ""),
+    })
+
+
+@app.post("/radar/clear")
+async def clear_radar(request: Request, email: str = Form("")):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    clear_radar_deals_state()
+    return RedirectResponse(f"/radar?email={email}&notice=Deals+cleared", status_code=303)
+
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
+    if not user.get("is_admin"):
+        return RedirectResponse(f"/app?email={email}", status_code=303)
+    context = {"request": request, "email": email, "user": user, **get_admin_console_context()}
+    return templates.TemplateResponse("admin_panel.html", context)
 
 
 @app.get("/radar/test-discord")
@@ -1441,6 +1514,7 @@ async def settings_page(request: Request, email: str = ""):
             "user": user,
             "user_settings": user["settings"],
             "success": None,
+            **get_admin_console_context() if user.get("is_admin") else {},
         },
     )
 
@@ -1480,6 +1554,7 @@ async def save_settings(
             "user": user,
             "user_settings": user["settings"],
             "success": "Settings saved successfully.",
+            **get_admin_console_context() if user.get("is_admin") else {},
         },
     )
 

@@ -83,9 +83,10 @@ document.addEventListener("DOMContentLoaded", function(){
 
     <div class="nav-links">
         <a href="/app?email={{email}}">Analyze</a>
-        <a href="/radar?email={{email}}">Radar</a>
+        <a href="/radar?email={{email}}" class="{{ "nav-radar-live" if radar_has_hits else "" }}">Radar{% if radar_indicator_count %} <span class="nav-radar-badge">{{ radar_indicator_count }}</span>{% endif %}</a>
         <a href="/settings?email={{email}}">Settings</a>
         <a href="/account?email={{email}}">Account</a>
+        {% if user.is_admin %}<a href="/admin?email={{email}}">Admin</a>{% endif %}
     </div>
 </div>
 
@@ -394,5 +395,23 @@ document.addEventListener("DOMContentLoaded", function(){
     <a href="/settings?email={{email}}"><span>Settings</span></a>
     <a href="/account?email={{email}}"><span>Account</span></a>
 </div>
+<script>
+async function refreshRadarIndicator(){
+  try{
+    const res = await fetch(`/api/radar/summary?email={{email}}`, {cache:'no-store'});
+    const data = await res.json();
+    if(!data.ok){ return; }
+    const links = document.querySelectorAll('.nav-links a[href^="/radar"]');
+    links.forEach(link => {
+      const count = Number(data.count || 0);
+      const base = 'Radar';
+      link.classList.toggle('nav-radar-live', count > 0);
+      link.innerHTML = count > 0 ? `${base} <span class="nav-radar-badge">${count}</span>` : base;
+    });
+  }catch(err){}
+}
+setInterval(refreshRadarIndicator, 20000);
+document.addEventListener('DOMContentLoaded', refreshRadarIndicator);
+</script>
 </body>
 </html>

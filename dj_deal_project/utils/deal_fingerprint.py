@@ -16,7 +16,7 @@ def normalize_link(link: str) -> str:
         return ""
     try:
         parts = urlsplit(link)
-        clean_path = re.sub(r"/+$$", "", parts.path or "")
+        clean_path = re.sub(r"/+$", "", parts.path or "")
         return urlunsplit((parts.scheme, parts.netloc, clean_path, "", ""))
     except Exception:
         return link.split("?")[0].rstrip("/")
@@ -53,8 +53,8 @@ def generate_fingerprint(deal):
     except Exception:
         price = 0
 
-    price_bucket = int(round(price / 5.0))
-    title_core = " ".join(title.split()[:10])
+    price_bucket = int(round(price / 10.0))
+    title_core = " ".join(title.split()[:12])
 
     if token:
         raw = f"{source}_{token}_{price_bucket}"

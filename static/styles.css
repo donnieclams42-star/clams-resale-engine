@@ -848,3 +848,22 @@ padding-top:34px;
 @media (max-width: 640px) {
   .radar-card-media { height: 140px; }
 }
+
+
+.nav-radar-badge{display:inline-block;min-width:18px;padding:2px 7px;border-radius:999px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;vertical-align:middle;}
+.nav-radar-live{position:relative;color:#fff !important;text-shadow:0 0 10px rgba(239,68,68,.65);}
+.nav-radar-live .nav-radar-badge{box-shadow:0 0 18px rgba(239,68,68,.55);animation:radarPulse 1.6s infinite;}
+@keyframes radarPulse{0%{transform:scale(1);opacity:1;}50%{transform:scale(1.08);opacity:.92;}100%{transform:scale(1);opacity:1;}}
+.radar-indicator-only .radar-preview-head{align-items:center;}
+.radar-indicator-actions{display:flex;align-items:center;gap:10px;}
+.radar-action-bar{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:20px;}
+.radar-action-buttons{display:flex;gap:10px;flex-wrap:wrap;}
+.danger-btn{background:#b91c1c !important;}
+.radar-list-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+.radar-deal-card{background:#07172d;border:1px solid rgba(255,255,255,.08);padding:16px;border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.28);}
+.radar-card-title{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:8px;}
+.radar-card-meta{font-size:12px;opacity:.75;margin-bottom:6px;}
+.radar-card-price{font-size:20px;font-weight:800;margin-bottom:6px;}
+.radar-card-profit{font-size:14px;color:#86efac;}
+.secondary-btn{background:#1e40af !important;}
+@media (max-width:800px){.radar-action-bar{align-items:flex-start;}.radar-action-buttons{width:100%;}}

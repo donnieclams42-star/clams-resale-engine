@@ -50,6 +50,7 @@
         <a href="/radar?email={{email}}">Radar</a>
         <a href="/settings?email={{email}}">Settings</a>
         <a href="/account?email={{email}}">Account</a>
+        {% if user.is_admin %}<a href="/admin?email={{email}}">Admin</a>{% endif %}
     </div>
 </div>
 <div class="account-wrap">
