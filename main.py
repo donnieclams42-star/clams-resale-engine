@@ -365,7 +365,6 @@ def _run_radar_cycle():
 
 def _radar_background_loop():
     while True:
-            print('[RADAR] HEARTBEAT')
         try:
             _update_radar_status(running=True, status="scanning", message="Scanning for vetted deals...")
             deals = _run_radar_cycle()
