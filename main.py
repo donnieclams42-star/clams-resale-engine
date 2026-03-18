@@ -1764,7 +1764,10 @@ def get_radar_dashboard_context(limit=4):
 
 
 @app.get("/temu", response_class=HTMLResponse)
-async def temu_page(request: Request, email: str = ""):
+async def temu_page(request:
+    temu_access = {"visible_count": 0, "all_count": 0}
+    membership_tier = "Free"
+ Request, email: str = ""):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
