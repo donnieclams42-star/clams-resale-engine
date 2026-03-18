@@ -1591,3 +1591,245 @@ async def change_email(
     response = RedirectResponse(f"/account?email={new_email}&notice=Email+updated+successfully", status_code=303)
     set_user_cookie(response, new_email)
     return response
+
+
+# ---------- TEMU FLIPS / ADMIN EXTENSIONS ----------
+
+TEMU_RESULTS_FILE = os.path.join(RADAR_CACHE_DIR, "temu_flips_results.json")
+TEMU_STATUS_FILE = os.path.join(RADAR_CACHE_DIR, "temu_flips_status.json")
+_temu_thread = None
+_temu_started = False
+_temu_lock = threading.Lock()
+
+
+def _read_temu_results():
+    return _read_json_file(TEMU_RESULTS_FILE, []) or []
+
+
+def _write_temu_results(items):
+    _write_json_file(TEMU_RESULTS_FILE, items)
+
+
+def _update_temu_status(**kwargs):
+    current = _read_json_file(TEMU_STATUS_FILE, {}) or {}
+    current.update(kwargs)
+    current["updated_at"] = datetime.utcnow().isoformat()
+    _write_json_file(TEMU_STATUS_FILE, current)
+
+
+def get_temu_status():
+    status = _read_json_file(TEMU_STATUS_FILE, {}) or {}
+    status.setdefault("status", "idle")
+    status.setdefault("message", "Temu-flips idle")
+    status.setdefault("count", 0)
+    return status
+
+
+def _temu_seed_items():
+    return [
+        {"query": "led strip lights kit", "label": "LED Light Kits", "category": "home gadgets"},
+        {"query": "magnetic phone mount", "label": "Phone Mounts", "category": "car gadgets"},
+        {"query": "car organizer seat gap", "label": "Car Organizers", "category": "car gadgets"},
+        {"query": "usb desk fan mini", "label": "Mini Gadgets", "category": "home gadgets"},
+        {"query": "pet grooming glove", "label": "Pet Items", "category": "pet"},
+        {"query": "silicone air fryer liners", "label": "Kitchen Gadgets", "category": "kitchen"},
+        {"query": "makeup brush cleaner bowl", "label": "Beauty Tools", "category": "beauty"},
+        {"query": "portable vacuum cleaner mini", "label": "Portable Gadgets", "category": "home gadgets"},
+        {"query": "under cabinet lights motion sensor", "label": "Lighting", "category": "home gadgets"},
+        {"query": "drawer organizer set", "label": "Organizers", "category": "home gadgets"},
+        {"query": "resistance bands set", "label": "Fitness Accessories", "category": "fitness"},
+        {"query": "cable clips organizer", "label": "Desk Accessories", "category": "office"},
+    ]
+
+
+def _looks_like_temu_flip_title(title: str) -> bool:
+    title_n = normalize_text(title)
+    hot_terms = [
+        "led", "rgb", "usb", "portable", "wireless", "organizer", "holder", "mount",
+        "grooming", "liner", "vacuum", "sensor", "light", "mini", "beauty", "pet"
+    ]
+    reject_terms = [
+        "iphone", "samsung", "ps5", "ps4", "xbox", "nintendo", "graphics card", "gpu",
+        "cartridge", "disc", "hoodie", "shirt", "bag", "knob", "switch", "sensor replacement"
+    ]
+    return any(term in title_n for term in hot_terms) and not any(term in title_n for term in reject_terms)
+
+
+def _estimate_supplier_cost(avg_price: float) -> float:
+    if avg_price <= 12:
+        return round(avg_price * 0.28, 2)
+    if avg_price <= 20:
+        return round(avg_price * 0.24, 2)
+    return round(avg_price * 0.22, 2)
+
+
+def _build_temu_flip_from_query(seed: dict):
+    query = seed["query"]
+    prices, _active, _suggestions, listing = search_ebay(query)
+    if not prices or len(prices) < 8:
+        return None
+    avg_price = round(sum(prices[:20]) / min(len(prices), 20), 2)
+    sold_count = len(prices)
+    if avg_price < 8 or avg_price > 40:
+        return None
+    est_cost = _estimate_supplier_cost(avg_price)
+    fees = round(avg_price * 0.15, 2)
+    shipping = 5.00
+    profit = round(avg_price - fees - shipping - est_cost, 2)
+    sell_through = min(0.95, max(0.45, sold_count / 40.0))
+    if profit < 10 or sell_through < 0.60:
+        return None
+    title = listing.get("title") if isinstance(listing, dict) else query.title()
+    if not _looks_like_temu_flip_title(title):
+        return None
+    try:
+        from urllib.parse import quote_plus
+        search_q = quote_plus(title)
+    except Exception:
+        search_q = title.replace(" ", "+")
+    confidence = "HIGH" if sell_through >= 0.75 and profit >= 14 else "MEDIUM"
+    trend = "🔥 HOT FLIP" if confidence == "HIGH" else "✅ GOOD FLIP"
+    return {
+        "title": title,
+        "category_label": seed.get("label") or "Temu-flip",
+        "category": seed.get("category") or "temu-flip",
+        "avg_price": avg_price,
+        "est_cost": est_cost,
+        "profit": profit,
+        "sell_through": round(sell_through, 2),
+        "sell_through_pct": int(round(sell_through * 100)),
+        "confidence": confidence,
+        "trend": trend,
+        "ebay_url": listing.get("url") if isinstance(listing, dict) else "",
+        "temu_search_url": f"https://www.temu.com/search_result.html?search_key={search_q}",
+        "google_search_url": f"https://www.google.com/search?q=temu+{search_q}",
+        "score": round((sell_through * 40) + (profit * 2), 2),
+    }
+
+
+def _run_temu_cycle():
+    items = []
+    for seed in _temu_seed_items():
+        try:
+            item = _build_temu_flip_from_query(seed)
+            if item:
+                items.append(item)
+        except Exception:
+            continue
+    items.sort(key=lambda x: (x.get("score", 0), x.get("profit", 0)), reverse=True)
+    items = items[:20]
+    _write_temu_results(items)
+    _update_temu_status(
+        status="live",
+        message=f"{len(items)} Temu-flips ready",
+        count=len(items),
+        last_success=datetime.utcnow().isoformat(),
+    )
+    return items
+
+
+def _temu_background_loop():
+    while True:
+        try:
+            _update_temu_status(status="scanning", message="Scanning Temu-flips candidates...")
+            _run_temu_cycle()
+            wait_time = int(os.getenv("TEMU_FLIPS_INTERVAL", "900") or 900)
+        except Exception as e:
+            _update_temu_status(status="error", message="Temu-flips hit an error", last_error=str(e))
+            wait_time = 1800
+        time.sleep(wait_time)
+
+
+@app.on_event("startup")
+def start_temu_background_worker():
+    global _temu_thread, _temu_started
+    if os.getenv("TEMU_FLIPS_ENABLED", "true").lower() not in {"1", "true", "yes"}:
+        _update_temu_status(status="disabled", message="Temu-flips disabled")
+        return
+    with _temu_lock:
+        if _temu_started:
+            return
+        _temu_started = True
+        _temu_thread = threading.Thread(target=_temu_background_loop, daemon=True, name="clams-temu-worker")
+        _temu_thread.start()
+
+
+def get_radar_dashboard_context(limit=4):
+    ctx = build_radar_page_context(limit=limit)
+    deals = ctx.get("radar_deals") or []
+    ctx["radar_has_hits"] = bool(deals)
+    ctx["radar_indicator_count"] = len(deals)
+    return ctx
+
+
+@app.get("/temu", response_class=HTMLResponse)
+async def temu_page(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
+    items = _read_temu_results()
+    return templates.TemplateResponse(
+        "temu_flips.html",
+        {
+            "request": request,
+            "email": email,
+            "user": user,
+            "temu_flips": items,
+            "top_flips": items[:5],
+            "temu_status": get_temu_status(),
+        },
+    )
+
+
+@app.get("/api/clear-deals")
+async def clear_deals(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    try:
+        from dj_deal_project.utils.seen_deals import clear_seen_cache, load_seen
+        clear_seen_cache()
+        _write_json_file(RADAR_RESULTS_FILE, [])
+        _write_temu_results([])
+        _update_radar_status(message="Deals cleared manually", deals_found_today=0)
+        _update_temu_status(message="Temu-flips cleared manually", count=0)
+        return RedirectResponse(f"/app?email={email}", status_code=303)
+    except Exception:
+        return RedirectResponse(f"/app?email={email}", status_code=303)
+
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
+    if not user.get("is_admin"):
+        return RedirectResponse(f"/app?email={email}", status_code=303)
+    seen_counts = {"total": 0}
+    try:
+        from dj_deal_project.utils.seen_deals import load_seen
+        seen = load_seen()
+        seen_counts = {
+            "links": len(seen.get("links", {})),
+            "fingerprints": len(seen.get("fingerprints", {})),
+            "titles": len(seen.get("titles", {})),
+        }
+        seen_counts["total"] = sum(seen_counts.values())
+    except Exception:
+        pass
+    return templates.TemplateResponse(
+        "admin_panel.html",
+        {
+            "request": request,
+            "email": email,
+            "user": user,
+            "radar_status": get_radar_status(),
+            "radar_count": len(get_radar_results()),
+            "temu_count": len(_read_temu_results()),
+            "seen_counts": seen_counts,
+        },
+    )

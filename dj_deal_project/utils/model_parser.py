@@ -254,6 +254,8 @@ def is_accessory_listing(title: str, keyword: str = "") -> bool:
         return True
     if _is_low_value_junk(title_n):
         return True
+    if is_strict_reject(title_n):
+        return True
 
     accessory_hit = any(word in title_n for word in ACCESSORY_WORDS)
     full_item_hit = any(signal in title_n for signal in [" console ", " system ", " phone ", " tablet ", " laptop ", " with controller ", " tested working ", " unlocked "])
@@ -301,3 +303,18 @@ def is_deal_candidate(title: str) -> bool:
     if is_accessory_listing(title_n):
         return False
     return contains_phone_model(title_n) or detect_category(title_n) is not None or has_liquidation_signal(title_n)
+
+
+# --- TEMU FLIPS / STRICT BETA EXTRA REJECTS ---
+TEMU_FLIPS_EXTRA_REJECTS = [
+    "pullover", "apparel", "women", "men", "size s", "size m", "size l",
+    "brand new ps5", "brand new xbox", "sony playstation", "microsoft xbox",
+    "bag", "hoodie", "shirt", "hat", "switch for", "mechanical plunger", "door jamb",
+    "interior light", "interlock switch", "climate control knob",
+]
+
+def is_strict_reject(title: str) -> bool:
+    title_n = normalize_text(title)
+    if _contains_any(title_n, TEMU_FLIPS_EXTRA_REJECTS):
+        return True
+    return False

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temu-flips | CLAMS Intelligence</title>
+<link rel="stylesheet" href="/static/styles.css">
+<style>
+.temu-hero{padding:18px;border-radius:18px;background:#111827;color:#fff;margin-bottom:16px;border:1px solid rgba(255,255,255,.08)}
+.temu-kicker{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.temu-title{font-size:32px;font-weight:800;margin:8px 0}
+.temu-sub{opacity:.85;max-width:860px}
+.temu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.temu-card{background:#121826;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;color:#fff}
+.temu-badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#7c2d12;color:#fff;font-size:12px;font-weight:700}
+.temu-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.temu-metric{background:#0b1220;border-radius:14px;padding:10px}
+.temu-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.temu-btn{display:inline-block;padding:10px 12px;border-radius:12px;text-decoration:none;background:#f97316;color:#fff;font-weight:700}
+.temu-btn.alt{background:#1f2937}
+.top-list{display:grid;gap:10px;margin:14px 0 20px}
+.top-item{display:flex;justify-content:space-between;gap:12px;background:#0b1220;border-radius:14px;padding:12px;color:#fff}
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="logo">
+        <div class="logo-main">CLAMS Intelligence</div>
+        <div class="logo-sub">Temu-flips</div>
+    </div>
+    <div class="nav-links">
+        <a href="/temu?email={{email}}" class="nav-temu">🔥 Temu-flips</a>
+        <a href="/app?email={{email}}">Analyze</a>
+        <a href="/radar?email={{email}}">Radar</a>
+        <a href="/settings?email={{email}}">Settings</a>
+        <a href="/account?email={{email}}">Account</a>
+        {% if user.is_admin %}<a href="/admin?email={{email}}">Admin</a>{% endif %}
+    </div>
+</div>
+
+<div class="app-container compact-app">
+    <div class="temu-hero">
+        <div class="temu-kicker">Primary subscription feature</div>
+        <div class="temu-title">🔥 Temu-flips</div>
+        <div class="temu-sub">Cheap-source, proven-sell-through items ranked by flip ease. This page is intentionally strict. It only shows items that clear your profit and sell-through standards.</div>
+    </div>
+
+    <div class="compact-box">
+        <div class="section-kicker">Top 5 Right Now</div>
+        <div class="top-list">
+            {% for item in top_flips %}
+            <div class="top-item">
+                <div>
+                    <strong>{{ item.title }}</strong><br>
+                    <small>{{ item.category_label }} · {{ item.confidence }} confidence</small>
+                </div>
+                <div>
+                    <strong>${{ '%.2f'|format(item.profit|float) }}</strong><br>
+                    <small>profit</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="temu-actions">
+            <a class="temu-btn alt" href="/api/clear-deals?email={{email}}">Clear Deals</a>
+            <a class="temu-btn alt" href="/radar?email={{email}}">Open Radar</a>
+        </div>
+    </div>
+
+    <div class="temu-grid" style="margin-top:16px;">
+        {% for item in temu_flips %}
+        <div class="temu-card">
+            <span class="temu-badge">{{ item.trend }}</span>
+            <h3 style="margin:10px 0 8px 0;">{{ item.title }}</h3>
+            <div>{{ item.category_label }}</div>
+            <div class="temu-metrics">
+                <div class="temu-metric"><div>Sell</div><strong>${{ '%.2f'|format(item.avg_price|float) }}</strong></div>
+                <div class="temu-metric"><div>Est Cost</div><strong>${{ '%.2f'|format(item.est_cost|float) }}</strong></div>
+                <div class="temu-metric"><div>Net Profit</div><strong>${{ '%.2f'|format(item.profit|float) }}</strong></div>
+                <div class="temu-metric"><div>Sell-through</div><strong>{{ item.sell_through_pct }}%</strong></div>
+            </div>
+            <div class="temu-actions">
+                <a class="temu-btn" href="{{ item.temu_search_url }}" target="_blank">🔍 Find on Temu</a>
+                <a class="temu-btn alt" href="{{ item.google_search_url }}" target="_blank">Google backup</a>
+                {% if item.ebay_url %}<a class="temu-btn alt" href="{{ item.ebay_url }}" target="_blank">eBay comps</a>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+</body>
+</html>
