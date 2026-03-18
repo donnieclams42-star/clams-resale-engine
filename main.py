@@ -18,6 +18,7 @@ from fastapi.templating import Jinja2Templates
 from ebay import search_ebay
 from market_analysis import analyze_market
 from listing_generator import generate_listings
+from temu_scanner import fetch_temu_items
 
 from dj_deal_project.utils.model_parser import normalize_text, detect_category, is_accessory_listing
 
@@ -547,16 +548,6 @@ def normalize_settings(settings):
     if "mode" not in settings:
         settings["mode"] = DEFAULT_USER_SETTINGS["mode"]
 
-    feature_access = settings.get("feature_access")
-    if not isinstance(feature_access, dict):
-        settings["feature_access"] = {}
-    else:
-        settings["feature_access"] = {
-            str(key).strip().lower(): bool(value)
-            for key, value in feature_access.items()
-            if str(key).strip()
-        }
-
     return settings
 
 
@@ -715,43 +706,6 @@ def update_user_record(email: str, updates: dict):
     return None
 
 
-def list_all_users(limit: int = 250):
-    if supabase:
-        try:
-            result = supabase.table("users").select("*").order("email").limit(limit).execute()
-            return [normalize_user(row) for row in (result.data or [])]
-        except Exception as e:
-            print("Supabase list_all_users failed:", e)
-            return []
-
-    records = [normalize_user(record) for record in users.values()]
-    records.sort(key=lambda item: item.get("email", ""))
-    return records[:limit]
-
-
-def get_user_feature_flags(user: dict):
-    settings = normalize_settings((user or {}).get("settings") or {})
-    flags = settings.get("feature_access") or {}
-    return {
-        str(key).strip().lower(): bool(value)
-        for key, value in flags.items()
-        if str(key).strip()
-    }
-
-
-def update_user_feature_access(email: str, feature_updates: dict):
-    user = ensure_user_exists(email)
-    settings = normalize_settings(user.get("settings") or {})
-    current = get_user_feature_flags(user)
-    for key, value in (feature_updates or {}).items():
-        feature_key = str(key or "").strip().lower()
-        if not feature_key:
-            continue
-        current[feature_key] = bool(value)
-    settings["feature_access"] = current
-    return update_user_record(email, {"settings": settings})
-
-
 def ensure_user_exists(email: str, password: str = ""):
     existing = get_user(email)
     if existing:
@@ -810,134 +764,6 @@ def get_membership_limits(user: dict):
         "ai_photo_enabled": True,
         "is_admin": False,
     }
-
-
-ADMIN_CONTROL_FILE = os.path.join(RADAR_CACHE_DIR, "admin_control.json")
-
-
-def _admin_control_defaults():
-    return {
-        "temu_flips_enabled": True,
-        "allow_free_temu_preview": True,
-        "free_temu_preview_count": 3,
-        "pro_temu_limit": 12,
-        "reseller_temu_limit": 20,
-        "lock_new_signups": False,
-    }
-
-
-
-def _bool_from_form(value) -> bool:
-    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
-
-
-
-def _int_or_default(value, default, minimum=0, maximum=500):
-    try:
-        number = int(float(value))
-    except Exception:
-        return default
-    if number < minimum:
-        number = minimum
-    if number > maximum:
-        number = maximum
-    return number
-
-
-
-def get_admin_control():
-    control = _read_json_file(ADMIN_CONTROL_FILE, {}) or {}
-    merged = _admin_control_defaults()
-    merged.update(control)
-    merged["temu_flips_enabled"] = bool(merged.get("temu_flips_enabled", True))
-    merged["allow_free_temu_preview"] = bool(merged.get("allow_free_temu_preview", True))
-    merged["lock_new_signups"] = bool(merged.get("lock_new_signups", False))
-    merged["free_temu_preview_count"] = _int_or_default(merged.get("free_temu_preview_count"), 3, minimum=0, maximum=20)
-    merged["pro_temu_limit"] = _int_or_default(merged.get("pro_temu_limit"), 12, minimum=1, maximum=50)
-    merged["reseller_temu_limit"] = _int_or_default(merged.get("reseller_temu_limit"), 20, minimum=1, maximum=100)
-    return merged
-
-
-
-def update_admin_control(updates: dict):
-    control = get_admin_control()
-    control.update(updates or {})
-    control["free_temu_preview_count"] = _int_or_default(control.get("free_temu_preview_count"), 3, minimum=0, maximum=20)
-    control["pro_temu_limit"] = _int_or_default(control.get("pro_temu_limit"), 12, minimum=1, maximum=50)
-    control["reseller_temu_limit"] = _int_or_default(control.get("reseller_temu_limit"), 20, minimum=1, maximum=100)
-    _write_json_file(ADMIN_CONTROL_FILE, control)
-    return control
-
-
-
-def has_feature_access(user: dict, feature_key: str, admin_control: dict = None) -> bool:
-    feature_key = str(feature_key or "").strip().lower()
-    admin_control = admin_control or get_admin_control()
-    if not user:
-        return False
-    if user.get("is_admin"):
-        return True
-
-    feature_flags = get_user_feature_flags(user)
-    if feature_key in feature_flags:
-        return bool(feature_flags[feature_key])
-
-    membership = get_membership_limits(user).get("membership", "FREE")
-
-    if feature_key == "temu_flips":
-        if not admin_control.get("temu_flips_enabled", True):
-            return False
-        return membership in {"PRO", "RESELLER"}
-
-    if feature_key == "radar":
-        return True
-
-    return membership in {"PRO", "RESELLER"}
-
-
-
-def get_temu_access_context(user: dict, items=None, admin_control: dict = None):
-    admin_control = admin_control or get_admin_control()
-    items = list(items if items is not None else _read_temu_results())
-    plan_info = get_membership_limits(user)
-    membership = plan_info.get("membership", "FREE")
-    full_access = has_feature_access(user, "temu_flips", admin_control=admin_control)
-    preview_enabled = bool(admin_control.get("allow_free_temu_preview", True))
-    preview_count = int(admin_control.get("free_temu_preview_count", 3) or 0)
-
-    visible_items = items
-    access_mode = "full"
-    locked_message = ""
-
-    if user.get("is_admin"):
-        visible_items = items
-        access_mode = "admin"
-    elif full_access:
-        if membership == "PRO":
-            visible_items = items[: int(admin_control.get("pro_temu_limit", 12) or 12)]
-        elif membership == "RESELLER":
-            visible_items = items[: int(admin_control.get("reseller_temu_limit", 20) or 20)]
-        access_mode = "full"
-    elif preview_enabled and preview_count > 0:
-        visible_items = items[:preview_count]
-        access_mode = "preview"
-        locked_message = "Free preview active. Upgrade to unlock the full Temu-flips board."
-    else:
-        visible_items = []
-        access_mode = "locked"
-        locked_message = "Temu-flips is locked for free accounts right now. Upgrade or grant account access from Admin."
-
-    return {
-        "items": visible_items,
-        "all_count": len(items),
-        "visible_count": len(visible_items),
-        "full_access": full_access or user.get("is_admin", False),
-        "access_mode": access_mode,
-        "locked_message": locked_message,
-        "preview_enabled": preview_enabled,
-        "preview_count": preview_count,
-    }
-
 
 
 def clamp_score(value):
@@ -1136,10 +962,6 @@ async def signup(
     email = (email or "").strip().lower()
     password = (password or "").strip()
     invite = (invite or "").strip()
-    admin_control = get_admin_control()
-
-    if admin_control.get("lock_new_signups"):
-        return RedirectResponse(f"/signup?error=New+signups+are+temporarily+paused&email={email}", status_code=303)
 
     if invite != INVITE_CODE:
         return RedirectResponse(f"/signup?error=Invalid+invite+code&email={email}", status_code=303)
@@ -1948,26 +1770,16 @@ async def temu_page(request: Request, email: str = ""):
         return RedirectResponse("/login", status_code=303)
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
-    admin_control = get_admin_control()
     items = _read_temu_results()
-    temu_access = get_temu_access_context(user, items=items, admin_control=admin_control)
-    plan_ui = get_plan_ui_context(user)
-
-    if not temu_access["visible_count"] and temu_access["access_mode"] == "locked":
-        return RedirectResponse(f"/account?email={email}&error=Temu-flips+is+locked+for+this+account", status_code=303)
-
     return templates.TemplateResponse(
         "temu_flips.html",
         {
             "request": request,
             "email": email,
             "user": user,
-            "temu_flips": temu_access["items"],
-            "top_flips": temu_access["items"][:5],
+            "temu_flips": items,
+            "top_flips": items[:5],
             "temu_status": get_temu_status(),
-            "temu_access": temu_access,
-            "admin_control": admin_control,
-            **plan_ui,
         },
     )
 
@@ -1977,9 +1789,6 @@ async def clear_deals(request: Request, email: str = ""):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
-    user = ensure_user_exists(email)
-    if not user.get("is_admin"):
-        return RedirectResponse(f"/app?email={email}", status_code=303)
     try:
         from dj_deal_project.utils.seen_deals import clear_seen_cache, load_seen
         clear_seen_cache()
@@ -1993,7 +1802,7 @@ async def clear_deals(request: Request, email: str = ""):
 
 
 @app.get("/admin", response_class=HTMLResponse)
-async def admin_page(request: Request, email: str = "", notice: str = "", error: str = ""):
+async def admin_page(request: Request, email: str = ""):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
@@ -2013,22 +1822,6 @@ async def admin_page(request: Request, email: str = "", notice: str = "", error:
         seen_counts["total"] = sum(seen_counts.values())
     except Exception:
         pass
-
-    admin_control = get_admin_control()
-    all_users = []
-    for member in list_all_users(limit=250):
-        plan_info = get_membership_limits(member)
-        feature_flags = get_user_feature_flags(member)
-        all_users.append(
-            {
-                **member,
-                "plan_membership": plan_info.get("membership", "FREE"),
-                "temu_override": feature_flags.get("temu_flips"),
-                "temu_access": has_feature_access(member, "temu_flips", admin_control=admin_control),
-                "radar_access": has_feature_access(member, "radar", admin_control=admin_control),
-            }
-        )
-
     return templates.TemplateResponse(
         "admin_panel.html",
         {
@@ -2039,86 +1832,53 @@ async def admin_page(request: Request, email: str = "", notice: str = "", error:
             "radar_count": len(get_radar_results()),
             "temu_count": len(_read_temu_results()),
             "seen_counts": seen_counts,
-            "admin_control": admin_control,
-            "managed_users": all_users,
-            "notice": notice,
-            "error": error,
         },
     )
 
 
-@app.post("/admin/control")
-async def admin_control_update(
-    request: Request,
-    email: str = Form(""),
-    temu_flips_enabled: str = Form(""),
-    allow_free_temu_preview: str = Form(""),
-    lock_new_signups: str = Form(""),
-    free_temu_preview_count: int = Form(3),
-    pro_temu_limit: int = Form(12),
-    reseller_temu_limit: int = Form(20),
-):
-    email = get_request_email(request, email)
-    if not email:
-        return RedirectResponse("/login", status_code=303)
-    user = ensure_user_exists(email)
-    if not user.get("is_admin"):
-        return RedirectResponse(f"/app?email={email}", status_code=303)
 
-    update_admin_control(
-        {
-            "temu_flips_enabled": _bool_from_form(temu_flips_enabled),
-            "allow_free_temu_preview": _bool_from_form(allow_free_temu_preview),
-            "lock_new_signups": _bool_from_form(lock_new_signups),
-            "free_temu_preview_count": free_temu_preview_count,
-            "pro_temu_limit": pro_temu_limit,
-            "reseller_temu_limit": reseller_temu_limit,
-        }
-    )
-    return RedirectResponse(f"/admin?email={email}&notice=Admin+controls+updated", status_code=303)
+@app.get("/temu")
+def temu_flips(request: Request):
+    email = get_request_email(request)
+    user = users.get(email, {})
 
+    if not user or user.get("membership", "FREE") == "FREE":
+        return templates.TemplateResponse("temu_flips.html", {
+            "request": request,
+            "email": email,
+            "locked": True
+        })
 
-@app.post("/admin/user-access")
-async def admin_user_access_update(
-    request: Request,
-    email: str = Form(""),
-    target_email: str = Form(...),
-    membership: str = Form(""),
-    temu_override: str = Form("inherit"),
-    reset_usage: str = Form(""),
-):
-    email = get_request_email(request, email)
-    if not email:
-        return RedirectResponse("/login", status_code=303)
-    user = ensure_user_exists(email)
-    if not user.get("is_admin"):
-        return RedirectResponse(f"/app?email={email}", status_code=303)
+    items = fetch_temu_items()
+    flips = []
 
-    target_email = (target_email or "").strip().lower()
-    target_user = get_user(target_email)
-    if not target_user:
-        return RedirectResponse(f"/admin?email={email}&error=Target+user+not+found", status_code=303)
+    for item in items:
+        try:
+            prices, titles, listing = search_ebay(item)
+            if not prices:
+                continue
 
-    updates = {}
-    normalized_membership = str(membership or "").strip().upper()
-    if normalized_membership in {"FREE", "PRO", "RESELLER"}:
-        updates["membership"] = normalized_membership
-    if _bool_from_form(reset_usage):
-        updates["search_count"] = 0
-        updates["search_reset_date"] = str(date.today())
-    if updates:
-        target_user = update_user_record(target_email, updates) or target_user
+            avg_price = sum(prices) / len(prices)
+            cost = avg_price * 0.35
+            profit = avg_price - cost
 
-    override_value = str(temu_override or "inherit").strip().lower()
-    settings = normalize_settings(target_user.get("settings") or {})
-    feature_access = settings.get("feature_access") or {}
-    if override_value == "inherit":
-        feature_access.pop("temu_flips", None)
-    elif override_value == "on":
-        feature_access["temu_flips"] = True
-    elif override_value == "off":
-        feature_access["temu_flips"] = False
-    settings["feature_access"] = feature_access
-    update_user_record(target_email, {"settings": settings})
+            if profit < 8:
+                continue
 
-    return RedirectResponse(f"/admin?email={email}&notice=User+access+updated+for+{target_email}", status_code=303)
+            flips.append({
+                "title": item.title(),
+                "avg_price": round(avg_price, 2),
+                "cost": round(cost, 2),
+                "profit": round(profit, 2),
+                "url": listing["url"] if listing else ""
+            })
+        except:
+            continue
+
+    flips = sorted(flips, key=lambda x: x["profit"], reverse=True)[:20]
+
+    return templates.TemplateResponse("temu_flips.html", {
+        "request": request,
+        "email": email,
+        "flips": flips
+    })
