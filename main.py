@@ -1755,52 +1755,13 @@ def start_temu_background_worker():
         _temu_thread.start()
 
 
+
 def get_radar_dashboard_context(limit=4):
     ctx = build_radar_page_context(limit=limit)
     deals = ctx.get("radar_deals") or []
     ctx["radar_has_hits"] = bool(deals)
     ctx["radar_indicator_count"] = len(deals)
     return ctx
-
-
-
-class SafeTemplateItem:
-    _defaults = {
-        "title": "Temu Flip",
-        "category_label": "Temu Flip",
-        "category": "temu-flip",
-        "trend": "WATCH",
-        "confidence": "LOW",
-        "temu_search_url": "",
-        "ebay_url": "",
-        "google_search_url": "",
-        "status": "LIVE",
-        "source": "temu",
-        "asking_price": 0.0,
-        "buy_price": 0.0,
-        "price": 0.0,
-        "market_price": 0.0,
-        "market_value": 0.0,
-        "estimated_value": 0.0,
-        "average_sale_price": 0.0,
-        "avg_price": 0.0,
-        "value": 0.0,
-        "profit": 0.0,
-        "roi": 0.0,
-        "sell_through": 0.0,
-        "sell_through_pct": 0,
-        "net_after_fees": 0.0,
-        "fees": 0.0,
-        "shipping_cost": 0.0,
-        "score": 0.0,
-    }
-
-    def __init__(self, data=None):
-        payload = dict(self._defaults)
-        if isinstance(data, dict):
-            payload.update(data)
-        for key, value in payload.items():
-            setattr(self, key, value)
 
 
 def _safe_float(value, default=0.0) -> float:
@@ -1821,11 +1782,13 @@ def _safe_int(value, default=0) -> int:
         return int(default)
 
 
-def _temu_placeholder_item(message: str = "Waiting for Temu-flips data"):
-    return SafeTemplateItem({
+def _temu_placeholder_item(message: str = "Temu-flips warming up") -> dict:
+    return {
         "title": "Temu-flips warming up",
-        "category_label": "System Status",
+        "label": "Temu-flips warming up",
+        "query": message,
         "category": "temu-flip",
+        "category_label": "Temu Flip",
         "trend": "WATCH",
         "confidence": "LOW",
         "source": "system",
@@ -1840,29 +1803,26 @@ def _temu_placeholder_item(message: str = "Waiting for Temu-flips data"):
         "value": 0.0,
         "profit": 0.0,
         "roi": 0.0,
-        "sell_through": 0.0,
+        "sell_through": 0,
         "sell_through_pct": 0,
-        "net_after_fees": 0.0,
         "fees": 0.0,
         "shipping_cost": 0.0,
+        "net_after_fees": 0.0,
         "score": 0.0,
-        "status": message,
         "temu_search_url": "",
         "ebay_url": "",
         "google_search_url": "",
-    })
+        "status": message,
+        "placeholder": True,
+    }
 
 
-def _normalize_temu_flip_item(item: dict):
+def _normalize_temu_flip_item(item) -> dict:
     if not isinstance(item, dict):
         item = {"title": str(item or "Temu Flip")}
 
-    title = str(item.get("title") or item.get("label") or "Temu Flip").strip() or "Temu Flip"
-
-    asking_price = _safe_float(
-        item.get("asking_price", item.get("buy_price", item.get("price", item.get("est_cost", 0.0))))
-    )
-
+    title = str(item.get("title") or item.get("label") or item.get("query") or "Temu Flip").strip() or "Temu Flip"
+    asking_price = _safe_float(item.get("asking_price", item.get("buy_price", item.get("price", item.get("est_cost", 0.0)))))
     market_price = _safe_float(
         item.get(
             "market_price",
@@ -1878,20 +1838,25 @@ def _normalize_temu_flip_item(item: dict):
             ),
         )
     )
-
     fees = _safe_float(item.get("fees", round(market_price * 0.15, 2) if market_price > 0 else 0.0))
     shipping_cost = _safe_float(item.get("shipping_cost", 5.0 if market_price > 0 else 0.0))
     net_after_fees = _safe_float(item.get("net_after_fees", market_price - fees - shipping_cost))
     profit = _safe_float(item.get("profit", net_after_fees - asking_price))
     roi = _safe_float(item.get("roi", ((profit / asking_price) * 100.0) if asking_price > 0 else 0.0))
-    avg_price = _safe_float(item.get("avg_price", market_price))
-    sell_through = _safe_float(item.get("sell_through", 0.0))
-    sell_through_pct = _safe_int(item.get("sell_through_pct", round(sell_through * 100)))
+    raw_sell_through = item.get("sell_through", item.get("sell_through_pct", 0))
+    sell_through = _safe_float(raw_sell_through)
+    if sell_through <= 1:
+        sell_through_pct = _safe_int(round(sell_through * 100))
+    else:
+        sell_through_pct = _safe_int(sell_through)
+    score = _safe_float(item.get("score", (max(profit, 0) * 2.0) + (sell_through_pct * 0.4)))
 
-    normalized = {
+    return {
         "title": title,
-        "category_label": str(item.get("category_label") or item.get("label") or "Temu Flip"),
+        "label": str(item.get("label") or title),
+        "query": str(item.get("query") or item.get("title") or title),
         "category": str(item.get("category") or "temu-flip"),
+        "category_label": str(item.get("category_label") or item.get("label") or "Temu Flip"),
         "trend": str(item.get("trend") or ("🔥 HOT FLIP" if profit >= 15 else "✅ GOOD FLIP" if profit > 0 else "WATCH")),
         "confidence": str(item.get("confidence") or ("HIGH" if sell_through_pct >= 70 else "MEDIUM" if sell_through_pct >= 50 else "LOW")),
         "source": str(item.get("source") or "temu"),
@@ -1901,44 +1866,54 @@ def _normalize_temu_flip_item(item: dict):
         "market_price": round(market_price, 2),
         "market_value": round(market_price, 2),
         "estimated_value": round(market_price, 2),
-        "average_sale_price": round(avg_price, 2),
-        "avg_price": round(avg_price, 2),
+        "average_sale_price": round(_safe_float(item.get("average_sale_price", item.get("avg_price", market_price))), 2),
+        "avg_price": round(_safe_float(item.get("avg_price", market_price)), 2),
         "value": round(market_price, 2),
         "profit": round(profit, 2),
         "roi": round(roi, 1),
-        "sell_through": round(sell_through, 2),
+        "sell_through": sell_through_pct,
         "sell_through_pct": sell_through_pct,
         "fees": round(fees, 2),
         "shipping_cost": round(shipping_cost, 2),
         "net_after_fees": round(net_after_fees, 2),
-        "score": round(_safe_float(item.get("score", (sell_through_pct * 0.4) + max(profit, 0) * 2)), 2),
+        "score": round(score, 2),
         "temu_search_url": str(item.get("temu_search_url") or ""),
         "ebay_url": str(item.get("ebay_url") or item.get("url") or ""),
         "google_search_url": str(item.get("google_search_url") or ""),
         "status": str(item.get("status") or "LIVE"),
+        "placeholder": bool(item.get("placeholder", False)),
     }
-    return SafeTemplateItem(normalized)
 
 
 def _build_temu_route_items(max_items: int = 20):
     items = _read_temu_results()
-    if items:
-        normalized = [_normalize_temu_flip_item(item) for item in items[:max_items]]
-        if normalized:
-            return normalized, "LIVE"
+    if not items:
+        try:
+            items = _run_temu_cycle()
+        except Exception as e:
+            _update_temu_status(status="error", message="Temu-flips failed to load", last_error=str(e))
+            items = _read_temu_results()
 
-    fallback_status = "WARMING"
-    try:
-        raw_items = fetch_temu_items()[:max_items]
-    except Exception as e:
-        raw_items = []
-        fallback_status = f"ERROR: {e}"
-
-    normalized = [_normalize_temu_flip_item(item) for item in raw_items if item]
+    normalized = [_normalize_temu_flip_item(item) for item in (items or [])[:max_items] if item]
     if normalized:
-        return normalized, fallback_status
+        return normalized, get_temu_status()
 
-    return [_temu_placeholder_item("No Temu-flips available yet")], "EMPTY"
+    try:
+        fallback_items = fetch_temu_items()[:max_items]
+    except Exception as e:
+        fallback_items = []
+        _update_temu_status(status="error", message="Temu-flips fallback fetch failed", last_error=str(e))
+
+    normalized_fallback = [_normalize_temu_flip_item(item) for item in fallback_items if item]
+    if normalized_fallback:
+        status = get_temu_status()
+        status["message"] = status.get("message") or "Showing fallback Temu candidates"
+        return normalized_fallback, status
+
+    placeholder = _temu_placeholder_item("No Temu-flips available yet")
+    status = get_temu_status()
+    status["message"] = status.get("message") or "No Temu-flips available yet"
+    return [placeholder], status
 
 
 @app.get("/temu", response_class=HTMLResponse)
@@ -1950,28 +1925,42 @@ async def temu_flips_page(request: Request, email: str = ""):
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
     plan_ui = get_plan_ui_context(user)
-    membership_tier = plan_ui["membership_tier"]
+    membership_tier = str(plan_ui.get("membership_tier") or "FREE").upper()
 
-    flips, status_label = _build_temu_route_items(max_items=20)
+    flips, status = _build_temu_route_items(max_items=20)
     all_count = len(flips)
 
     if membership_tier in {"ADMIN", "RESELLER"}:
         visible_count = all_count
+        access_mode = "admin" if membership_tier == "ADMIN" else "full"
+        full_access = True
+        locked_message = ""
     elif membership_tier == "PRO":
         visible_count = min(all_count, 15)
+        access_mode = "full"
+        full_access = True
+        locked_message = ""
     else:
-        visible_count = min(all_count, 10)
-
+        preview_count = min(10, all_count)
+        visible_count = preview_count
+        access_mode = "preview"
+        full_access = False
+        locked_message = "Free access is limited to the preview board."
     visible_flips = flips[:visible_count]
     top_flips = sorted(
-        flips,
-        key=lambda x: (_safe_float(getattr(x, "score", 0)), _safe_float(getattr(x, "profit", 0))),
+        visible_flips,
+        key=lambda x: (_safe_float(x.get("score", 0)), _safe_float(x.get("profit", 0))),
         reverse=True,
     )[:5]
 
     temu_access = {
         "visible_count": len(visible_flips),
         "all_count": all_count,
+        "full_access": full_access,
+        "access_mode": access_mode,
+        "locked_message": locked_message,
+        "preview_count": min(10, all_count),
+        "locked_count": max(0, all_count - len(visible_flips)),
     }
 
     return templates.TemplateResponse(
@@ -1984,7 +1973,7 @@ async def temu_flips_page(request: Request, email: str = ""):
             "temu_access": temu_access,
             "temu_flips": visible_flips,
             "top_flips": top_flips,
-            "temu_status": status_label,
+            "temu_status": status,
             **plan_ui,
         },
     )
