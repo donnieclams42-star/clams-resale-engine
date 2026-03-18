@@ -1,3 +1,4 @@
+from temu_scanner import fetch_temu_items
 from typing import List, Optional
 import os
 import re
