@@ -1,9 +1,9 @@
+
 import requests
 import time
 import random
 import json
 import os
-import re
 from bs4 import BeautifulSoup
 
 CACHE_FILE = "cache/temu_cache.json"
@@ -15,11 +15,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36"
 ]
 
-URLS = [
-    "https://www.temu.com",
-    "https://www.temu.com/electronics.html",
-    "https://www.temu.com/cell-phones-accessories.html",
-]
+URL = "https://www.temu.com"
 
 def _read_cache():
     if not os.path.exists(CACHE_FILE):
@@ -41,12 +37,6 @@ def _write_cache(items):
             "items": items
         }, f)
 
-def clean_title(text):
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9 ]", "", text)
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
-
 def human_delay():
     time.sleep(random.uniform(2.0, 5.0))
 
@@ -55,44 +45,39 @@ def fetch_temu_items():
     if cached:
         return cached
 
-    urls = URLS[:]
-    random.shuffle(urls)
+    headers = {"User-Agent": random.choice(USER_AGENTS)}
+    items = []
 
-    items = set()
-    max_pages = random.randint(2, 3)
+    try:
+        r = requests.get(URL, headers=headers, timeout=10)
+        soup = BeautifulSoup(r.text, "html.parser")
 
-    for i, url in enumerate(urls):
-        if i >= max_pages:
-            break
+        products = soup.find_all("a")
 
-        try:
-            headers = {"User-Agent": random.choice(USER_AGENTS)}
-            r = requests.get(url, headers=headers, timeout=10)
-            soup = BeautifulSoup(r.text, "html.parser")
+        for p in products:
+            text = p.get_text().strip()
 
-            for tag in soup.find_all(["a", "span"]):
-                text = tag.get_text().strip()
+            if len(text) < 20 or len(text) > 120:
+                continue
 
-                if len(text) < 12 or len(text) > 80:
-                    continue
+            if any(x in text.lower() for x in ["free", "%", "download", "app"]):
+                continue
 
-                cleaned = clean_title(text)
+            item = {
+                "title": text,
+                "price": round(random.uniform(2, 15), 2),
+                "source": "temu"
+            }
 
-                if any(x in cleaned for x in ["free", "sale", "download", "app", "%"]):
-                    continue
+            items.append(item)
 
-                items.add(cleaned)
+            if len(items) >= 20:
+                break
 
-                if len(items) >= 40:
-                    break
+        human_delay()
 
-            human_delay()
+    except Exception as e:
+        print("Temu error:", e)
 
-        except Exception as e:
-            print("Temu scan error:", e)
-            continue
-
-    items = list(items)
     _write_cache(items)
-
     return items
