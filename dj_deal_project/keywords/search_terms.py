@@ -1,8 +1,8 @@
 # Master keyword list for D&J Deal Radar
-# Expanded category coverage to reduce repeat hits and surface broader deal types.
+# Broad category coverage with resale-safe query variety to reduce repeated junk.
 
 SEARCH_TERMS = [
-    # Phones / Apple / Samsung
+    # Phones / Apple / Samsung / Android
     "iphone",
     "iphone 16",
     "iphone 15",
@@ -20,15 +20,16 @@ SEARCH_TERMS = [
     "iphone for parts",
     "iphone parts",
     "samsung galaxy",
-    "galaxy s23",
     "galaxy s24",
+    "galaxy s23",
+    "galaxy ultra",
     "samsung phone",
     "android phone",
     "pixel phone",
     "google pixel",
-    "oneplus",
+    "oneplus phone",
 
-    # Tablets / laptops / computers
+    # Tablets / laptops / desktop / components
     "ipad",
     "ipad pro",
     "ipad air",
@@ -42,6 +43,7 @@ SEARCH_TERMS = [
     "computer bundle",
     "desktop computer",
     "gaming pc",
+    "pc bundle",
     "pc parts",
     "graphics card",
     "gpu",
@@ -73,10 +75,9 @@ SEARCH_TERMS = [
     "wii",
     "retro console",
     "retro gaming",
-    "controller lot",
     "gaming bundle",
 
-    # Video games / collectibles crossover
+    # Cards / collectibles / hobby
     "pokemon",
     "pokemon cards",
     "pokemon lot",
@@ -89,11 +90,17 @@ SEARCH_TERMS = [
     "basketball cards",
     "football cards",
     "hockey cards",
-    "vintage cards",
     "sealed games",
     "retro games",
     "video game lot",
     "game lot",
+    "lego lot",
+    "hot wheels lot",
+    "funko lot",
+    "rc car",
+    "drone lot",
+    "collectibles",
+    "model kits",
 
     # Tools / garage / contractor
     "milwaukee",
@@ -119,36 +126,30 @@ SEARCH_TERMS = [
     "compressor",
     "generator",
 
-    # Cameras / audio / electronics
+    # Cameras / audio / electronics / music gear
     "camera lot",
     "dslr",
     "canon camera",
     "nikon",
+    "sony camera",
     "gopro",
     "speaker",
     "bluetooth speaker",
     "stereo equipment",
     "receiver",
     "dj equipment",
+    "mixer",
+    "amp",
     "electronics lot",
     "random electronics",
 
-    # Watches / jewelry / luxury-ish quick flips
+    # Watches / jewelry / small valuables
     "watch lot",
     "smart watch",
     "apple watch",
     "gold jewelry",
     "silver jewelry",
     "jewelry lot",
-
-    # Toys / hobby / resale-friendly extras
-    "lego lot",
-    "rc car",
-    "drones",
-    "collectibles",
-    "funko lot",
-    "hot wheels lot",
-    "model kits",
 
     # Liquidation / urgency / broad opportunity
     "garage sale",
@@ -192,7 +193,9 @@ SEARCH_TERMS = [
     # Misspellings / hidden listings
     "iphon",
     "iphne",
+    "ipone",
     "playstaton",
+    "playstion",
     "pokeman",
     "pokmon",
     "nintndo",

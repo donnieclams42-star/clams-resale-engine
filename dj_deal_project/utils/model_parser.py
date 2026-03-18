@@ -43,6 +43,8 @@ ACCESSORY_WORDS = [
     "motherboard only", "frame only", "back cover", "tempered glass", "keyboard cover", "joycon shell",
     "dust cover", "skin", "wrap", "shell", "rear cover", "back glass", "camera lens", "lens protector",
     "sim tray", "enclosure", "mouse", "mice", "keyboard", "controller shell", "controller case",
+    "manual", "guide", "handbook", "binder", "copy", "book", "textbook", "paperback", "hardcover",
+    "key", "code", "digital download", "digital code", "activation code",
 ]
 
 PARTIAL_ITEM_PHRASES = [
@@ -119,9 +121,13 @@ CONSOLE_ACCESSORY_TERMS = [
 ]
 
 CONSOLE_GAME_TERMS = [
-    " game ", " game", "game ", "game only", "disc", "disc only", "software", "ntsc", "cib", "complete in box",
+    "game", "game only", "disc", "disc only", "software", "ntsc", "cib", "complete in box",
     "e10", "teen", "mature", "ea sports", "warner bros", "ubisoft", "activision", "capcom",
+    "edition", "collector", "collector s edition", "collectors edition", "deluxe", "ultimate edition", "special edition",
+    "key", "code", "digital", "download", "region", "redeem", "activation",
     "sonic frontiers", "lego star wars", "skywalker saga", "ufc 4", "ultimate fighting championship",
+    "psychonauts", "motherlobe edition", "need for speed", "unbound", "palace edition",
+    "oddworld", "abe s oddysee", "abe s exoddus",
 ]
 
 PHONE_PART_TERMS = [
@@ -132,6 +138,24 @@ PHONE_PART_TERMS = [
 DEVICE_ACCESSORY_TERMS = [
     "mouse", "mice", "keyboard", "bluetooth mouse", "wireless mouse", "accessory",
     "for macbook", "for ipad", "for laptop", "adapter", "charger", "case", "cover",
+    "power adapter", "ac power adapter", "ac adapter", "blue tip", "charger lot", "lot of",
+]
+
+DOCUMENT_TERMS = [
+    "manual", "owner s manual", "owners manual", "instruction manual", "guide", "handbook", "binder", "copy",
+]
+
+BOOK_TERMS = [
+    "book", "textbook", "paperback", "hardcover", "isbn", "study guide", "by ", " by ",
+]
+
+SOFTWARE_PATTERN_TERMS = [
+    "edition", "bundle", "code", "key", "digital", "download", "pc game", "computer game", "free ship",
+]
+
+HARDWARE_TERMS = [
+    "console", "system", "bundle with console", "tablet", "phone", "laptop", "macbook", "ipad",
+    "tested working", "working", "works", "w controller", "with controller", "with cords", "with hookups",
 ]
 
 SAFE_BUNDLE_PHRASES = [
@@ -163,13 +187,33 @@ def _looks_like_full_bundle(title_n: str) -> bool:
 
 
 
+def _looks_like_named_software(title_n: str) -> bool:
+    if not _contains_any(title_n, CONSOLE_PLATFORM_WORDS + DEVICE_PLATFORM_WORDS):
+        return False
+    if any(term in title_n for term in HARDWARE_TERMS):
+        return False
+    if _contains_any(title_n, CONSOLE_GAME_TERMS):
+        return True
+
+    has_numeric_sequel = bool(re.search(r" [a-z]{3,} \d+ ", title_n))
+    has_edition_language = _contains_any(title_n, SOFTWARE_PATTERN_TERMS)
+    if has_numeric_sequel and has_edition_language:
+        return True
+
+    if " pc " in title_n and (" bundle " in title_n or " lot " in title_n):
+        return True
+
+    return False
+
+
+
 def _is_console_accessory_or_game(title_n: str) -> bool:
     if not _contains_any(title_n, CONSOLE_PLATFORM_WORDS):
         return False
     if _contains_any(title_n, CONSOLE_ACCESSORY_TERMS):
         if not _looks_like_full_bundle(title_n):
             return True
-    if _contains_any(title_n, CONSOLE_GAME_TERMS):
+    if _contains_any(title_n, CONSOLE_GAME_TERMS) or _looks_like_named_software(title_n):
         if " console " not in title_n and " system " not in title_n and not _looks_like_full_bundle(title_n):
             return True
     return False
@@ -197,6 +241,26 @@ def _is_device_accessory_listing(title_n: str) -> bool:
 
 
 
+def _is_document_or_book_listing(title_n: str) -> bool:
+    if _contains_any(title_n, DOCUMENT_TERMS):
+        return True
+
+    if _contains_any(title_n, BOOK_TERMS):
+        if not _contains_any(title_n, HARDWARE_TERMS):
+            return True
+
+    if (" bundle " in title_n or " volume " in title_n or " set " in title_n) and (" by " in title_n or " author " in title_n):
+        if not _contains_any(title_n, HARDWARE_TERMS):
+            return True
+
+    if any(term in title_n for term in ["network security", "firewalls", "vpns"]):
+        if not _contains_any(title_n, HARDWARE_TERMS):
+            return True
+
+    return False
+
+
+
 def is_accessory(title: str) -> bool:
     title_n = normalize_text(title)
     return (
@@ -204,6 +268,7 @@ def is_accessory(title: str) -> bool:
         or _is_console_accessory_or_game(title_n)
         or _is_phone_part_listing(title_n)
         or _is_device_accessory_listing(title_n)
+        or _is_document_or_book_listing(title_n)
     )
 
 
@@ -227,6 +292,9 @@ def is_accessory_listing(title: str, keyword: str = "") -> bool:
     if _is_device_accessory_listing(title_n):
         return True
 
+    if _is_document_or_book_listing(title_n):
+        return True
+
     accessory_hit = any(word in title_n for word in ACCESSORY_WORDS)
     full_item_hit = any(signal in title_n for signal in FULL_ITEM_SIGNALS)
     if accessory_hit and not full_item_hit:
@@ -242,9 +310,13 @@ def is_accessory_listing(title: str, keyword: str = "") -> bool:
             "console": [
                 "controller", "remote", "power cord", "hdmi cable", "dock", "stand", "faceplate",
                 "skin", "dust cover", "cover", "protector", "shell", "wrap", "case", "game", "disc", "software",
+                "edition", "key", "code", "digital", "download", "manual", "guide", "book",
             ],
-            "tool": ["battery only", "charger only", "tool bag", "attachment only", "empty case"],
-            "electronics": ["cable", "charger", "adapter", "dock", "stand", "case", "mouse", "keyboard"],
+            "tool": ["battery only", "charger only", "tool bag", "attachment only", "empty case", "manual", "guide"],
+            "electronics": [
+                "cable", "charger", "adapter", "dock", "stand", "case", "mouse", "keyboard",
+                "manual", "guide", "binder", "copy", "book", "textbook",
+            ],
         }
         if any(f" {term} " in title_n or term in title_n for term in reject_map.get(category_intent, [])):
             if not any(signal in title_n for signal in [" bundle ", " lot ", " with charger ", " with controller "]) and not _looks_like_full_bundle(title_n):
