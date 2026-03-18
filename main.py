@@ -20,7 +20,11 @@ from market_analysis import analyze_market
 from listing_generator import generate_listings
 
 
-# from openai import OpenAI
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
+
 import stripe
 from supabase import create_client, Client
 
@@ -750,7 +754,7 @@ def get_plan_ui_context(user: dict):
 # ---------- OPENAI CLIENT ----------
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-client = None
+client = OpenAI(api_key=OPENAI_API_KEY) if (OpenAI is not None and OPENAI_API_KEY) else None
 
 # ---------- IMAGE DETECTION ----------
 
@@ -1137,6 +1141,7 @@ async def analyze(
                 "pro_price": PRO_PRICE,
                 "reseller_price": RESELLER_PRICE,
                 "error": "Free plan limit reached for today. Upgrade inside Membership & Access for more scans.",
+                **get_radar_dashboard_context(),
                 **plan_ui,
             },
         )
@@ -1179,6 +1184,7 @@ async def analyze(
                 "pro_price": PRO_PRICE,
                 "reseller_price": RESELLER_PRICE,
                 "error": error_message,
+                **get_radar_dashboard_context(),
                 **plan_ui,
             },
         )
@@ -1191,17 +1197,60 @@ async def analyze(
         },
     )
 
-    sold_prices, active_prices, suggestions, listing = search_ebay(query)
-    data = analyze_market(sold_prices, active_prices, condition, profit / 100, local_factor / 100, asking_price)
+    try:
+        sold_prices, active_prices, suggestions, listing = search_ebay(query)
+        data = analyze_market(sold_prices, active_prices, condition, profit / 100, local_factor / 100, asking_price)
 
-    if not data:
+        if not data:
+            return templates.TemplateResponse(
+                "dashboard.html",
+                {
+                    "request": request,
+                    "data": None,
+                    "generated_listings": None,
+                    "listing": listing,
+                    "email": email,
+                    "search_count": user["search_count"],
+                    "user_settings": user["settings"],
+                    "user": user,
+                    "free_limit": FREE_LIMIT,
+                    "pro_price": PRO_PRICE,
+                    "reseller_price": RESELLER_PRICE,
+                    "error": "No usable market data was found for that search. Try a clearer model name or photo.",
+                    **get_radar_dashboard_context(),
+                    **plan_ui,
+                },
+            )
+
+        data["deal_score_ui"] = clamp_score(data.get("deal_score", 0))
+        data["flip_score_ui"] = clamp_score(data.get("flip_score", 0))
+        data["deal_score_class"] = deal_score_class(data["deal_score_ui"])
+        data["flip_score_class"] = deal_score_class(data["flip_score_ui"])
+        data["deal_temperature"] = data.get("deal_temperature", "PASS")
+        data["deal_temperature_class"] = deal_temperature_class(data["deal_temperature"])
+        data["query_used"] = query
+        data["suggestions"] = suggestions or []
+
+        if asking_price is None:
+            data["profit_delta"] = None
+            data["profit_margin_percent"] = None
+
+        generated_listings = generate_listings(
+            query,
+            condition,
+            data["fast_cash"],
+            data["market_price"],
+            platforms,
+        )
+    except Exception as e:
+        print("Analyze failed:", e)
         return templates.TemplateResponse(
             "dashboard.html",
             {
                 "request": request,
                 "data": None,
                 "generated_listings": None,
-                "listing": listing,
+                "listing": None,
                 "email": email,
                 "search_count": user["search_count"],
                 "user_settings": user["settings"],
@@ -1209,31 +1258,11 @@ async def analyze(
                 "free_limit": FREE_LIMIT,
                 "pro_price": PRO_PRICE,
                 "reseller_price": RESELLER_PRICE,
-                "error": "No usable market data was found for that search. Try a clearer model name or photo.",
+                "error": "Search failed on the server. Try the item name manually or try the photo again.",
+                **get_radar_dashboard_context(),
                 **plan_ui,
             },
         )
-
-    data["deal_score_ui"] = clamp_score(data.get("deal_score", 0))
-    data["flip_score_ui"] = clamp_score(data.get("flip_score", 0))
-    data["deal_score_class"] = deal_score_class(data["deal_score_ui"])
-    data["flip_score_class"] = deal_score_class(data["flip_score_ui"])
-    data["deal_temperature"] = data.get("deal_temperature", "PASS")
-    data["deal_temperature_class"] = deal_temperature_class(data["deal_temperature"])
-    data["query_used"] = query
-    data["suggestions"] = suggestions or []
-
-    if asking_price is None:
-        data["profit_delta"] = None
-        data["profit_margin_percent"] = None
-
-    generated_listings = generate_listings(
-        query,
-        condition,
-        data["fast_cash"],
-        data["market_price"],
-        platforms,
-    )
 
     return templates.TemplateResponse(
         "dashboard.html",

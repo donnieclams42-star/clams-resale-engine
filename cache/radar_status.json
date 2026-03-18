@@ -1,0 +1,30 @@
+{
+  "status": "live",
+  "message": "No vetted deals in the latest cycle (0 new raw deals scanned)",
+  "sources": [
+    "eBay",
+    "Mercari"
+  ],
+  "deals_found_today": 0,
+  "live": true,
+  "running": true,
+  "updated_at": "2026-03-18T09:21:55.418775",
+  "raw_deals_this_cycle": 0,
+  "new_raw_deals_this_cycle": 0,
+  "last_cycle": "2026-03-18T09:21:55.418775",
+  "last_success": "2026-03-18T09:21:55.418775",
+  "source_state": {
+    "eBay": {
+      "last_success": "2026-03-18T09:21:52.534020",
+      "cooldown_until": 0,
+      "last_error": ""
+    },
+    "Mercari": {
+      "last_success": "2026-03-18T09:21:55.418775",
+      "cooldown_until": 0,
+      "last_error": ""
+    }
+  },
+  "analysis_calls_this_cycle": 0,
+  "last_error": ""
+}
