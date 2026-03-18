@@ -52,10 +52,8 @@ def fetch_temu_items():
         r = requests.get(URL, headers=headers, timeout=10)
         soup = BeautifulSoup(r.text, "html.parser")
 
-        products = soup.find_all("a")
-
-        for p in products:
-            text = p.get_text().strip()
+        for tag in soup.find_all("a"):
+            text = tag.get_text().strip()
 
             if len(text) < 20 or len(text) > 120:
                 continue
@@ -63,13 +61,11 @@ def fetch_temu_items():
             if any(x in text.lower() for x in ["free", "%", "download", "app"]):
                 continue
 
-            item = {
+            items.append({
                 "title": text,
-                "price": round(random.uniform(2, 15), 2),
+                "price": round(random.uniform(3, 15), 2),
                 "source": "temu"
-            }
-
-            items.append(item)
+            })
 
             if len(items) >= 20:
                 break
