@@ -5,11 +5,40 @@
 <title>Admin | CLAMS Intelligence</title>
 <link rel="stylesheet" href="/static/styles.css">
 <style>
-.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.admin-card{background:#111827;color:#fff;border-radius:18px;padding:16px;border:1px solid rgba(255,255,255,.08)}
-.admin-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.admin-shell{display:grid;gap:18px}
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.admin-card{background:#111827;color:#fff;border-radius:18px;padding:18px;border:1px solid rgba(255,255,255,.08)}
+.admin-card h3{margin:8px 0 6px 0}
+.admin-card p{margin:0;opacity:.84;line-height:1.5}
+.admin-actions{display:flex;gap:10px;flex-wrap:wrap}
 .admin-btn{display:inline-block;padding:10px 14px;border-radius:12px;text-decoration:none;background:#f97316;color:#fff;font-weight:700}
 .admin-btn.alt{background:#1f2937}
+.admin-panel-box{background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;color:#fff}
+.admin-panel-box h2{margin:0 0 14px 0}
+.admin-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.admin-field label{display:block;font-size:13px;opacity:.78;margin-bottom:6px}
+.admin-field input,.admin-field select{width:100%;padding:11px 12px;border-radius:10px;border:none;background:#fff;color:#111827}
+.admin-checks{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0}
+.admin-checks label{display:flex;align-items:center;gap:8px;font-size:14px}
+.admin-save-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.user-table-wrap{overflow:auto}
+.user-table{width:100%;border-collapse:collapse;min-width:880px}
+.user-table th,.user-table td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top;font-size:14px}
+.user-table th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.user-inline-form{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:10px;align-items:center}
+.user-pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(59,130,246,.18);color:#93c5fd;border:1px solid rgba(59,130,246,.35)}
+.user-pill.admin{background:rgba(34,197,94,.16);color:#86efac;border-color:rgba(34,197,94,.35)}
+.user-pill.free{background:rgba(148,163,184,.16);color:#cbd5e1;border-color:rgba(148,163,184,.35)}
+.user-pill.pro{background:rgba(249,115,22,.14);color:#fdba74;border-color:rgba(249,115,22,.35)}
+.user-pill.reseller{background:rgba(168,85,247,.15);color:#d8b4fe;border-color:rgba(168,85,247,.35)}
+.subtext{font-size:12px;opacity:.75;margin-top:4px}
+.status-good{color:#86efac;font-weight:700}
+.status-bad{color:#fca5a5;font-weight:700}
+@media (max-width:900px){
+  .admin-form-grid{grid-template-columns:1fr}
+  .user-inline-form{grid-template-columns:1fr}
+  .user-table{min-width:0}
+}
 </style>
 </head>
 <body>
@@ -17,6 +46,7 @@
     <div class="logo">
         <div class="logo-main">CLAMS Intelligence</div>
         <div class="logo-sub">Admin Console</div>
+        <div class="logo-quote">Control access, subscriptions, and flip visibility from one place.</div>
     </div>
     <div class="nav-links">
         <a href="/temu?email={{email}}" class="nav-temu">🔥 Temu-flips</a>
@@ -27,29 +57,148 @@
     </div>
 </div>
 
-<div class="app-container compact-app">
+<div class="app-container compact-app admin-shell">
+    {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+    {% if notice %}<div class="success-box">{{ notice }}</div>{% endif %}
+
     <div class="admin-grid">
         <div class="admin-card">
             <div class="section-kicker">Radar</div>
             <h3>{{ radar_status.status|upper }}</h3>
             <p>{{ radar_status.message }}</p>
-            <p>Deals ready: {{ radar_count }}</p>
+            <div class="subtext">Deals ready: {{ radar_count }}</div>
         </div>
         <div class="admin-card">
             <div class="section-kicker">Temu-flips</div>
             <h3>{{ temu_count }}</h3>
-            <p>Strict, cached, auto-loaded candidate flips.</p>
+            <p>{{ 'Enabled' if admin_control.temu_flips_enabled else 'Disabled' }} · Free preview {{ 'on' if admin_control.allow_free_temu_preview else 'off' }}</p>
+            <div class="subtext">Free {{ admin_control.free_temu_preview_count }} · Pro {{ admin_control.pro_temu_limit }} · Reseller {{ admin_control.reseller_temu_limit }}</div>
         </div>
         <div class="admin-card">
             <div class="section-kicker">Cache</div>
             <h3>{{ seen_counts.total }}</h3>
             <p>Seen records across links, fingerprints, and titles.</p>
+            <div class="subtext">Links {{ seen_counts.links or 0 }} · Fingerprints {{ seen_counts.fingerprints or 0 }} · Titles {{ seen_counts.titles or 0 }}</div>
+        </div>
+        <div class="admin-card">
+            <div class="section-kicker">Users</div>
+            <h3>{{ managed_users|length }}</h3>
+            <p>Live accounts available for membership and feature control.</p>
+            <div class="subtext">Signup lock {{ 'enabled' if admin_control.lock_new_signups else 'off' }}</div>
         </div>
     </div>
+
     <div class="admin-actions">
         <a class="admin-btn" href="/api/clear-deals?email={{email}}">Clear Deals</a>
-        <a class="admin-btn alt" href="/radar/test-discord?email={{email}}">Test Discord</a>
+        <a class="admin-btn alt" href="/radar/test-discord?email={{email}}" target="_blank">Test Discord</a>
         <a class="admin-btn alt" href="/temu?email={{email}}">Open Temu-flips</a>
+    </div>
+
+    <div class="admin-panel-box">
+        <h2>Global Controls</h2>
+        <form method="post" action="/admin/control">
+            <input type="hidden" name="email" value="{{ email }}">
+            <div class="admin-checks">
+                <label><input type="checkbox" name="temu_flips_enabled" value="1" {% if admin_control.temu_flips_enabled %}checked{% endif %}> Enable Temu-flips</label>
+                <label><input type="checkbox" name="allow_free_temu_preview" value="1" {% if admin_control.allow_free_temu_preview %}checked{% endif %}> Allow free preview</label>
+                <label><input type="checkbox" name="lock_new_signups" value="1" {% if admin_control.lock_new_signups %}checked{% endif %}> Pause new signups</label>
+            </div>
+            <div class="admin-form-grid">
+                <div class="admin-field">
+                    <label>Free preview item count</label>
+                    <input type="number" name="free_temu_preview_count" min="0" max="20" value="{{ admin_control.free_temu_preview_count }}">
+                </div>
+                <div class="admin-field">
+                    <label>Pro Temu-flips item count</label>
+                    <input type="number" name="pro_temu_limit" min="1" max="50" value="{{ admin_control.pro_temu_limit }}">
+                </div>
+                <div class="admin-field">
+                    <label>Reseller Temu-flips item count</label>
+                    <input type="number" name="reseller_temu_limit" min="1" max="100" value="{{ admin_control.reseller_temu_limit }}">
+                </div>
+            </div>
+            <div class="admin-save-row">
+                <button type="submit">Save Global Controls</button>
+                <span class="subtext">This lets you throttle previews, hard-disable Temu-flips, or stop signups without touching code.</span>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-panel-box">
+        <h2>User Control System</h2>
+        <div class="subtext" style="margin-bottom:12px;">Change membership, override Temu-flips access, and optionally reset scan counts from one screen.</div>
+        <div class="user-table-wrap">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Plan</th>
+                        <th>Temu-flips</th>
+                        <th>Usage</th>
+                        <th>Controls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in managed_users %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700;">{{ member.email }}</div>
+                            <div class="subtext">{% if member.is_admin %}Admin account{% else %}Standard account{% endif %}</div>
+                        </td>
+                        <td>
+                            {% if member.plan_membership == "ADMIN" %}
+                            <span class="user-pill admin">ADMIN</span>
+                            {% elif member.plan_membership == "RESELLER" %}
+                            <span class="user-pill reseller">RESELLER</span>
+                            {% elif member.plan_membership == "PRO" %}
+                            <span class="user-pill pro">PRO</span>
+                            {% else %}
+                            <span class="user-pill free">FREE</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if member.temu_access %}
+                            <div class="status-good">Enabled</div>
+                            {% else %}
+                            <div class="status-bad">Locked</div>
+                            {% endif %}
+                            <div class="subtext">
+                                {% if member.temu_override is sameas true %}Manual ON
+                                {% elif member.temu_override is sameas false %}Manual OFF
+                                {% else %}Inherited from plan{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div>{{ member.search_count }} scans</div>
+                            <div class="subtext">Reset date {{ member.search_reset_date }}</div>
+                        </td>
+                        <td>
+                            {% if member.is_admin %}
+                                <div class="subtext">Admin account access is fixed by email allowlist.</div>
+                            {% else %}
+                            <form method="post" action="/admin/user-access" class="user-inline-form">
+                                <input type="hidden" name="email" value="{{ email }}">
+                                <input type="hidden" name="target_email" value="{{ member.email }}">
+                                <select name="membership">
+                                    <option value="FREE" {% if member.membership == "FREE" %}selected{% endif %}>FREE</option>
+                                    <option value="PRO" {% if member.membership == "PRO" %}selected{% endif %}>PRO</option>
+                                    <option value="RESELLER" {% if member.membership == "RESELLER" %}selected{% endif %}>RESELLER</option>
+                                </select>
+                                <select name="temu_override">
+                                    <option value="inherit" {% if member.temu_override is none %}selected{% endif %}>Temu inherit</option>
+                                    <option value="on" {% if member.temu_override is sameas true %}selected{% endif %}>Temu force on</option>
+                                    <option value="off" {% if member.temu_override is sameas false %}selected{% endif %}>Temu force off</option>
+                                </select>
+                                <label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" name="reset_usage" value="1"> Reset usage</label>
+                                <button type="submit">Save</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 </body>
