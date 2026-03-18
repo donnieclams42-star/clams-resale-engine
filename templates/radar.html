@@ -19,7 +19,7 @@
         <a href="/account?email={{email}}">Account</a>
     </div>
 </div>
-<div class="app-container compact-app">
+<div class="app-container compact-app radar-shell">
     <div class="radar-page-top compact-box">
         <div>
             <div class="section-kicker">CLAMS Deal Radar</div>
@@ -37,30 +37,88 @@
         </div>
     </div>
 
-    {% if radar_deals %}
-    <div class="radar-grid">
-        {% for deal in radar_deals %}
-        <div class="radar-deal-card">
-            <div class="radar-deal-top">
-                <div class="radar-deal-source">{{ deal.source or deal.market }}</div>
-                <div class="radar-deal-score">Edge {{ deal.edge_score or deal.deal_score }}</div>
+    {% if radar_top_deals %}
+    <div class="compact-box radar-top-wrap">
+        <div class="section-kicker">Top Deals</div>
+        <div class="radar-page-sub">Best surfaced deals first, based on edge score, profit, and confidence.</div>
+        <div class="radar-top-grid">
+            {% for deal in radar_top_deals %}
+            <div class="radar-deal-card radar-top-card">
+                <div class="radar-card-media">
+                    {% if deal.display_image %}
+                    <img src="{{ deal.display_image }}" alt="{{ deal.title }}">
+                    {% else %}
+                    <div class="radar-no-image">No Image</div>
+                    {% endif %}
+                </div>
+                <div class="radar-deal-top">
+                    <div class="radar-deal-source">{{ deal.source or deal.market }}</div>
+                    <div class="radar-deal-score">Edge {{ deal.edge_score or deal.deal_score }}</div>
+                </div>
+                <div class="radar-chip-row">
+                    <span class="radar-chip">{{ deal.category_label }}</span>
+                    {% if deal.confidence %}<span class="radar-chip muted-chip">{{ deal.confidence }}</span>{% endif %}
+                </div>
+                <div class="radar-deal-title">{{ deal.title }}</div>
+                <div class="radar-metrics-row">
+                    <div class="radar-metric"><span>Buy</span><strong>${{ '%.2f'|format(deal.price|float) }}</strong></div>
+                    <div class="radar-metric"><span>Value</span><strong>${{ '%.2f'|format(deal.market_value|float) }}</strong></div>
+                    <div class="radar-metric"><span>Profit</span><strong>${{ '%.2f'|format(deal.profit|float) }}</strong></div>
+                </div>
+                <div class="radar-deal-bottom">
+                    {% if deal.url %}<a href="{{ deal.url }}" target="_blank">Open listing</a>{% elif deal.link %}<a href="{{ deal.link }}" target="_blank">Open listing</a>{% endif %}
+                </div>
             </div>
-            <div class="radar-deal-title">{{ deal.title }}</div>
-            <div class="radar-metrics-row">
-                <div class="radar-metric"><span>Buy</span><strong>${{ '%.2f'|format(deal.price|float) }}</strong></div>
-                <div class="radar-metric"><span>Value</span><strong>${{ '%.2f'|format(deal.market_value|float) }}</strong></div>
-                <div class="radar-metric"><span>Profit</span><strong>${{ '%.2f'|format(deal.profit|float) }}</strong></div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if radar_groups %}
+        {% for group in radar_groups %}
+        <div class="compact-box radar-group-box">
+            <div class="radar-group-head">
+                <div>
+                    <div class="section-kicker">{{ group.label }}</div>
+                    <div class="radar-page-sub">{{ group.deals|length }} surfaced deal{{ '' if group.deals|length == 1 else 's' }}</div>
+                </div>
             </div>
-            <div class="radar-deal-bottom">
-                {% if deal.url %}<a href="{{ deal.url }}" target="_blank">Open listing</a>{% elif deal.link %}<a href="{{ deal.link }}" target="_blank">Open listing</a>{% endif %}
+            <div class="radar-grid">
+                {% for deal in group.deals %}
+                <div class="radar-deal-card">
+                    <div class="radar-card-media">
+                        {% if deal.display_image %}
+                        <img src="{{ deal.display_image }}" alt="{{ deal.title }}">
+                        {% else %}
+                        <div class="radar-no-image">No Image</div>
+                        {% endif %}
+                    </div>
+                    <div class="radar-deal-top">
+                        <div class="radar-deal-source">{{ deal.source or deal.market }}</div>
+                        <div class="radar-deal-score">Edge {{ deal.edge_score or deal.deal_score }}</div>
+                    </div>
+                    <div class="radar-chip-row">
+                        <span class="radar-chip">{{ deal.category_label }}</span>
+                        {% if deal.confidence %}<span class="radar-chip muted-chip">{{ deal.confidence }}</span>{% endif %}
+                    </div>
+                    <div class="radar-deal-title">{{ deal.title }}</div>
+                    <div class="radar-metrics-row">
+                        <div class="radar-metric"><span>Buy</span><strong>${{ '%.2f'|format(deal.price|float) }}</strong></div>
+                        <div class="radar-metric"><span>Value</span><strong>${{ '%.2f'|format(deal.market_value|float) }}</strong></div>
+                        <div class="radar-metric"><span>Profit</span><strong>${{ '%.2f'|format(deal.profit|float) }}</strong></div>
+                    </div>
+                    <div class="radar-deal-bottom">
+                        {% if deal.url %}<a href="{{ deal.url }}" target="_blank">Open listing</a>{% elif deal.link %}<a href="{{ deal.link }}" target="_blank">Open listing</a>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
         {% endfor %}
-    </div>
     {% else %}
     <div class="compact-box">
         <div class="section-kicker">No alerts yet</div>
-        <p class="tool-intro">The radar worker is live, but it has not found a deal that passed the profit and scam filters yet. That is normal during a fresh boot.</p>
+        <p class="tool-intro">The radar worker is live, but it has not found a deal that passed the profit, duplicate, accessory, and scam filters yet. That is normal during a fresh boot.</p>
     </div>
     {% endif %}
 </div>

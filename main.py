@@ -19,6 +19,8 @@ from ebay import search_ebay
 from market_analysis import analyze_market
 from listing_generator import generate_listings
 
+from dj_deal_project.utils.model_parser import normalize_text, detect_category, is_accessory_listing
+
 
 try:
     from openai import OpenAI
@@ -112,11 +114,67 @@ def get_radar_results(limit=None):
     return deals
 
 
-def get_radar_dashboard_context(limit=4):
-    return {
-        "radar_status": get_radar_status(),
-        "radar_deals": get_radar_results(limit=limit),
+def _category_label(raw: str) -> str:
+    mapping = {
+        "phone": "Phones",
+        "console": "Gaming",
+        "tool": "Tools",
+        "cards": "Cards & Collectibles",
+        "electronics": "Electronics",
+        "liquidation": "Local Lots / Bulk",
+        "repair": "Parts / Repair",
+        "other": "Other Deals",
     }
+    return mapping.get((raw or "other").lower(), "Other Deals")
+
+
+def _assign_deal_category(deal: dict) -> str:
+    title = normalize_text(str(deal.get("title") or ""))
+    keyword = normalize_text(str(deal.get("search_keyword") or ""))
+    text = f"{title} {keyword}".strip()
+    base = detect_category(text)
+    if any(term in text for term in ["repair", "for parts", "parts", "broken", "cracked", "not working", "as is", "untested"]):
+        return "repair" if base not in {"cards"} else "cards"
+    if any(term in text for term in ["lot", "bundle", "collection", "mixed lot", "bulk", "garage sale", "moving sale", "estate sale", "cleanout"]):
+        if base in {"tool", "cards", "electronics", "console", "phone"}:
+            return base
+        return "liquidation"
+    return base or "other"
+
+
+def _confidence_rank(value: str) -> int:
+    return {"high": 3, "medium": 2, "low": 1}.get(str(value or "").strip().lower(), 0)
+
+
+def _deal_sort_key(deal: dict):
+    return (
+        float(deal.get("edge_score") or deal.get("deal_score") or 0),
+        float(deal.get("profit") or 0),
+        _confidence_rank(deal.get("confidence")),
+    )
+
+
+def build_radar_page_context(limit: int = 50) -> dict:
+    deals = get_radar_results(limit=limit)
+    for deal in deals:
+        category_key = str(deal.get("category") or "").strip().lower() or _assign_deal_category(deal)
+        deal["category"] = category_key
+        deal["category_label"] = _category_label(category_key)
+        deal["display_image"] = str(deal.get("image") or deal.get("image_url") or "").strip()
+    top_deals = sorted(deals, key=_deal_sort_key, reverse=True)[:6]
+    grouped = []
+    bucket_order = ["phone", "console", "tool", "cards", "electronics", "repair", "liquidation", "other"]
+    for key in bucket_order:
+        items = [deal for deal in deals if deal.get("category") == key]
+        if not items:
+            continue
+        items = sorted(items, key=_deal_sort_key, reverse=True)[:12]
+        grouped.append({"key": key, "label": _category_label(key), "deals": items})
+    return {"radar_status": get_radar_status(), "radar_deals": deals, "radar_top_deals": top_deals, "radar_groups": grouped}
+
+
+def get_radar_dashboard_context(limit=4):
+    return build_radar_page_context(limit=limit)
 
 
 def _update_radar_status(**kwargs):
@@ -234,6 +292,9 @@ def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
     result["url"] = result.get("url") or result.get("link") or (listing or {}).get("url") or ""
     result["best_market"] = analysis.get("best_platform") or "Facebook Marketplace"
     result["sold_count"] = int(analysis.get("sold_count") or len(prices))
+    result["category"] = _assign_deal_category(result)
+    result["category_label"] = _category_label(result["category"])
+    result["display_image"] = str(result.get("image") or result.get("image_url") or "").strip()
     return result
 
 
@@ -308,6 +369,8 @@ def _run_radar_cycle():
         query = _clean_radar_query(deal)
         if not query:
             continue
+        if is_accessory_listing(str(deal.get("title") or ""), str(deal.get("search_keyword") or query)):
+            continue
         cached = analysis_cache.get(query)
         fresh_cache = bool(cached and time.time() - float(cached.get("ts", 0)) < float(getattr(radar_config, "RADAR_ANALYSIS_CACHE_SECONDS", 21600) or 21600))
         if not fresh_cache:
@@ -341,8 +404,8 @@ def _run_radar_cycle():
         unique_approved.append(deal)
 
     approved = unique_approved
-    approved.sort(key=lambda d: (float(d.get("edge_score", 0)), float(d.get("profit", 0))), reverse=True)
-    approved = approved[:25]
+    approved.sort(key=_deal_sort_key, reverse=True)
+    approved = approved[:50]
     _write_json_file(RADAR_RESULTS_FILE, approved)
 
     status_msg = (
@@ -1310,8 +1373,7 @@ async def radar_page(request: Request, email: str = ""):
             "request": request,
             "email": email,
             "user": user,
-            "radar_status": get_radar_status(),
-            "radar_deals": get_radar_results(limit=50),
+            **build_radar_page_context(limit=50),
         },
     )
 

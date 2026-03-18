@@ -57,6 +57,13 @@ def _candidate_ok(title: str, price: float | None) -> bool:
     return is_deal_candidate(normalize_text(title))
 
 
+def _extract_anchor_image(a_tag) -> str:
+    img = a_tag.find("img")
+    if not img:
+        return ""
+    return str(img.get("src") or img.get("data-src") or "").strip()
+
+
 def _collect_from_anchors(soup: BeautifulSoup, keyword: str) -> list[dict]:
     results = []
     for a_tag in soup.find_all("a", href=True):
@@ -74,6 +81,7 @@ def _collect_from_anchors(soup: BeautifulSoup, keyword: str) -> list[dict]:
             "price": price,
             "link": link,
             "url": link,
+            "image": _extract_anchor_image(a_tag),
             "market": "OfferUp",
             "source": "OfferUp",
             "search_keyword": keyword,
@@ -107,6 +115,7 @@ def _collect_from_json_scripts(soup: BeautifulSoup, keyword: str) -> list[dict]:
                     "price": price,
                     "link": url,
                     "url": url,
+                    "image": str(item.get('image') or item.get('imageUrl') or ''),
                     "market": "OfferUp",
                     "source": "OfferUp",
                     "search_keyword": keyword,
@@ -118,11 +127,13 @@ def _collect_from_json_scripts(soup: BeautifulSoup, keyword: str) -> list[dict]:
             url = _clean_link(match.group(3))
             if not _candidate_ok(title, price) or not url:
                 continue
+            image_match = re.search(r'"(?:image|imageUrl|thumbnailUrl|photo)"\s*:\s*"([^"]+)"', text[match.start():match.end()+400], re.I | re.S)
             results.append({
                 "title": title,
                 "price": price,
                 "link": url,
                 "url": url,
+                "image": str(image_match.group(1) if image_match else ''),
                 "market": "OfferUp",
                 "source": "OfferUp",
                 "search_keyword": keyword,

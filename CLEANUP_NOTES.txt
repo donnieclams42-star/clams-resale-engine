@@ -1,5 +1,7 @@
-patch_v4_full_files_only
-- loosened the radar approval thresholds by source so raw eBay candidates have a better chance to surface
-- expanded and source-focused keyword pools using dj_deal_project/keywords/search_terms.py
-- improved Mercari and OfferUp scanners with stronger HTML + embedded JSON parsing and per-keyword result logging
-- kept full replacement files only; .env not included
+patch_v5_full_files_only
+- hardened duplicate suppression using stronger fingerprints and per-cycle title/price checks
+- blocked accessory and partial-item junk more aggressively before approval
+- added category assignment for surfaced deals
+- upgraded radar UI with Top Deals, grouped categories, and thumbnail images when available
+- improved Mercari and OfferUp scanners to capture image URLs when possible
+- full replacement files only; .env intentionally not included
