@@ -363,15 +363,42 @@ def _run_radar_cycle():
 
     return approved
 
+_radar_task = None
+
 
 async def _radar_background_loop():
     while True:
+        wait_time = 1800
         try:
-            _update_radar_status(running=True, status="scanning", message="Scanning for vetted deals...")
+            _update_radar_status(
+                running=True,
+                status="scanning",
+                message="Scanning for vetted deals...",
+            )
+            print(f"[RADAR] HEARTBEAT {datetime.utcnow().isoformat()}Z")
             deals = await asyncio.to_thread(_run_radar_cycle)
-            config_module = __import__("config")
-            base_wait = int(getattr(config_module, "SCAN_INTERVAL", 900) or 900)
+
+            try:
+                radar_config = __import__("config")
+                base_wait = int(getattr(radar_config, "SCAN_INTERVAL", 900) or 900)
+            except Exception:
+                base_wait = 900
+
             wait_time = base_wait if deals else max(900, base_wait)
+
+            _update_radar_status(
+                running=True,
+                status="sleeping",
+                message=f"Radar sleeping for {wait_time} seconds",
+            )
+        except asyncio.CancelledError:
+            _update_radar_status(
+                running=False,
+                status="stopped",
+                message="Radar worker cancelled",
+                last_cycle=datetime.utcnow().isoformat(),
+            )
+            raise
         except Exception as e:
             _update_radar_status(
                 running=False,
@@ -380,38 +407,42 @@ async def _radar_background_loop():
                 last_error=str(e),
                 last_cycle=datetime.utcnow().isoformat(),
             )
-            wait_time = 1800
+            print(f"[RADAR ERROR] {e}")
+
         await asyncio.sleep(wait_time)
 
 
 @app.on_event("startup")
 async def start_radar_background_worker():
-    global _radar_thread, _radar_started
+    global _radar_task, _radar_started
     if os.getenv("RADAR_AUTOSTART", "1") != "1":
         _update_radar_status(running=False, status="disabled", message="Radar autostart is disabled")
         return
     with _radar_lock:
-        if _radar_started:
+        if _radar_started and _radar_task and not _radar_task.done():
             return
         _radar_started = True
-        _radar_thread = asyncio.create_task(_radar_background_loop())
-    try:
-        _update_radar_status(running=True, status="starting", message="Radar worker booting...")
-    except Exception:
-        pass
+        _radar_task = asyncio.create_task(_radar_background_loop(), name="clams-radar-worker")
+        try:
+            _update_radar_status(running=True, status="starting", message="Radar worker booting...")
+            print("[RADAR] Background worker started")
+        except Exception:
+            pass
 
 
 @app.on_event("shutdown")
 async def stop_radar_background_worker():
-    global _radar_thread, _radar_started
-    task = _radar_thread
-    _radar_thread = None
+    global _radar_task, _radar_started
+    task = _radar_task
+    _radar_task = None
     _radar_started = False
-    if task:
+    if task and not task.done():
         task.cancel()
         try:
             await task
         except asyncio.CancelledError:
+            pass
+
             pass
 
 
