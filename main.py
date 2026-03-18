@@ -1763,6 +1763,33 @@ def get_radar_dashboard_context(limit=4):
     return ctx
 
 
+@app.get("/temu", response_class=HTMLResponse)
+async def temu_page(request: Request, email: str = ""):
+    temu_access = {'visible_count': 0, 'all_count': 0}
+    membership_tier = 'Free'
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
+    items = _read_temu_results()
+    temu_access = {
+        "visible_count": len(flips) if 'flips' in locals() else 0,
+        "all_count": len(flips) if 'flips' in locals() else 0
+    }
+    membership_tier = user.get("membership", "FREE") if 'user' in locals() else "FREE"
+
+    return templates.TemplateResponse(
+        "temu_flips.html",
+        {
+            "request": request,
+            "email": email,
+            "user": user,
+            "temu_flips": items,
+            "top_flips": items[:5],
+            "temu_status": get_temu_status(),
+        },
+    )
 
 
 @app.get("/api/clear-deals")
@@ -1830,7 +1857,7 @@ async def temu_flips_page(request: Request):
         flips = []
         for item in items:
             flips.append({
-                "title": item.title(),
+                "title": item.get("title", ""),
                 "price": round(random.uniform(2, 15), 2),
                 "value": round(random.uniform(20, 80), 2),
                 "profit": round(random.uniform(10, 60), 2),
@@ -1852,7 +1879,8 @@ async def temu_flips_page(request: Request):
             "top_flips": flips[:5],
             "temu_status": "LIVE",
             "membership_tier": membership_tier,
-            "temu_access": temu_access
+            "user": user,
+        "temu_access": temu_access
         })
 
     except Exception as e:
@@ -1864,56 +1892,6 @@ async def temu_flips_page(request: Request):
             "top_flips": [],
             "temu_status": "ERROR",
             "membership_tier": "Free",
-            "temu_access": {"visible_count": 0, "all_count": 0}
+            "user": user,
+        "temu_access": {"visible_count": 0, "all_count": 0}
         })
-
-
-
-# ===== FINAL TEMU ROUTE FIX =====
-@app.get("/temu", response_class=HTMLResponse)
-async def temu_flips_page(request: Request, email: str = ""):
-    email = get_request_email(request, email)
-    if not email:
-        return RedirectResponse("/login", status_code=303)
-
-    user = ensure_user_exists(email)
-    user = ensure_daily_reset(user)
-
-    temu_flips = []
-    top_flips = []
-
-    try:
-        from temu_scanner import fetch_temu_items
-        items = fetch_temu_items() or []
-
-        for item in items:
-            item["asking_price"] = float(item.get("est_cost", 0))
-            item["market_price"] = float(item.get("avg_price", 0))
-            item["sell_through"] = int(item.get("sell_through_pct", 0))
-
-        temu_flips = items[:20]
-        top_flips = sorted(items, key=lambda x: x.get("profit", 0), reverse=True)[:5]
-
-    except Exception as e:
-        print("TEMU LOAD ERROR:", e)
-
-    membership_tier = user.get("membership", "FREE")
-
-    temu_access = {
-        "visible_count": len(temu_flips),
-        "all_count": len(temu_flips),
-        "access_mode": "full",
-        "full_access": True,
-        "locked_message": "",
-        "preview_count": 0
-    }
-
-    return templates.TemplateResponse("temu_flips.html", {
-        "request": request,
-        "email": email,
-        "user": user,
-        "membership_tier": membership_tier,
-        "temu_access": temu_access,
-        "temu_flips": temu_flips,
-        "top_flips": top_flips
-    })
