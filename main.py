@@ -1763,33 +1763,6 @@ def get_radar_dashboard_context(limit=4):
     return ctx
 
 
-@app.get("/temu", response_class=HTMLResponse)
-async def temu_page(request: Request, email: str = ""):
-    temu_access = {'visible_count': 0, 'all_count': 0}
-    membership_tier = 'Free'
-    email = get_request_email(request, email)
-    if not email:
-        return RedirectResponse("/login", status_code=303)
-    user = ensure_user_exists(email)
-    user = ensure_daily_reset(user)
-    items = _read_temu_results()
-    temu_access = {
-        "visible_count": len(flips) if 'flips' in locals() else 0,
-        "all_count": len(flips) if 'flips' in locals() else 0
-    }
-    membership_tier = user.get("membership", "FREE") if 'user' in locals() else "FREE"
-
-    return templates.TemplateResponse(
-        "temu_flips.html",
-        {
-            "request": request,
-            "email": email,
-            "user": user,
-            "temu_flips": items,
-            "top_flips": items[:5],
-            "temu_status": get_temu_status(),
-        },
-    )
 
 
 @app.get("/api/clear-deals")
