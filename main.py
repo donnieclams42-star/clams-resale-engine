@@ -1866,3 +1866,54 @@ async def temu_flips_page(request: Request):
             "membership_tier": "Free",
             "temu_access": {"visible_count": 0, "all_count": 0}
         })
+
+
+
+# ===== FINAL TEMU ROUTE FIX =====
+@app.get("/temu", response_class=HTMLResponse)
+async def temu_flips_page(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
+    user = ensure_user_exists(email)
+    user = ensure_daily_reset(user)
+
+    temu_flips = []
+    top_flips = []
+
+    try:
+        from temu_scanner import fetch_temu_items
+        items = fetch_temu_items() or []
+
+        for item in items:
+            item["asking_price"] = float(item.get("est_cost", 0))
+            item["market_price"] = float(item.get("avg_price", 0))
+            item["sell_through"] = int(item.get("sell_through_pct", 0))
+
+        temu_flips = items[:20]
+        top_flips = sorted(items, key=lambda x: x.get("profit", 0), reverse=True)[:5]
+
+    except Exception as e:
+        print("TEMU LOAD ERROR:", e)
+
+    membership_tier = user.get("membership", "FREE")
+
+    temu_access = {
+        "visible_count": len(temu_flips),
+        "all_count": len(temu_flips),
+        "access_mode": "full",
+        "full_access": True,
+        "locked_message": "",
+        "preview_count": 0
+    }
+
+    return templates.TemplateResponse("temu_flips.html", {
+        "request": request,
+        "email": email,
+        "user": user,
+        "membership_tier": membership_tier,
+        "temu_access": temu_access,
+        "temu_flips": temu_flips,
+        "top_flips": top_flips
+    })
