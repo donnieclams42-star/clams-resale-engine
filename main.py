@@ -1623,7 +1623,39 @@ def get_temu_status():
     status.setdefault("status", "idle")
     status.setdefault("message", "Temu-flips idle")
     status.setdefault("count", 0)
+    last_success = status.get("last_success")
+    live = False
+    if last_success:
+        try:
+            live = (datetime.utcnow() - datetime.fromisoformat(last_success)).total_seconds() < 86400
+        except Exception:
+            live = False
+    status["live"] = live
     return status
+
+
+def _temu_placeholder_cards():
+    return [
+        {
+            "title": "Temu-flips warming up",
+            "price": 0.0,
+            "avg_price": 0.0,
+            "value": 0.0,
+            "net_sale_estimate": 0.0,
+            "profit": 0.0,
+            "roi": 0.0,
+            "sell_through": 0.0,
+            "sell_through_pct": 0,
+            "sold_count": 0,
+            "confidence": "LOW",
+            "trend": "Loading",
+            "score": 0,
+            "source": "temu",
+            "temu_url": "",
+            "ebay_url": "",
+            "placeholder": True,
+        }
+    ]
 
 
 def _estimate_net_sale(avg_sale_price: float) -> float:
@@ -1697,15 +1729,34 @@ def _run_temu_cycle(force_refresh: bool = False):
 
     flips.sort(key=lambda x: (float(x.get("score") or 0), float(x.get("profit") or 0)), reverse=True)
     flips = flips[:20]
-    _write_temu_results(flips)
+    if flips:
+        _write_temu_results(flips)
+        _update_temu_status(
+            status="live",
+            message=f"{len(flips)} Temu-flips ready",
+            count=len(flips),
+            last_success=datetime.utcnow().isoformat(),
+            last_error="",
+        )
+        return flips
+
+    cached_flips = _read_temu_results()
+    if cached_flips:
+        _update_temu_status(
+            status="cached",
+            message=f"Using last saved Temu-flips cache ({len(cached_flips)} items)",
+            count=len(cached_flips),
+            last_error="No fresh Temu flips found in the latest cycle",
+        )
+        return cached_flips
+
     _update_temu_status(
-        status="live",
-        message=f"{len(flips)} Temu-flips ready",
-        count=len(flips),
-        last_success=datetime.utcnow().isoformat(),
-        last_error="",
+        status="empty",
+        message="No Temu-flips available yet",
+        count=0,
+        last_error="No Temu flips found",
     )
-    return flips
+    return []
 
 
 def _temu_background_loop():
@@ -1758,19 +1809,32 @@ async def temu_flips_page(request: Request, email: str = ""):
             items = _run_temu_cycle()
         except Exception as e:
             _update_temu_status(status="error", message="Temu-flips failed to load", last_error=str(e))
-            items = []
+            items = _read_temu_results()
 
+    status = get_temu_status()
     membership_tier = plan_ui.get("membership_tier", "FREE")
     plan_info = plan_ui.get("plan_info", {}) or {}
     is_full_access = bool(plan_info.get("advanced_enabled") or plan_info.get("is_admin"))
-    visible_count = len(items) if is_full_access else min(len(items), 10)
+    all_count = len(items)
+    visible_count = all_count if is_full_access else min(all_count, 10)
     visible_items = items[:visible_count]
-    top_flips = sorted(visible_items, key=lambda x: float(x.get("score") or x.get("profit") or 0), reverse=True)[:5]
+
+    if not visible_items:
+        visible_items = _temu_placeholder_cards()
+        status = dict(status)
+        status["message"] = status.get("message") or "Temu-flips are warming up"
+
+    top_flips = sorted(
+        [item for item in visible_items if not item.get("placeholder")],
+        key=lambda x: float(x.get("score") or x.get("profit") or 0),
+        reverse=True,
+    )[:5]
 
     temu_access = {
-        "visible_count": visible_count,
-        "all_count": len(items),
+        "visible_count": 0 if visible_items and visible_items[0].get("placeholder") else visible_count,
+        "all_count": all_count,
         "full_access": is_full_access,
+        "locked_count": max(0, all_count - visible_count),
     }
 
     return templates.TemplateResponse(
@@ -1783,7 +1847,7 @@ async def temu_flips_page(request: Request, email: str = ""):
             "temu_access": temu_access,
             "temu_flips": visible_items,
             "top_flips": top_flips,
-            "temu_status": get_temu_status(),
+            "temu_status": status,
             **plan_ui,
         },
     )

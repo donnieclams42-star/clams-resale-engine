@@ -33,17 +33,18 @@ BAD_TITLE_TERMS = {
 }
 
 
-def _read_cache():
+def _read_cache(allow_stale: bool = False):
     if not os.path.exists(CACHE_FILE):
         return None
     try:
         with open(CACHE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         timestamp = float(data.get("timestamp", 0) or 0)
-        if time.time() - timestamp < CACHE_SECONDS:
-            items = data.get("items") or []
-            if isinstance(items, list):
-                return items
+        items = data.get("items") or []
+        if not isinstance(items, list):
+            return None
+        if allow_stale or (time.time() - timestamp < CACHE_SECONDS):
+            return items
     except Exception:
         return None
     return None
@@ -53,8 +54,10 @@ def _read_cache():
 def _write_cache(items):
     os.makedirs(CACHE_DIR, exist_ok=True)
     payload = {"timestamp": time.time(), "items": items}
-    with open(CACHE_FILE, "w", encoding="utf-8") as f:
+    tmp_file = f"{CACHE_FILE}.tmp"
+    with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_file, CACHE_FILE)
 
 
 
@@ -157,4 +160,8 @@ def fetch_temu_items(force_refresh: bool = False):
     cached = _read_cache()
     if cached:
         return cached
+
+    stale_cached = _read_cache(allow_stale=True)
+    if stale_cached:
+        return stale_cached
     return []
