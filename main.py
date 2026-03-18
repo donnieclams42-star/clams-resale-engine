@@ -9,6 +9,7 @@ import base64
 from uuid import uuid4
 from datetime import date, datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import asyncio
 
 from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
@@ -363,20 +364,28 @@ def _run_radar_cycle():
     return approved
 
 
-def _radar_background_loop():
+async def _radar_background_loop():
     while True:
         try:
             _update_radar_status(running=True, status="scanning", message="Scanning for vetted deals...")
-            deals = _run_radar_cycle()
-            wait_time = int(getattr(__import__("config"), "SCAN_INTERVAL", 900) or 900) if deals else max(900, int(getattr(__import__("config"), "SCAN_INTERVAL", 900) or 900))
+            deals = await asyncio.to_thread(_run_radar_cycle)
+            config_module = __import__("config")
+            base_wait = int(getattr(config_module, "SCAN_INTERVAL", 900) or 900)
+            wait_time = base_wait if deals else max(900, base_wait)
         except Exception as e:
-            _update_radar_status(running=False, status="error", message="Radar hit an error", last_error=str(e), last_cycle=datetime.utcnow().isoformat())
+            _update_radar_status(
+                running=False,
+                status="error",
+                message="Radar hit an error",
+                last_error=str(e),
+                last_cycle=datetime.utcnow().isoformat(),
+            )
             wait_time = 1800
-        time.sleep(wait_time)
+        await asyncio.sleep(wait_time)
 
 
 @app.on_event("startup")
-def start_radar_background_worker():
+async def start_radar_background_worker():
     global _radar_thread, _radar_started
     if os.getenv("RADAR_AUTOSTART", "1") != "1":
         _update_radar_status(running=False, status="disabled", message="Radar autostart is disabled")
@@ -385,11 +394,24 @@ def start_radar_background_worker():
         if _radar_started:
             return
         _radar_started = True
-        _radar_thread = threading.Thread(target=_radar_background_loop, daemon=True, name="clams-radar-worker")
-        _radar_thread.start()
+        _radar_thread = asyncio.create_task(_radar_background_loop())
+    try:
+        _update_radar_status(running=True, status="starting", message="Radar worker booting...")
+    except Exception:
+        pass
+
+
+@app.on_event("shutdown")
+async def stop_radar_background_worker():
+    global _radar_thread, _radar_started
+    task = _radar_thread
+    _radar_thread = None
+    _radar_started = False
+    if task:
+        task.cancel()
         try:
-            _update_radar_status(running=True, status="starting", message="Radar worker booting...")
-        except Exception:
+            await task
+        except asyncio.CancelledError:
             pass
 
 

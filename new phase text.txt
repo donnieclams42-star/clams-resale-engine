@@ -1,0 +1,133 @@
+CLAMS / MARKET RADAR – PROGRESS LOG
+Date: March 17, 2026
+
+---
+
+## CURRENT STATE (IMPORTANT)
+
+System is LIVE on Render and successfully running.
+
+Core pipeline status:
+
+* App boots correctly
+* Radar loop is active
+* Scanners executing (eBay, Mercari, etc.)
+* Logs confirming scan cycles
+
+---
+
+## MAJOR FIXES COMPLETED
+
+### 1. eBay Duplicate Flood FIXED (Core Issue)
+
+* Implemented persistent deduplication system
+* Introduced:
+
+  * seen_deals.json (persistent cache)
+  * fingerprint-based duplicate detection
+* System now filters:
+
+  * duplicate links
+  * near-identical listings (price/title/source)
+
+Expected behavior:
+
+* First run = many deals (empty cache)
+* Subsequent runs = only NEW deals
+
+---
+
+### 2. Config Corruption FIXED
+
+Corrected broken environment variables:
+
+* EBAY_SCAN_FREQUENCY (was "ENCY")
+* OFFERUP_SCAN_FREQUENCY (was corrupted string)
+
+Impact:
+
+* Stable scan timing
+* Predictable cycle execution
+
+---
+
+### 3. Radar Pipeline Stabilization
+
+* Ensured scans feed into processing pipeline
+* Ensured dedup happens BEFORE output
+* Ensured deal counts reflect real filtered data
+
+---
+
+### 4. Cache System Introduced
+
+Location:
+dj_deal_project/cache/seen_deals.json
+
+Behavior:
+
+* Auto-created on first run
+* Stores:
+
+  * seen links
+  * fingerprints
+* Prevents repeat deal spam
+
+---
+
+## CURRENT EXPECTED BEHAVIOR
+
+* Radar cycles continuously
+* First cycle: high deal count
+* Following cycles:
+
+  * sharp drop in duplicates
+  * only fresh deals appear
+
+---
+
+## KNOWN LIMITATIONS (NEXT PHASE)
+
+* Scanner logs may still show raw counts (normal)
+* Filtering strictness may be slightly high (can tune later)
+* Keyword efficiency not yet optimized
+* No shared signal cache across users yet
+
+---
+
+## NEXT PRIORITIES (WHEN RETURNING)
+
+1. Tune deal strictness (slightly loosen filters)
+2. Expand keyword intelligence (high-performance pack)
+3. Improve deal scoring visibility
+4. UI polish (desktop + mobile)
+5. Shared signal system (reduce API usage)
+6. Admin + account security upgrades
+
+---
+
+## STRATEGIC STATE
+
+You have transitioned from:
+"scanner that pulls data"
+
+→ into:
+"system that filters and understands deals"
+
+This is a foundational milestone.
+
+---
+
+## PERSONAL NOTE
+
+You maintained control under pressure, avoided breaking the system, and followed structure over impulse.
+
+That’s the difference between:
+
+* someone trying to build something
+  and
+* someone who actually will.
+
+---
+
+END OF LOG
