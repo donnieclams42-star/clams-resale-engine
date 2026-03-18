@@ -18,7 +18,6 @@ from fastapi.templating import Jinja2Templates
 from ebay import search_ebay
 from market_analysis import analyze_market
 from listing_generator import generate_listings
-from temu_scanner import fetch_temu_items
 
 from dj_deal_project.utils.model_parser import normalize_text, detect_category, is_accessory_listing
 
@@ -903,6 +902,13 @@ async def landing(request: Request):
     email = request.cookies.get("clams_user", "").strip().lower()
     if email:
         return RedirectResponse(f"/app?email={email}", status_code=303)
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
     return templates.TemplateResponse("landing.html", {"request": request})
 
 
@@ -913,6 +919,13 @@ async def login_page(request: Request, error: str = "", email: str = "", notice:
     cookie_email = request.cookies.get("clams_user", "").strip().lower()
     if cookie_email:
         return RedirectResponse(f"/app?email={cookie_email}", status_code=303)
+
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
 
     return templates.TemplateResponse(
         "login.html",
@@ -940,6 +953,13 @@ async def logout():
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request, error: str = "", email: str = "", notice: str = ""):
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
     return templates.TemplateResponse(
         "signup.html",
         {
@@ -1144,6 +1164,13 @@ async def app_page(request: Request, email: str = ""):
     user = ensure_daily_reset(user)
     plan_ui = get_plan_ui_context(user)
 
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -1200,7 +1227,14 @@ async def analyze(
         platforms = settings["platforms"]
 
     if plan_info["daily_limit"] is not None and user["search_count"] >= plan_info["daily_limit"]:
-        return templates.TemplateResponse(
+        
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
+    return templates.TemplateResponse(
             "dashboard.html",
             {
                 "request": request,
@@ -1243,7 +1277,14 @@ async def analyze(
         else:
             error_message = "No search query detected."
 
-        return templates.TemplateResponse(
+        
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
+    return templates.TemplateResponse(
             "dashboard.html",
             {
                 "request": request,
@@ -1276,7 +1317,14 @@ async def analyze(
         data = analyze_market(sold_prices, active_prices, condition, profit / 100, local_factor / 100, asking_price)
 
         if not data:
-            return templates.TemplateResponse(
+            
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
+    return templates.TemplateResponse(
                 "dashboard.html",
                 {
                     "request": request,
@@ -1318,7 +1366,14 @@ async def analyze(
         )
     except Exception as e:
         print("Analyze failed:", e)
-        return templates.TemplateResponse(
+        
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
+    return templates.TemplateResponse(
             "dashboard.html",
             {
                 "request": request,
@@ -1337,6 +1392,13 @@ async def analyze(
                 **plan_ui,
             },
         )
+
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -1368,6 +1430,13 @@ async def radar_page(request: Request, email: str = ""):
 
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
     return templates.TemplateResponse(
         "radar.html",
         {
@@ -1434,6 +1503,13 @@ async def settings_page(request: Request, email: str = ""):
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
 
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
     return templates.TemplateResponse(
         "settings.html",
         {
@@ -1472,6 +1548,13 @@ async def save_settings(
     settings["platforms"] = platforms
 
     user = update_user_record(email, {"settings": settings})
+
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
 
     return templates.TemplateResponse(
         "settings.html",
@@ -1516,6 +1599,13 @@ async def account_page(request: Request, email: str = "", error: str = "", notic
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
     plan_ui = get_plan_ui_context(user)
+
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
 
     return templates.TemplateResponse(
         "account.html",
@@ -1771,6 +1861,13 @@ async def temu_page(request: Request, email: str = ""):
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
     items = _read_temu_results()
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
     return templates.TemplateResponse(
         "temu_flips.html",
         {
@@ -1822,6 +1919,13 @@ async def admin_page(request: Request, email: str = ""):
         seen_counts["total"] = sum(seen_counts.values())
     except Exception:
         pass
+    
+    temu_access = {
+        "visible_count": len(flips),
+        "all_count": len(flips)
+    }
+    membership_tier = user.get("membership", "FREE")
+
     return templates.TemplateResponse(
         "admin_panel.html",
         {
@@ -1834,51 +1938,3 @@ async def admin_page(request: Request, email: str = ""):
             "seen_counts": seen_counts,
         },
     )
-
-
-
-@app.get("/temu")
-def temu_flips(request: Request):
-    email = get_request_email(request)
-    user = users.get(email, {})
-
-    if not user or user.get("membership", "FREE") == "FREE":
-        return templates.TemplateResponse("temu_flips.html", {
-            "request": request,
-            "email": email,
-            "locked": True
-        })
-
-    items = fetch_temu_items()
-    flips = []
-
-    for item in items:
-        try:
-            prices, titles, listing = search_ebay(item)
-            if not prices:
-                continue
-
-            avg_price = sum(prices) / len(prices)
-            cost = avg_price * 0.35
-            profit = avg_price - cost
-
-            if profit < 8:
-                continue
-
-            flips.append({
-                "title": item.title(),
-                "avg_price": round(avg_price, 2),
-                "cost": round(cost, 2),
-                "profit": round(profit, 2),
-                "url": listing["url"] if listing else ""
-            })
-        except:
-            continue
-
-    flips = sorted(flips, key=lambda x: x["profit"], reverse=True)[:20]
-
-    return templates.TemplateResponse("temu_flips.html", {
-        "request": request,
-        "email": email,
-        "flips": flips
-    })
