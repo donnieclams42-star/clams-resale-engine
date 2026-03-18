@@ -76,12 +76,12 @@
             {% for item in top_flips %}
             <div class="top-item">
                 <div>
-                    <div style="font-weight:700;">{{ item.label or item.query }}</div>
-                    <div style="opacity:.78;font-size:13px;">{{ item.query }}</div>
+                    <div style="font-weight:700;">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</div>
+                    <div style="opacity:.78;font-size:13px;">{{ item.get('query') or item.get('title') or '' }}</div>
                 </div>
                 <div style="text-align:right;">
                     <div>${{ '%.2f'|format(item.asking_price|float) }} → ${{ '%.2f'|format(item.market_price|float) }}</div>
-                    <div style="opacity:.78;font-size:13px;">Sell-through {{ item.sell_through }}%</div>
+                    <div style="opacity:.78;font-size:13px;">Sell-through {{ item.get('sell_through', 0) }}%</div>
                 </div>
             </div>
             {% endfor %}
@@ -94,18 +94,18 @@
     <div class="temu-grid">
         {% for item in temu_flips %}
         <div class="temu-card">
-            <div class="temu-badge">{{ item.category or 'temu-flip' }}</div>
-            <h3 style="margin:10px 0 8px 0;">{{ item.label or item.query }}</h3>
-            <div style="opacity:.82;line-height:1.5;">{{ item.query }}</div>
+            <div class="temu-badge">{{ item.get('category') or 'temu-flip' }}</div>
+            <h3 style="margin:10px 0 8px 0;">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</h3>
+            <div style="opacity:.82;line-height:1.5;">{{ item.get('query') or item.get('title') or '' }}</div>
             <div class="temu-metrics">
                 <div class="temu-metric"><strong>Buy</strong><div>${{ '%.2f'|format(item.asking_price|float) }}</div></div>
                 <div class="temu-metric"><strong>Market</strong><div>${{ '%.2f'|format(item.market_price|float) }}</div></div>
-                <div class="temu-metric"><strong>Profit</strong><div>${{ '%.2f'|format(item.profit|float) }}</div></div>
-                <div class="temu-metric"><strong>Sell-through</strong><div>{{ item.sell_through }}%</div></div>
+                <div class="temu-metric"><strong>Profit</strong><div>${{ '%.2f'|format(item.get('profit', 0)|float) }}</div></div>
+                <div class="temu-metric"><strong>Sell-through</strong><div>{{ item.get('sell_through', 0) }}%</div></div>
             </div>
             <div class="temu-actions">
-                {% if item.temu_search_url %}<a class="temu-btn" href="{{ item.temu_search_url }}" target="_blank">Check Temu</a>{% endif %}
-                {% if item.google_search_url %}<a class="temu-btn alt" href="{{ item.google_search_url }}" target="_blank">Cross-check</a>{% endif %}
+                {% if item.get('temu_search_url') %}<a class="temu-btn" href="{{ item.get('temu_search_url') }}" target="_blank">Check Temu</a>{% endif %}
+                {% if item.get('google_search_url') %}<a class="temu-btn alt" href="{{ item.get('google_search_url') }}" target="_blank">Cross-check</a>{% endif %}
             </div>
         </div>
         {% endfor %}

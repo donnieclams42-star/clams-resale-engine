@@ -7,3 +7,179 @@
 [2026-03-18 05:21:54] SCAN mercari keyword=iphone cracked
 [2026-03-18 05:21:55] SCAN mercari keyword=garage cleanout
 [2026-03-18 05:21:55] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:02:22] SCAN mercari keyword=sports cards
+[2026-03-18 17:02:23] ERROR mercari_scan keyword=sports cards error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=sports+cards
+[2026-03-18 17:02:23] SCAN mercari keyword=tool bundle
+[2026-03-18 17:02:23] SCAN ebay keyword=bundle
+[2026-03-18 17:02:23] ERROR mercari_scan keyword=tool bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=tool+bundle
+[2026-03-18 17:02:23] SCAN mercari keyword=tablet lot
+[2026-03-18 17:02:24] ERROR mercari_scan keyword=tablet lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=tablet+lot
+[2026-03-18 17:02:24] SCAN mercari keyword=iphone pro max
+[2026-03-18 17:02:24] SCAN ebay keyword=iphone 13
+[2026-03-18 17:02:24] ERROR mercari_scan keyword=iphone pro max error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=iphone+pro+max
+[2026-03-18 17:02:24] SCAN mercari keyword=xbox bundle
+[2026-03-18 17:02:24] ERROR mercari_scan keyword=xbox bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=xbox+bundle
+[2026-03-18 17:02:24] SCAN mercari keyword=mixed lot
+[2026-03-18 17:02:25] SCAN ebay keyword=iphone
+[2026-03-18 17:02:25] ERROR mercari_scan keyword=mixed lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=mixed+lot
+[2026-03-18 17:02:25] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:02:26] SCAN ebay keyword=electronics lot
+[2026-03-18 17:02:27] SCAN ebay keyword=drone lot
+[2026-03-18 17:02:27] SCAN ebay keyword=switch oled
+[2026-03-18 17:02:28] SCAN ebay keyword=ipad
+[2026-03-18 17:02:29] SCAN ebay keyword=basketball cards
+[2026-03-18 17:02:30] EBAY_SCAN_RESULT deals=4
+[2026-03-18 17:09:01] SCAN mercari keyword=iphone 13
+[2026-03-18 17:09:02] ERROR mercari_scan keyword=iphone 13 error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=iphone+13
+[2026-03-18 17:09:02] SCAN mercari keyword=monitor lot
+[2026-03-18 17:09:02] SCAN ebay keyword=camera lot
+[2026-03-18 17:09:02] ERROR mercari_scan keyword=monitor lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=monitor+lot
+[2026-03-18 17:09:02] SCAN mercari keyword=game lot
+[2026-03-18 17:09:02] ERROR mercari_scan keyword=game lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=game+lot
+[2026-03-18 17:09:02] SCAN mercari keyword=iphone 16
+[2026-03-18 17:09:03] SCAN ebay keyword=ps4 bundle
+[2026-03-18 17:09:03] ERROR mercari_scan keyword=iphone 16 error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=iphone+16
+[2026-03-18 17:09:03] SCAN mercari keyword=must sell
+[2026-03-18 17:09:03] ERROR mercari_scan keyword=must sell error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=must+sell
+[2026-03-18 17:09:03] SCAN mercari keyword=switch bundle
+[2026-03-18 17:09:04] SCAN ebay keyword=game lot
+[2026-03-18 17:09:04] ERROR mercari_scan keyword=switch bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=switch+bundle
+[2026-03-18 17:09:04] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:09:04] SCAN ebay keyword=baseball cards
+[2026-03-18 17:09:05] SCAN ebay keyword=mixed lot
+[2026-03-18 17:09:06] SCAN ebay keyword=pokemon lot
+[2026-03-18 17:09:07] SCAN ebay keyword=pc bundle
+[2026-03-18 17:09:08] SCAN ebay keyword=retro games
+[2026-03-18 17:09:09] EBAY_SCAN_RESULT deals=4
+[2026-03-18 17:15:29] SCAN mercari keyword=funko lot
+[2026-03-18 17:15:29] ERROR mercari_scan keyword=funko lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=funko+lot
+[2026-03-18 17:15:29] SCAN mercari keyword=gaming bundle
+[2026-03-18 17:15:30] SCAN ebay keyword=sony camera
+[2026-03-18 17:15:30] ERROR mercari_scan keyword=gaming bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=gaming+bundle
+[2026-03-18 17:15:30] SCAN mercari keyword=macbook air
+[2026-03-18 17:15:30] ERROR mercari_scan keyword=macbook air error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=macbook+air
+[2026-03-18 17:15:30] SCAN mercari keyword=for parts
+[2026-03-18 17:15:30] ERROR mercari_scan keyword=for parts error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=for+parts
+[2026-03-18 17:15:30] SCAN mercari keyword=nintendo switch
+[2026-03-18 17:15:31] SCAN ebay keyword=xbox series s
+[2026-03-18 17:15:31] ERROR mercari_scan keyword=nintendo switch error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=nintendo+switch
+[2026-03-18 17:15:31] SCAN mercari keyword=apple watch
+[2026-03-18 17:15:31] ERROR mercari_scan keyword=apple watch error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=apple+watch
+[2026-03-18 17:15:31] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:15:32] SCAN ebay keyword=tool lot
+[2026-03-18 17:15:33] SCAN ebay keyword=laptop lot
+[2026-03-18 17:15:33] SCAN ebay keyword=xbox bundle
+[2026-03-18 17:15:34] SCAN ebay keyword=sports cards
+[2026-03-18 17:15:35] SCAN ebay keyword=ipad pro
+[2026-03-18 17:15:36] SCAN ebay keyword=tool bundle
+[2026-03-18 17:15:37] EBAY_SCAN_RESULT deals=11
+[2026-03-18 17:18:40] SCAN mercari keyword=bluetooth speaker
+[2026-03-18 17:18:41] ERROR mercari_scan keyword=bluetooth speaker error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=bluetooth+speaker
+[2026-03-18 17:18:41] SCAN mercari keyword=pokemon cards
+[2026-03-18 17:18:41] SCAN ebay keyword=xbox one
+[2026-03-18 17:18:41] ERROR mercari_scan keyword=pokemon cards error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=pokemon+cards
+[2026-03-18 17:18:41] SCAN mercari keyword=football cards
+[2026-03-18 17:18:41] ERROR mercari_scan keyword=football cards error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=football+cards
+[2026-03-18 17:18:41] SCAN mercari keyword=tool lot
+[2026-03-18 17:18:41] SCAN ebay keyword=hockey cards
+[2026-03-18 17:18:42] ERROR mercari_scan keyword=tool lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=tool+lot
+[2026-03-18 17:18:42] SCAN mercari keyword=switch oled
+[2026-03-18 17:18:42] ERROR mercari_scan keyword=switch oled error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=switch+oled
+[2026-03-18 17:18:42] SCAN mercari keyword=tablet lot
+[2026-03-18 17:18:42] SCAN ebay keyword=ps4
+[2026-03-18 17:18:43] ERROR mercari_scan keyword=tablet lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=tablet+lot
+[2026-03-18 17:18:43] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:18:43] SCAN ebay keyword=macbook pro
+[2026-03-18 17:18:44] SCAN ebay keyword=retro games
+[2026-03-18 17:18:45] SCAN ebay keyword=jewelry lot
+[2026-03-18 17:18:46] SCAN ebay keyword=iphone 15
+[2026-03-18 17:18:47] SCAN ebay keyword=shop tools
+[2026-03-18 17:18:48] EBAY_SCAN_RESULT deals=6
+[2026-03-18 17:19:19] SCAN mercari keyword=laptop lot
+[2026-03-18 17:19:20] ERROR mercari_scan keyword=laptop lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=laptop+lot
+[2026-03-18 17:19:20] SCAN mercari keyword=broken iphone
+[2026-03-18 17:19:20] SCAN ebay keyword=garage tools
+[2026-03-18 17:19:20] ERROR mercari_scan keyword=broken iphone error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=broken+iphone
+[2026-03-18 17:19:20] SCAN mercari keyword=need gone
+[2026-03-18 17:19:21] ERROR mercari_scan keyword=need gone error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=need+gone
+[2026-03-18 17:19:21] SCAN mercari keyword=lego lot
+[2026-03-18 17:19:21] SCAN ebay keyword=iphone plus
+[2026-03-18 17:19:21] ERROR mercari_scan keyword=lego lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=lego+lot
+[2026-03-18 17:19:21] SCAN mercari keyword=tool bundle
+[2026-03-18 17:19:21] ERROR mercari_scan keyword=tool bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=tool+bundle
+[2026-03-18 17:19:21] SCAN mercari keyword=switch bundle
+[2026-03-18 17:19:22] ERROR mercari_scan keyword=switch bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=switch+bundle
+[2026-03-18 17:19:22] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:19:22] SCAN ebay keyword=ipad
+[2026-03-18 17:19:23] SCAN ebay keyword=retro games
+[2026-03-18 17:19:24] SCAN ebay keyword=iphone cracked
+[2026-03-18 17:19:25] SCAN ebay keyword=video game lot
+[2026-03-18 17:19:26] SCAN ebay keyword=pokemon cards
+[2026-03-18 17:19:26] SCAN ebay keyword=repair lot
+[2026-03-18 17:19:27] EBAY_SCAN_RESULT deals=7
+[2026-03-18 17:20:55] SCAN mercari keyword=iphone 14
+[2026-03-18 17:20:55] ERROR mercari_scan keyword=iphone 14 error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=iphone+14
+[2026-03-18 17:20:55] SCAN mercari keyword=pc bundle
+[2026-03-18 17:20:55] SCAN ebay keyword=iphone 12
+[2026-03-18 17:20:56] ERROR mercari_scan keyword=pc bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=pc+bundle
+[2026-03-18 17:20:56] SCAN mercari keyword=cracked screen
+[2026-03-18 17:20:56] ERROR mercari_scan keyword=cracked screen error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=cracked+screen
+[2026-03-18 17:20:56] SCAN mercari keyword=xbox series x
+[2026-03-18 17:20:56] ERROR mercari_scan keyword=xbox series x error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=xbox+series+x
+[2026-03-18 17:20:56] SCAN mercari keyword=basketball cards
+[2026-03-18 17:20:56] SCAN ebay keyword=pokemon lot
+[2026-03-18 17:20:57] ERROR mercari_scan keyword=basketball cards error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=basketball+cards
+[2026-03-18 17:20:57] SCAN mercari keyword=tool bundle
+[2026-03-18 17:20:57] SCAN ebay keyword=computer bundle
+[2026-03-18 17:20:57] ERROR mercari_scan keyword=tool bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=tool+bundle
+[2026-03-18 17:20:58] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:20:58] SCAN ebay keyword=ipad
+[2026-03-18 17:20:59] SCAN ebay keyword=laptop lot
+[2026-03-18 17:21:00] SCAN ebay keyword=camera lot
+[2026-03-18 17:21:01] SCAN ebay keyword=bundle
+[2026-03-18 17:21:02] SCAN ebay keyword=basketball cards
+[2026-03-18 17:21:03] EBAY_SCAN_RESULT deals=8
+[2026-03-18 17:21:07] SCAN mercari keyword=iphone 14
+[2026-03-18 17:21:08] ERROR mercari_scan keyword=iphone 14 error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=iphone+14
+[2026-03-18 17:21:08] SCAN mercari keyword=mixed lot
+[2026-03-18 17:21:08] SCAN ebay keyword=trading cards
+[2026-03-18 17:21:08] ERROR mercari_scan keyword=mixed lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=mixed+lot
+[2026-03-18 17:21:08] SCAN mercari keyword=iphone parts
+[2026-03-18 17:21:09] ERROR mercari_scan keyword=iphone parts error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=iphone+parts
+[2026-03-18 17:21:09] SCAN mercari keyword=video game lot
+[2026-03-18 17:21:09] ERROR mercari_scan keyword=video game lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=video+game+lot
+[2026-03-18 17:21:09] SCAN mercari keyword=switch bundle
+[2026-03-18 17:21:09] SCAN ebay keyword=gold jewelry
+[2026-03-18 17:21:09] ERROR mercari_scan keyword=switch bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=switch+bundle
+[2026-03-18 17:21:09] SCAN mercari keyword=lego lot
+[2026-03-18 17:21:10] ERROR mercari_scan keyword=lego lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=lego+lot
+[2026-03-18 17:21:10] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:21:10] SCAN ebay keyword=pokemon cards
+[2026-03-18 17:21:11] SCAN ebay keyword=silver jewelry
+[2026-03-18 17:21:12] SCAN ebay keyword=ps5 bundle
+[2026-03-18 17:21:13] SCAN ebay keyword=sony camera
+[2026-03-18 17:21:14] SCAN ebay keyword=ps4
+[2026-03-18 17:21:15] SCAN ebay keyword=iphone 15
+[2026-03-18 17:21:16] EBAY_SCAN_RESULT deals=3
+[2026-03-18 17:45:03] SCAN mercari keyword=iphone 14
+[2026-03-18 17:45:03] ERROR mercari_scan keyword=iphone 14 error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=iphone+14
+[2026-03-18 17:45:03] SCAN mercari keyword=smart watch
+[2026-03-18 17:45:03] SCAN ebay keyword=xbox bundle
+[2026-03-18 17:45:04] ERROR mercari_scan keyword=smart watch error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=smart+watch
+[2026-03-18 17:45:04] SCAN mercari keyword=video game lot
+[2026-03-18 17:45:04] ERROR mercari_scan keyword=video game lot error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=video+game+lot
+[2026-03-18 17:45:04] SCAN mercari keyword=bundle
+[2026-03-18 17:45:04] SCAN ebay keyword=tablet
+[2026-03-18 17:45:04] ERROR mercari_scan keyword=bundle error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=bundle
+[2026-03-18 17:45:04] SCAN mercari keyword=playstation
+[2026-03-18 17:45:05] ERROR mercari_scan keyword=playstation error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=playstation
+[2026-03-18 17:45:05] SCAN mercari keyword=gaming laptop
+[2026-03-18 17:45:05] ERROR mercari_scan keyword=gaming laptop error=403 Client Error: Forbidden for url: https://www.mercari.com/search/?keyword=gaming+laptop
+[2026-03-18 17:45:05] MERCARI_SCAN_RESULT deals=0
+[2026-03-18 17:45:05] SCAN ebay keyword=ipad
+[2026-03-18 17:45:06] SCAN ebay keyword=laptop lot
+[2026-03-18 17:45:07] SCAN ebay keyword=pc bundle
+[2026-03-18 17:45:07] SCAN ebay keyword=basketball cards
+[2026-03-18 17:45:08] SCAN ebay keyword=iphone 15
+[2026-03-18 17:45:09] SCAN ebay keyword=craftsman tools
+[2026-03-18 17:45:10] EBAY_SCAN_RESULT deals=10
