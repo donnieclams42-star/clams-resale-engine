@@ -840,13 +840,6 @@ def update_user_record(email: str, updates: dict):
 
     return None
 
-   
-
-    if email in users:
-        users[email].update(updates)
-        return normalize_user(users[email])
-
-    return None
 
 def ensure_user_exists(email: str, password: str = ""):
     existing = get_user(email)
@@ -2167,33 +2160,62 @@ def _normalize_temu_flip_item(item) -> dict:
         item = {"title": str(item or "Temu Flip")}
 
     title = str(item.get("title") or item.get("label") or item.get("query") or "Temu Flip").strip() or "Temu Flip"
-    asking_price = _safe_float(item.get("asking_price", item.get("buy_price", item.get("price", item.get("est_cost", 0.0)))))
-    market_price = _safe_float(
+
+    asking_price = _safe_float(
+        item.get("asking_price", item.get("buy_price", item.get("price", item.get("est_cost", 0.0))))
+    )
+
+    avg_sell_price = _safe_float(
         item.get(
-            "market_price",
+            "average_sale_price",
             item.get(
-                "market_value",
+                "avg_price",
                 item.get(
-                    "estimated_value",
+                    "market_price",
                     item.get(
-                        "average_sale_price",
-                        item.get("avg_price", item.get("value", 0.0)),
+                        "market_value",
+                        item.get(
+                            "estimated_value",
+                            item.get("value", 0.0),
+                        ),
                     ),
                 ),
             ),
         )
     )
-    fees = _safe_float(item.get("fees", round(market_price * 0.15, 2) if market_price > 0 else 0.0))
-    shipping_cost = _safe_float(item.get("shipping_cost", 5.0 if market_price > 0 else 0.0))
-    net_after_fees = _safe_float(item.get("net_after_fees", market_price - fees - shipping_cost))
-    profit = _safe_float(item.get("profit", net_after_fees - asking_price))
-    roi = _safe_float(item.get("roi", ((profit / asking_price) * 100.0) if asking_price > 0 else 0.0))
+
+    market_price = round(avg_sell_price, 2)
+
+    provided_fees = item.get("fees", item.get("estimated_fees"))
+    if provided_fees is None:
+        fees = round(market_price * 0.13, 2) if market_price > 0 else 0.0
+    else:
+        fees = _safe_float(provided_fees)
+
+    provided_shipping = item.get("shipping_cost", item.get("estimated_shipping"))
+    if provided_shipping is None:
+        if market_price <= 0:
+            shipping_cost = 0.0
+        elif market_price < 12:
+            shipping_cost = 2.99
+        elif market_price < 25:
+            shipping_cost = 4.25
+        else:
+            shipping_cost = 5.95
+    else:
+        shipping_cost = _safe_float(provided_shipping)
+
+    net_after_fees = round(_safe_float(item.get("net_after_fees", market_price - fees - shipping_cost)), 2)
+    profit = round(net_after_fees - asking_price, 2)
+    roi = round(((profit / asking_price) * 100.0), 1) if asking_price > 0 else 0.0
+
     raw_sell_through = item.get("sell_through", item.get("sell_through_pct", 0))
     sell_through = _safe_float(raw_sell_through)
     if sell_through <= 1:
         sell_through_pct = _safe_int(round(sell_through * 100))
     else:
         sell_through_pct = _safe_int(sell_through)
+
     score = _safe_float(item.get("score", (max(profit, 0) * 2.0) + (sell_through_pct * 0.4)))
 
     return {
@@ -2211,29 +2233,31 @@ def _normalize_temu_flip_item(item) -> dict:
         "market_price": round(market_price, 2),
         "market_value": round(market_price, 2),
         "estimated_value": round(market_price, 2),
-        "average_sale_price": round(_safe_float(item.get("average_sale_price", item.get("avg_price", market_price))), 2),
-        "avg_price": round(_safe_float(item.get("avg_price", market_price)), 2),
+        "average_sale_price": round(avg_sell_price, 2),
+        "avg_price": round(avg_sell_price, 2),
         "value": round(market_price, 2),
+        "fees": round(fees, 2),
+        "estimated_fees": round(fees, 2),
+        "shipping_cost": round(shipping_cost, 2),
+        "estimated_shipping": round(shipping_cost, 2),
+        "net_after_fees": round(net_after_fees, 2),
+        "net_sale_estimate": round(net_after_fees, 2),
         "profit": round(profit, 2),
+        "profit_clean": round(profit, 2),
         "roi": round(roi, 1),
         "sell_through": sell_through_pct,
         "sell_through_pct": sell_through_pct,
-        "fees": round(fees, 2),
-        "shipping_cost": round(shipping_cost, 2),
-        "net_after_fees": round(net_after_fees, 2),
         "score": round(score, 2),
         "temu_search_url": str(item.get("temu_search_url") or ""),
-        "ebay_url": str(item.get("ebay_url") or item.get("url") or ""),
+        "ebay_url": str(item.get("ebay_url") or ""),
         "google_search_url": str(item.get("google_search_url") or ""),
-        "status": str(item.get("status") or "LIVE"),
-        "placeholder": bool(item.get("placeholder", False)),
-        "image": str(item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
-        "image_url": str(item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
-        "display_image": str(item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
+        "status": str(item.get("status") or ""),
+        "placeholder": bool(item.get("placeholder") or False),
+        "display_image": str(item.get("display_image") or item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
+        "image": str(item.get("display_image") or item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
         "analyzer_query": str(item.get("query") or title),
         "timestamp": str(item.get("timestamp") or datetime.utcnow().isoformat()),
     }
-
 
 def _build_temu_route_items(max_items: int = 20):
     items = [item for item in (_read_temu_results() or []) if isinstance(item, dict) and _temu_is_fresh(item)]
@@ -2270,9 +2294,9 @@ async def temu_flips_page(request: Request, email: str = ""):
     membership_tier = str(plan_ui.get("membership_tier") or "FREE").upper()
     admin_control = _get_admin_control()
 
-flips = _read_temu_results()
-status = _read_json_file(TEMU_STATUS_FILE, {}) or {}
-all_count = len(flips)
+    flips, status = _build_temu_route_items(max_items=30)
+    all_count = len(flips)
+
     manual_override = user.get("temu_override", None)
     full_access = membership_tier in {"ADMIN", "RESELLER"}
     if manual_override is True:
