@@ -8,7 +8,7 @@ import time
 import threading
 import base64
 from uuid import uuid4
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from fastapi import FastAPI, Request, Form, UploadFile, File
@@ -60,12 +60,6 @@ _radar_started = False
 _radar_lock = threading.Lock()
 _radar_file_lock = threading.Lock()
 _radar_cycle_count = 0
-_radar_runtime_flags = {"enabled": True}
-_temu_runtime_flags = {"enabled": True, "stop_requested": False, "thread": None, "running": False}
-ADMIN_CONTROL_FILE = os.path.join(RADAR_CACHE_DIR, "admin_control.json")
-RADAR_RUNTIME_CACHE_FILE = os.path.join(RADAR_CACHE_DIR, "radar_runtime_cache.json")
-TEMU_RESULTS_TTL_SECONDS = 60 * 60 * 4
-RADAR_RECENT_TTL_SECONDS = 60 * 60 * 6
 
 
 def _read_json_file(path, default):
@@ -158,119 +152,26 @@ def _deal_sort_key(deal: dict):
     return (
         float(deal.get("edge_score") or deal.get("deal_score") or 0),
         float(deal.get("profit") or 0),
-        float(deal.get("sell_through_pct") or 0),
         _confidence_rank(deal.get("confidence")),
     )
 
 
-def _svg_placeholder_data_uri(label: str) -> str:
-    safe = (label or "CLAMS").strip()[:26]
-    svg = f"""<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'>
-    <defs>
-      <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
-        <stop offset='0%' stop-color='#0f172a'/>
-        <stop offset='100%' stop-color='#1d4ed8'/>
-      </linearGradient>
-    </defs>
-    <rect width='600' height='600' fill='url(#g)' rx='36'/>
-    <circle cx='120' cy='120' r='56' fill='rgba(255,255,255,0.12)'/>
-    <rect x='92' y='78' width='56' height='84' rx='12' fill='rgba(255,255,255,0.75)'/>
-    <text x='300' y='290' text-anchor='middle' fill='white' font-family='Arial, Helvetica, sans-serif' font-size='34' font-weight='700'>CLAMS</text>
-    <text x='300' y='340' text-anchor='middle' fill='rgba(255,255,255,0.88)' font-family='Arial, Helvetica, sans-serif' font-size='22'>{safe}</text>
-    </svg>"""
-    encoded = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
-    return f"data:image/svg+xml;base64,{encoded}"
-
-
-def _extract_listing_image(listing) -> str:
-    if not isinstance(listing, dict):
-        return ""
-    for key in ["image", "image_url", "galleryURL", "gallery_url", "thumbnail", "thumb", "pictureURLLarge"]:
-        value = str(listing.get(key) or "").strip()
-        if value:
-            return value
-    return ""
-
-
-def _normalize_title_fingerprint(text_value: str) -> str:
-    text_value = normalize_text(text_value or "")
-    text_value = re.sub(r"[^a-z0-9 ]+", " ", text_value)
-    text_value = re.sub(r"(the|and|with|for|from|only|brand|new)", " ", text_value)
-    text_value = re.sub(r"\s+", " ", text_value).strip()
-    return " ".join(text_value.split()[:8])
-
-
-def _sell_through_pct(sold_count: int, active_count: int) -> int:
-    sold = max(0, int(sold_count or 0))
-    active = max(0, int(active_count or 0))
-    total = sold + active
-    if total <= 0:
-        return 0
-    return int(round((sold / total) * 100))
-
-
-def _radar_recent_cache_read() -> dict:
-    cache = _read_json_file(RADAR_RUNTIME_CACHE_FILE, {}) or {}
-    cache.setdefault("items", {})
-    return cache
-
-
-def _radar_recent_cache_write(cache: dict):
-    _write_json_file(RADAR_RUNTIME_CACHE_FILE, cache)
-
-
-def _recent_duplicate_key(deal: dict) -> str:
-    source = str(deal.get("source") or deal.get("market") or "").strip().lower()
-    title_fp = _normalize_title_fingerprint(str(deal.get("title") or ""))
-    price = round(float(deal.get("price") or 0), 2)
-    return f"{source}|{title_fp}|{price}"
-
-
-def _mark_recent_radar_deals(deals):
-    cache = _radar_recent_cache_read()
-    items = cache.get("items", {}) or {}
-    now_ts = time.time()
-    cutoff = now_ts - RADAR_RECENT_TTL_SECONDS
-    items = {k: v for k, v in items.items() if float(v or 0) >= cutoff}
-    for deal in deals:
-        items[_recent_duplicate_key(deal)] = now_ts
-    cache["items"] = items
-    _radar_recent_cache_write(cache)
-
-
-def _is_recent_radar_duplicate(deal: dict) -> bool:
-    cache = _radar_recent_cache_read()
-    items = cache.get("items", {}) or {}
-    now_ts = time.time()
-    cutoff = now_ts - RADAR_RECENT_TTL_SECONDS
-    items = {k: v for k, v in items.items() if float(v or 0) >= cutoff}
-    cache["items"] = items
-    _radar_recent_cache_write(cache)
-    return _recent_duplicate_key(deal) in items
-
-
 def build_radar_page_context(limit: int = 50) -> dict:
     deals = get_radar_results(limit=limit)
-    deals = sorted(deals, key=_deal_sort_key, reverse=True)
-    for idx, deal in enumerate(deals, start=1):
+    for deal in deals:
         category_key = str(deal.get("category") or "").strip().lower() or _assign_deal_category(deal)
         deal["category"] = category_key
         deal["category_label"] = _category_label(category_key)
-        deal["sell_through_pct"] = int(deal.get("sell_through_pct") or deal.get("sell_through") or 0)
-        deal["rank"] = idx
-        deal["analyzer_query"] = str(deal.get("analyzer_query") or deal.get("title") or deal.get("search_keyword") or "").strip()
-        display_image = str(deal.get("display_image") or deal.get("image") or deal.get("image_url") or "").strip()
-        if not display_image:
-            display_image = _svg_placeholder_data_uri(deal.get("category_label") or deal.get("title") or "Radar")
-        deal["display_image"] = display_image
-    top_deals = deals[:10]
+        deal["display_image"] = str(deal.get("image") or deal.get("image_url") or "").strip()
+    top_deals = sorted(deals, key=_deal_sort_key, reverse=True)[:6]
     grouped = []
     bucket_order = ["phone", "console", "tool", "cards", "electronics", "repair", "liquidation", "other"]
     for key in bucket_order:
         items = [deal for deal in deals if deal.get("category") == key]
         if not items:
             continue
-        grouped.append({"key": key, "label": _category_label(key), "deals": items[:12]})
+        items = sorted(items, key=_deal_sort_key, reverse=True)[:12]
+        grouped.append({"key": key, "label": _category_label(key), "deals": items})
     return {"radar_status": get_radar_status(), "radar_deals": deals, "radar_top_deals": top_deals, "radar_groups": grouped}
 
 
@@ -318,30 +219,23 @@ def _is_loose_fb_candidate(deal: dict, profit: float, margin: float) -> bool:
     trigger_terms = [
         "bundle", "lot", "broken", "cracked", "untested", "as is", "for parts", "parts only",
         "locked", "icloud", "no power", "must sell", "moving", "garage sale", "estate", "cheap",
-        "pickup only", "obo", "need gone", "today", "first come", "firm on pickup", "works great",
         "no charger", "no cords", "random electronics", "junk drawer", "tool bundle", "video game lot",
     ]
     low_price = float(deal.get("price") or 0) <= 120
     triggered = any(term in text for term in trigger_terms)
-    return triggered and (profit >= 8 or margin >= 0.04 or low_price)
+    return triggered and (profit >= 10 or margin >= 0.05 or low_price)
 
 
 def _source_enabled_for_cycle(source_name: str, cycle_count: int, radar_config) -> bool:
     name = source_name.lower()
     if name == "ebay":
-        frequency = max(1, int(getattr(radar_config, "EBAY_SCAN_FREQUENCY", 1) or 1))
-        return bool(getattr(radar_config, "ENABLE_EBAY", True)) and (cycle_count % frequency == 0)
+        return bool(getattr(radar_config, "ENABLE_EBAY", True)) and (cycle_count % max(1, int(getattr(radar_config, "EBAY_SCAN_FREQUENCY", 1) or 1)) == 0)
     if name == "mercari":
-        configured = max(1, int(getattr(radar_config, "MERCARI_SCAN_FREQUENCY", 2) or 2))
-        frequency = min(configured, 3)
-        return bool(getattr(radar_config, "ENABLE_MERCARI", True)) and (cycle_count % frequency == 0)
+        return bool(getattr(radar_config, "ENABLE_MERCARI", True)) and (cycle_count % max(1, int(getattr(radar_config, "MERCARI_SCAN_FREQUENCY", 1) or 1)) == 0)
     if name == "offerup":
-        frequency = max(1, int(getattr(radar_config, "OFFERUP_SCAN_FREQUENCY", 2) or 2))
-        return bool(getattr(radar_config, "ENABLE_OFFERUP", True)) and (cycle_count % frequency == 0)
+        return bool(getattr(radar_config, "ENABLE_OFFERUP", True)) and (cycle_count % max(1, int(getattr(radar_config, "OFFERUP_SCAN_FREQUENCY", 2) or 2)) == 0)
     if name == "facebook":
-        configured = max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 8) or 8))
-        frequency = min(configured, 6)
-        return bool(getattr(radar_config, "ENABLE_FACEBOOK", True)) and (cycle_count % frequency == 0)
+        return bool(getattr(radar_config, "ENABLE_FACEBOOK", True)) and (cycle_count % max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 8) or 8)) == 0)
     return False
 
 
@@ -353,21 +247,19 @@ def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
     cache_ttl = int(getattr(radar_config, "RADAR_ANALYSIS_CACHE_SECONDS", 21600) or 21600)
     cached = analysis_cache.get(query)
     prices = []
-    active_prices = []
     listing = None
     if cached and now_ts - float(cached.get("ts", 0)) < cache_ttl:
         prices = cached.get("prices", []) or []
-        active_prices = cached.get("active_prices", []) or []
         listing = cached.get("listing")
     else:
-        prices, active_prices, _suggestions, listing = search_ebay(query)
-        analysis_cache[query] = {"ts": now_ts, "prices": prices, "active_prices": active_prices, "listing": listing}
+        prices, _active_prices, _suggestions, listing = search_ebay(query)
+        analysis_cache[query] = {"ts": now_ts, "prices": prices, "listing": listing}
     if not prices:
         return None
     asking_price = float(deal.get("price") or 0)
     if asking_price <= 0:
         return None
-    analysis = analyze_market(prices, active_prices, "A", 0.30, getattr(radar_config, "LOCAL_RESALE_FACTOR", 0.82), asking_price=asking_price)
+    analysis = analyze_market(prices, [], "A", 0.30, getattr(radar_config, "LOCAL_RESALE_FACTOR", 0.82), asking_price=asking_price)
     if not analysis:
         return None
     profit = float(analysis.get("profit_delta") or 0)
@@ -376,24 +268,20 @@ def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
     min_profit = float(getattr(radar_config, "MIN_PROFIT", 10) or 10)
     min_margin = float(getattr(radar_config, "RADAR_MIN_MARGIN", 0.10) or 0.10)
     if source_name == "facebook":
-        min_profit = float(getattr(radar_config, "FB_MIN_PROFIT", 8) or 8)
-        min_margin = float(getattr(radar_config, "FB_MIN_MARGIN", 0.04) or 0.04)
+        min_profit = float(getattr(radar_config, "FB_MIN_PROFIT", 10) or 10)
+        min_margin = float(getattr(radar_config, "FB_MIN_MARGIN", 0.05) or 0.05)
     elif source_name == "ebay":
         min_profit = float(getattr(radar_config, "EBAY_MIN_PROFIT", min_profit) or min_profit)
         min_margin = float(getattr(radar_config, "EBAY_MIN_MARGIN", min_margin) or min_margin)
     elif source_name == "mercari":
-        min_profit = float(getattr(radar_config, "MERCARI_MIN_PROFIT", 8) or 8)
-        min_margin = float(getattr(radar_config, "MERCARI_MIN_MARGIN", 0.05) or 0.05)
+        min_profit = float(getattr(radar_config, "MERCARI_MIN_PROFIT", min_profit) or min_profit)
+        min_margin = float(getattr(radar_config, "MERCARI_MIN_MARGIN", min_margin) or min_margin)
     elif source_name == "offerup":
         min_profit = float(getattr(radar_config, "OFFERUP_MIN_PROFIT", min_profit) or min_profit)
         min_margin = float(getattr(radar_config, "OFFERUP_MIN_MARGIN", min_margin) or min_margin)
     if profit < min_profit or margin < min_margin:
         if source_name != "facebook" or not _is_loose_fb_candidate(deal, profit, margin):
             return None
-    sold_count = int(analysis.get("sold_count") or len(prices))
-    active_count = len(active_prices or [])
-    sell_through_pct = _sell_through_pct(sold_count, active_count)
-    listing_image = _extract_listing_image(listing)
     result = dict(deal)
     result["market_value"] = round(float(analysis.get("local_market_value") or analysis.get("market_price") or 0), 2)
     result["resale"] = result["market_value"]
@@ -405,15 +293,10 @@ def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
     result["source"] = result.get("source") or result.get("market") or ""
     result["url"] = result.get("url") or result.get("link") or (listing or {}).get("url") or ""
     result["best_market"] = analysis.get("best_platform") or "Facebook Marketplace"
-    result["sold_count"] = sold_count
-    result["active_count"] = active_count
-    result["sell_through_pct"] = sell_through_pct
-    result["sell_through"] = sell_through_pct
+    result["sold_count"] = int(analysis.get("sold_count") or len(prices))
     result["category"] = _assign_deal_category(result)
     result["category_label"] = _category_label(result["category"])
-    result["display_image"] = str(result.get("image") or result.get("image_url") or listing_image or "").strip() or _svg_placeholder_data_uri(result.get("category_label") or result.get("title") or "Radar")
-    result["image"] = result["display_image"]
-    result["analyzer_query"] = query
+    result["display_image"] = str(result.get("image") or result.get("image_url") or "").strip()
     return result
 
 
@@ -472,29 +355,23 @@ def _run_radar_cycle():
                 _update_radar_status(last_error=f"{label}: {e}")
 
     new_deals = filter_new(raw_deals)
-    filtered_new_deals = []
-    seen_runtime = set()
-    for deal in new_deals:
-        dup_key = _recent_duplicate_key(deal)
-        if dup_key in seen_runtime or _is_recent_radar_duplicate(deal):
-            continue
-        seen_runtime.add(dup_key)
-        filtered_new_deals.append(deal)
-
-    _update_radar_status(raw_deals_this_cycle=len(raw_deals), new_raw_deals_this_cycle=len(filtered_new_deals))
+    _update_radar_status(
+        raw_deals_this_cycle=len(raw_deals),
+        new_raw_deals_this_cycle=len(new_deals),
+    )
     analysis_cache = _get_analysis_cache()
-    max_calls = int(getattr(radar_config, "RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", 8) or 8)
+    max_calls = int(getattr(radar_config, "RADAR_MAX_ANALYSIS_CALLS_PER_CYCLE", 6) or 6)
     approved = []
     analysis_calls = 0
 
-    for deal in sorted(filtered_new_deals, key=lambda d: float(d.get("price") or 999999)):
+    for deal in sorted(new_deals, key=lambda d: float(d.get("price") or 999999)):
         title = str(deal.get("title", "") or "")
         if title and is_scam_listing(title):
             continue
         query = _clean_radar_query(deal)
         if not query:
             continue
-        pre_ok, _ = radar_precheck(deal)
+        pre_ok, pre_reason = radar_precheck(deal)
         if not pre_ok:
             continue
         if is_accessory_listing(str(deal.get("title") or ""), str(deal.get("search_keyword") or query)):
@@ -509,7 +386,7 @@ def _run_radar_cycle():
             result = _build_vetted_deal(deal, analysis_cache, radar_config)
             if not result:
                 continue
-            post_ok, _ = radar_postcheck(result)
+            post_ok, post_reason = radar_postcheck(result)
             if not post_ok:
                 continue
             approved.append(result)
@@ -518,12 +395,15 @@ def _run_radar_cycle():
 
     _set_analysis_cache(analysis_cache)
 
+    # Do NOT persistently filter approved deals a second time.
+    # raw_deals were already deduped via filter_new(raw_deals) above.
+    # A second persistent filter here can hide legitimate approved deals.
     seen_cycle = set()
     unique_approved = []
     for deal in approved:
         key = (
             str(deal.get("url") or deal.get("link") or "").strip().lower(),
-            _normalize_title_fingerprint(str(deal.get("title") or "")),
+            str(deal.get("title") or "").strip().lower(),
             round(float(deal.get("price") or 0), 2),
         )
         if key in seen_cycle:
@@ -531,16 +411,15 @@ def _run_radar_cycle():
         seen_cycle.add(key)
         unique_approved.append(deal)
 
-    approved = sorted(unique_approved, key=_deal_sort_key, reverse=True)[:50]
-    for idx, deal in enumerate(approved, start=1):
-        deal["rank"] = idx
+    approved = unique_approved
+    approved.sort(key=_deal_sort_key, reverse=True)
+    approved = approved[:50]
     _write_json_file(RADAR_RESULTS_FILE, approved)
-    _mark_recent_radar_deals(approved)
 
     status_msg = (
-        f"{len(approved)} vetted deals ready from {len(filtered_new_deals)} new raw deals (analysis calls: {analysis_calls})"
+        f"{len(approved)} vetted deals ready from {len(new_deals)} new raw deals (analysis calls: {analysis_calls})"
         if approved else
-        f"No vetted deals in the latest cycle ({len(filtered_new_deals)} new raw deals scanned, analysis calls: {analysis_calls})"
+        f"No vetted deals in the latest cycle ({len(new_deals)} new raw deals scanned, analysis calls: {analysis_calls})"
     )
     _update_radar_status(
         running=True,
@@ -571,10 +450,6 @@ def _run_radar_cycle():
 
 def _radar_background_loop():
     while True:
-        if not _radar_runtime_flags.get("enabled", True):
-            _update_radar_status(running=False, status="paused", message="Radar paused from admin control")
-            time.sleep(5)
-            continue
         try:
             _update_radar_status(running=True, status="scanning", message="Scanning for vetted deals...")
             deals = _run_radar_cycle()
@@ -1266,119 +1141,11 @@ async def stripe_webhook(request: Request):
 
 # ---------- APP PAGE ----------
 
-async def _render_dashboard_analysis(request: Request, email: str, query: str, condition: str = "A"):
-    user = ensure_user_exists(email)
-    user = ensure_daily_reset(user)
-    settings = user["settings"]
-    plan_ui = get_plan_ui_context(user)
-    plan_info = plan_ui["plan_info"]
-    profit = settings["default_profit"]
-    local_factor = normalize_local_factor(settings["local_factor"])
-    platforms = settings["platforms"]
-    query = (query or "").strip()
-    if plan_info["daily_limit"] is not None and user["search_count"] >= plan_info["daily_limit"]:
-        return templates.TemplateResponse(
-            "dashboard.html",
-            {
-                "request": request,
-                "data": None,
-                "generated_listings": None,
-                "listing": None,
-                "email": email,
-                "search_count": user["search_count"],
-                "user_settings": settings,
-                "user": user,
-                "free_limit": FREE_LIMIT,
-                "pro_price": PRO_PRICE,
-                "reseller_price": RESELLER_PRICE,
-                "error": "Free plan limit reached for today. Upgrade inside Membership & Access for more scans.",
-                **get_radar_dashboard_context(),
-                **plan_ui,
-            },
-        )
-    user = update_user_record(email, {"search_count": user["search_count"] + 1, "search_reset_date": str(date.today())})
-    try:
-        sold_prices, active_prices, suggestions, listing = search_ebay(query)
-        data = analyze_market(sold_prices, active_prices, condition, profit / 100, local_factor / 100, None)
-        if not data:
-            return templates.TemplateResponse(
-                "dashboard.html",
-                {
-                    "request": request,
-                    "data": None,
-                    "generated_listings": None,
-                    "listing": listing,
-                    "email": email,
-                    "search_count": user["search_count"],
-                    "user_settings": user["settings"],
-                    "user": user,
-                    "free_limit": FREE_LIMIT,
-                    "pro_price": PRO_PRICE,
-                    "reseller_price": RESELLER_PRICE,
-                    "error": "No usable market data was found for that search. Try a clearer model name or photo.",
-                    **get_radar_dashboard_context(),
-                    **plan_ui,
-                },
-            )
-        data["deal_score_ui"] = clamp_score(data.get("deal_score", 0))
-        data["flip_score_ui"] = clamp_score(data.get("flip_score", 0))
-        data["deal_score_class"] = deal_score_class(data["deal_score_ui"])
-        data["flip_score_class"] = deal_score_class(data["flip_score_ui"])
-        data["deal_temperature"] = data.get("deal_temperature", "PASS")
-        data["deal_temperature_class"] = deal_temperature_class(data["deal_temperature"])
-        data["query_used"] = query
-        data["suggestions"] = suggestions or []
-        data["profit_delta"] = None
-        data["profit_margin_percent"] = None
-        generated_listings = generate_listings(query, condition, data["fast_cash"], data["market_price"], platforms)
-    except Exception as e:
-        print("Auto analyze failed:", e)
-        return templates.TemplateResponse(
-            "dashboard.html",
-            {
-                "request": request,
-                "data": None,
-                "generated_listings": None,
-                "listing": None,
-                "email": email,
-                "search_count": user["search_count"],
-                "user_settings": user["settings"],
-                "user": user,
-                "free_limit": FREE_LIMIT,
-                "pro_price": PRO_PRICE,
-                "reseller_price": RESELLER_PRICE,
-                "error": "Search failed on the server. Try the item name manually or try the photo again.",
-                **get_radar_dashboard_context(),
-                **plan_ui,
-            },
-        )
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "data": data,
-            "generated_listings": generated_listings,
-            "listing": listing,
-            "email": email,
-            "search_count": user["search_count"],
-            "user_settings": user["settings"],
-            "user": user,
-            "free_limit": FREE_LIMIT,
-            "pro_price": PRO_PRICE,
-            "reseller_price": RESELLER_PRICE,
-            **get_radar_dashboard_context(),
-            **plan_ui,
-        },
-    )
-
-
 @app.get("/app", response_class=HTMLResponse)
-async def app_page(request: Request, email: str = "", query: str = ""):
+async def app_page(request: Request, email: str = ""):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
-    if (query or "").strip():
-        return await _render_dashboard_analysis(request, email, query=query, condition="A")
 
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
@@ -1863,68 +1630,7 @@ def get_temu_status():
     status.setdefault("status", "idle")
     status.setdefault("message", "Temu-flips idle")
     status.setdefault("count", 0)
-    status.setdefault("running", False)
     return status
-
-
-def _temu_result_key(item: dict) -> str:
-    return _normalize_title_fingerprint(str(item.get("title") or item.get("label") or item.get("query") or "temu"))
-
-
-def _temu_is_fresh(item: dict) -> bool:
-    ts = str(item.get("timestamp") or item.get("updated_at") or item.get("created_at") or "").strip()
-    if not ts:
-        return False
-    try:
-        item_dt = datetime.fromisoformat(ts.replace("Z", ""))
-    except Exception:
-        return False
-    return (datetime.utcnow() - item_dt).total_seconds() <= TEMU_RESULTS_TTL_SECONDS
-
-
-def _merge_temu_results(new_items):
-    existing = [dict(x) for x in (_read_temu_results() or []) if isinstance(x, dict)]
-    now_iso = datetime.utcnow().isoformat()
-    merged = {}
-    for item in existing:
-        if _temu_is_fresh(item):
-            merged[_temu_result_key(item)] = item
-    for item in new_items or []:
-        current = dict(item)
-        current.setdefault("timestamp", now_iso)
-        merged[_temu_result_key(current)] = current
-    items = list(merged.values())
-    items.sort(key=lambda x: (float(x.get("score") or 0), float(x.get("profit") or 0), int(x.get("sell_through_pct") or x.get("sell_through") or 0)), reverse=True)
-    items = items[:30]
-    _write_temu_results(items)
-    return items
-
-
-def _get_admin_control():
-    defaults = {
-        "temu_flips_enabled": True,
-        "allow_free_temu_preview": True,
-        "free_temu_preview_count": 3,
-        "pro_temu_limit": 20,
-        "reseller_temu_limit": 50,
-        "lock_new_signups": False,
-    }
-    data = _read_json_file(ADMIN_CONTROL_FILE, {}) or {}
-    defaults.update({k: data.get(k, v) for k, v in defaults.items()})
-    defaults["free_temu_preview_count"] = max(0, min(20, int(defaults.get("free_temu_preview_count") or 0)))
-    defaults["pro_temu_limit"] = max(1, min(50, int(defaults.get("pro_temu_limit") or 20)))
-    defaults["reseller_temu_limit"] = max(1, min(100, int(defaults.get("reseller_temu_limit") or 50)))
-    defaults["temu_flips_enabled"] = bool(defaults.get("temu_flips_enabled"))
-    defaults["allow_free_temu_preview"] = bool(defaults.get("allow_free_temu_preview"))
-    defaults["lock_new_signups"] = bool(defaults.get("lock_new_signups"))
-    return defaults
-
-
-def _set_admin_control(data: dict):
-    current = _get_admin_control()
-    current.update(data or {})
-    _write_json_file(ADMIN_CONTROL_FILE, current)
-    return current
 
 
 def _temu_seed_items():
@@ -2011,47 +1717,33 @@ def _build_temu_flip_from_query(seed: dict):
 
 def _run_temu_cycle():
     items = []
-    control = _get_admin_control()
-    if not control.get("temu_flips_enabled", True):
-        _update_temu_status(status="paused", message="Temu-flips disabled from admin control", running=False)
-        return _read_temu_results()
-    _temu_runtime_flags["stop_requested"] = False
-    _temu_runtime_flags["running"] = True
     for seed in _temu_seed_items():
-        if _temu_runtime_flags.get("stop_requested") or not _temu_runtime_flags.get("enabled", True):
-            break
         try:
             item = _build_temu_flip_from_query(seed)
             if item:
-                item.setdefault("timestamp", datetime.utcnow().isoformat())
                 items.append(item)
         except Exception:
             continue
-    merged_items = _merge_temu_results(items)
-    _temu_runtime_flags["running"] = False
+    items.sort(key=lambda x: (x.get("score", 0), x.get("profit", 0)), reverse=True)
+    items = items[:20]
+    _write_temu_results(items)
     _update_temu_status(
-        status="live" if not _temu_runtime_flags.get("stop_requested") else "paused",
-        message=(f"{len(merged_items)} Temu-flips ready" if not _temu_runtime_flags.get("stop_requested") else "Temu-flips scan stopped"),
-        count=len(merged_items),
-        running=False,
+        status="live",
+        message=f"{len(items)} Temu-flips ready",
+        count=len(items),
         last_success=datetime.utcnow().isoformat(),
     )
-    return merged_items
+    return items
 
 
 def _temu_background_loop():
     while True:
-        if not _temu_runtime_flags.get("enabled", True):
-            _update_temu_status(status="paused", message="Temu-flips paused from admin control", running=False)
-            time.sleep(5)
-            continue
         try:
-            _update_temu_status(status="scanning", message="Scanning Temu-flips candidates...", running=True)
+            _update_temu_status(status="scanning", message="Scanning Temu-flips candidates...")
             _run_temu_cycle()
-            wait_time = max(TEMU_RESULTS_TTL_SECONDS, int(os.getenv("TEMU_FLIPS_INTERVAL", str(TEMU_RESULTS_TTL_SECONDS)) or TEMU_RESULTS_TTL_SECONDS))
+            wait_time = int(os.getenv("TEMU_FLIPS_INTERVAL", "900") or 900)
         except Exception as e:
-            _temu_runtime_flags["running"] = False
-            _update_temu_status(status="error", message="Temu-flips hit an error", last_error=str(e), running=False)
+            _update_temu_status(status="error", message="Temu-flips hit an error", last_error=str(e))
             wait_time = 1800
         time.sleep(wait_time)
 
@@ -2061,15 +1753,12 @@ def start_temu_background_worker():
     global _temu_thread, _temu_started
     if os.getenv("TEMU_FLIPS_ENABLED", "true").lower() not in {"1", "true", "yes"}:
         _update_temu_status(status="disabled", message="Temu-flips disabled")
-        _temu_runtime_flags["enabled"] = False
         return
     with _temu_lock:
         if _temu_started:
             return
         _temu_started = True
-        _temu_runtime_flags["enabled"] = True
         _temu_thread = threading.Thread(target=_temu_background_loop, daemon=True, name="clams-temu-worker")
-        _temu_runtime_flags["thread"] = _temu_thread
         _temu_thread.start()
 
 
@@ -2217,35 +1906,38 @@ def _normalize_temu_flip_item(item) -> dict:
         "google_search_url": str(item.get("google_search_url") or ""),
         "status": str(item.get("status") or "LIVE"),
         "placeholder": bool(item.get("placeholder", False)),
-        "image": str(item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
-        "image_url": str(item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
-        "display_image": str(item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
-        "analyzer_query": str(item.get("query") or title),
-        "timestamp": str(item.get("timestamp") or datetime.utcnow().isoformat()),
     }
 
 
 def _build_temu_route_items(max_items: int = 20):
-    items = [item for item in (_read_temu_results() or []) if isinstance(item, dict) and _temu_is_fresh(item)]
+    items = _read_temu_results()
     if not items:
         try:
             items = _run_temu_cycle()
         except Exception as e:
-            _update_temu_status(status="error", message="Temu-flips failed to load", last_error=str(e), running=False)
-            items = [item for item in (_read_temu_results() or []) if isinstance(item, dict) and _temu_is_fresh(item)]
+            _update_temu_status(status="error", message="Temu-flips failed to load", last_error=str(e))
+            items = _read_temu_results()
 
-    normalized = [_normalize_temu_flip_item(item) for item in items if item]
-    normalized.sort(key=lambda x: (_safe_float(x.get("score", 0)), _safe_float(x.get("profit", 0)), _safe_int(x.get("sell_through", 0))), reverse=True)
-    normalized = normalized[:max_items]
-    for idx, item in enumerate(normalized, start=1):
-        item["rank"] = idx
+    normalized = [_normalize_temu_flip_item(item) for item in (items or [])[:max_items] if item]
     if normalized:
         return normalized, get_temu_status()
+
+    try:
+        fallback_items = fetch_temu_items()[:max_items]
+    except Exception as e:
+        fallback_items = []
+        _update_temu_status(status="error", message="Temu-flips fallback fetch failed", last_error=str(e))
+
+    normalized_fallback = [_normalize_temu_flip_item(item) for item in fallback_items if item]
+    if normalized_fallback:
+        status = get_temu_status()
+        status["message"] = status.get("message") or "Showing fallback Temu candidates"
+        return normalized_fallback, status
 
     placeholder = _temu_placeholder_item("No Temu-flips available yet")
     status = get_temu_status()
     status["message"] = status.get("message") or "No Temu-flips available yet"
-    return [_normalize_temu_flip_item(placeholder)], status
+    return [placeholder], status
 
 
 @app.get("/temu", response_class=HTMLResponse)
@@ -2258,44 +1950,32 @@ async def temu_flips_page(request: Request, email: str = ""):
     user = ensure_daily_reset(user)
     plan_ui = get_plan_ui_context(user)
     membership_tier = str(plan_ui.get("membership_tier") or "FREE").upper()
-    admin_control = _get_admin_control()
 
-    flips, status = _build_temu_route_items(max_items=30)
+    flips, status = _build_temu_route_items(max_items=20)
     all_count = len(flips)
-    manual_override = user.get("temu_override", None)
-    full_access = membership_tier in {"ADMIN", "RESELLER"}
-    if manual_override is True:
-        full_access = True
-    elif manual_override is False:
-        full_access = False
 
-    if not admin_control.get("temu_flips_enabled", True) and membership_tier != "ADMIN":
-        visible_count = 0
-        access_mode = "preview"
-        full_access = False
-        locked_message = "Temu-flips is disabled from admin control right now."
-    elif membership_tier == "ADMIN":
+    if membership_tier in {"ADMIN", "RESELLER"}:
         visible_count = all_count
-        access_mode = "admin"
+        access_mode = "admin" if membership_tier == "ADMIN" else "full"
         full_access = True
         locked_message = ""
-    elif full_access and membership_tier == "RESELLER":
-        visible_count = min(all_count, admin_control.get("reseller_temu_limit", 50))
+    elif membership_tier == "PRO":
+        visible_count = min(all_count, 15)
         access_mode = "full"
-        locked_message = ""
-    elif membership_tier == "PRO" and full_access:
-        visible_count = min(all_count, admin_control.get("pro_temu_limit", 20))
-        access_mode = "full"
+        full_access = True
         locked_message = ""
     else:
-        preview_count = min(admin_control.get("free_temu_preview_count", 3), all_count)
-        visible_count = preview_count if admin_control.get("allow_free_temu_preview", True) else 0
+        preview_count = min(10, all_count)
+        visible_count = preview_count
         access_mode = "preview"
         full_access = False
         locked_message = "Free access is limited to the preview board."
-
     visible_flips = flips[:visible_count]
-    top_flips = visible_flips[:10]
+    top_flips = sorted(
+        visible_flips,
+        key=lambda x: (_safe_float(x.get("score", 0)), _safe_float(x.get("profit", 0))),
+        reverse=True,
+    )[:5]
 
     temu_access = {
         "visible_count": len(visible_flips),
@@ -2303,7 +1983,7 @@ async def temu_flips_page(request: Request, email: str = ""):
         "full_access": full_access,
         "access_mode": access_mode,
         "locked_message": locked_message,
-        "preview_count": min(admin_control.get("free_temu_preview_count", 3), all_count),
+        "preview_count": min(10, all_count),
         "locked_count": max(0, all_count - len(visible_flips)),
     }
 
@@ -2318,7 +1998,6 @@ async def temu_flips_page(request: Request, email: str = ""):
             "temu_flips": visible_flips,
             "top_flips": top_flips,
             "temu_status": status,
-            "admin_control": admin_control,
             **plan_ui,
         },
     )
@@ -2331,33 +2010,53 @@ def _safe_len(x):
     except Exception:
         return 0
 
+
 def _get_temu_results_safe():
     try:
         return _read_temu_results()
     except Exception:
         return []
 
+
 def _get_seen_counts_safe():
-    candidates = [
-        os.path.join(RADAR_DIR, "cache", "seen_deals.json"),
-        os.path.join(RADAR_CACHE_DIR, "seen_deals.json"),
-    ]
-    for path in candidates:
-        data = _read_json_file(path, None)
-        if isinstance(data, dict):
-            links = data.get("links") or []
-            fingerprints = data.get("fingerprints") or []
-            titles = data.get("titles") or []
-            return {
-                "total": len(links) + len(fingerprints) + len(titles),
-                "links": len(links),
-                "fingerprints": len(fingerprints),
-                "titles": len(titles),
-            }
-    return {"total": 0, "links": 0, "fingerprints": 0, "titles": 0}
+    try:
+        seen_path = os.path.join(RADAR_DIR, "cache", "seen_deals.json")
+        payload = _read_json_file(seen_path, {}) or {}
+        links = payload.get("links") or []
+        fingerprints = payload.get("fingerprints") or []
+        titles = payload.get("titles") or []
+        return {
+            "total": len(links) + len(fingerprints) + len(titles),
+            "links": len(links),
+            "fingerprints": len(fingerprints),
+            "titles": len(titles),
+        }
+    except Exception:
+        return {"total": 0, "links": 0, "fingerprints": 0, "titles": 0}
+
+
+def _admin_control_defaults():
+    return {
+        "temu_flips_enabled": True,
+        "allow_free_temu_preview": True,
+        "free_temu_preview_count": 3,
+        "pro_temu_limit": 20,
+        "reseller_temu_limit": 50,
+        "lock_new_signups": False,
+    }
+
+
+def _user_has_temu_access(user: dict) -> bool:
+    override = (user.get("settings") or {}).get("temu_override")
+    if override is True:
+        return True
+    if override is False:
+        return False
+    membership = str(user.get("membership") or "FREE").upper()
+    return membership in {"PRO", "RESELLER"} or bool(user.get("is_admin"))
+
 
 def _get_managed_users_safe():
-    managed = []
     try:
         raw_users = []
         if supabase:
@@ -2365,48 +2064,49 @@ def _get_managed_users_safe():
             raw_users = result.data or []
         else:
             raw_users = list(users.values())
-        admin_control = _get_admin_control()
-        for row in raw_users:
-            member = normalize_user(row)
-            membership = str(member.get("membership") or "FREE").upper()
-            plan_membership = "ADMIN" if member.get("is_admin") else membership
-            override = member.get("temu_override", None)
-            if member.get("is_admin"):
-                temu_access = True
-            elif override is True:
-                temu_access = True
-            elif override is False:
-                temu_access = False
-            elif membership == "FREE":
-                temu_access = bool(admin_control.get("allow_free_temu_preview", True)) and bool(admin_control.get("temu_flips_enabled", True))
-            else:
-                temu_access = bool(admin_control.get("temu_flips_enabled", True))
-            member["plan_membership"] = plan_membership
-            member["temu_access"] = temu_access
-            managed.append(member)
+
+        managed = []
+        for raw_user in raw_users:
+            user_row = normalize_user(raw_user)
+            user_settings = user_row.get("settings") or {}
+            plan_membership = "ADMIN" if user_row.get("is_admin") else str(user_row.get("membership") or "FREE").upper()
+            user_row["plan_membership"] = plan_membership
+            user_row["temu_override"] = user_settings.get("temu_override")
+            user_row["temu_access"] = _user_has_temu_access(user_row)
+            managed.append(user_row)
+
+        managed.sort(key=lambda item: (0 if item.get("is_admin") else 1, item.get("email") or ""))
+        return managed
     except Exception:
         return []
-    managed.sort(key=lambda x: x.get("email", ""))
-    return managed
+
+
+def _admin_redirect(email: str, notice: str = "", error: str = ""):
+    query = []
+    if notice:
+        query.append(f"notice={notice}")
+    if error:
+        query.append(f"error={error}")
+    suffix = ("&" + "&".join(query)) if query else ""
+    return RedirectResponse(f"/admin?email={email}{suffix}", status_code=303)
 
 
 # ---------- ADMIN PAGE ----------
 @app.get("/admin", response_class=HTMLResponse)
-async def admin_page(request: Request, email: str = ""):
+async def admin_page(request: Request, email: str = "", notice: str = "", error: str = ""):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
 
     user = ensure_user_exists(email)
 
-    # 🔒 admin check
     if not user.get("is_admin"):
         return RedirectResponse(f"/app?email={email}", status_code=303)
 
     radar_status = get_radar_status()
     radar_deals = get_radar_results(limit=50)
-
     temu_items = _get_temu_results_safe()
+    temu_status = _read_temu_status() if '_read_temu_status' in globals() else {}
     seen_counts = _get_seen_counts_safe()
     managed_users = _get_managed_users_safe()
 
@@ -2414,120 +2114,20 @@ async def admin_page(request: Request, email: str = ""):
         "request": request,
         "email": email,
         "user": user,
-
-        # REQUIRED BY TEMPLATE
+        "notice": notice,
+        "error": error,
         "radar_status": radar_status,
         "radar_count": _safe_len(radar_deals),
         "temu_count": _safe_len(temu_items),
-
-        "admin_control": _get_admin_control(),
-        "radar_runtime_enabled": _radar_runtime_flags.get("enabled", True),
-        "temu_runtime_enabled": _temu_runtime_flags.get("enabled", True),
-        "temu_runtime_running": _temu_runtime_flags.get("running", False),
-
+        "admin_control": _admin_control_defaults(),
         "seen_counts": seen_counts,
         "managed_users": managed_users,
+        "radar_runtime_enabled": bool(radar_status.get("running") or radar_status.get("status") in {"live", "scanning", "starting"}),
+        "temu_runtime_enabled": True,
+        "temu_runtime_running": str((temu_status or {}).get("status") or "").lower() == "running",
     }
 
     return templates.TemplateResponse("admin_panel.html", context)
-
-
-
-@app.post("/admin/toggle-radar")
-async def toggle_radar(request: Request, email: str = Form("")):
-    email = get_request_email(request, email)
-    if not email:
-        return RedirectResponse("/login", status_code=303)
-    user = ensure_user_exists(email)
-    if not user.get("is_admin"):
-        return RedirectResponse(f"/app?email={email}", status_code=303)
-    _radar_runtime_flags["enabled"] = not _radar_runtime_flags.get("enabled", True)
-    if _radar_runtime_flags["enabled"]:
-        _update_radar_status(status="starting", message="Radar resumed from admin control", running=True)
-        notice = "Radar started"
-    else:
-        _update_radar_status(status="paused", message="Radar paused from admin control", running=False)
-        notice = "Radar stopped"
-    return RedirectResponse(f"/admin?email={email}&notice={notice.replace(' ', '+')}", status_code=303)
-
-
-@app.post("/admin/toggle-temu-scan")
-async def toggle_temu_scan(request: Request, email: str = Form("")):
-    email = get_request_email(request, email)
-    if not email:
-        return RedirectResponse("/login", status_code=303)
-    user = ensure_user_exists(email)
-    if not user.get("is_admin"):
-        return RedirectResponse(f"/app?email={email}", status_code=303)
-
-    if _temu_runtime_flags.get("running"):
-        _temu_runtime_flags["stop_requested"] = True
-        _temu_runtime_flags["enabled"] = False
-        _update_temu_status(status="paused", message="Stopping Temu scan...", running=False)
-        return RedirectResponse(f"/admin?email={email}&notice=Temu+scan+stopping", status_code=303)
-
-    _temu_runtime_flags["stop_requested"] = False
-    _temu_runtime_flags["enabled"] = True
-
-    def background_scan():
-        try:
-            _update_temu_status(status="running", message="Scanning Temu...", running=True)
-            seeds = _temu_seed_items()
-            results = fetch_temu_items(seeds, should_continue=lambda: _temu_runtime_flags.get("enabled", True) and not _temu_runtime_flags.get("stop_requested", False))
-            stamped = []
-            now_iso = datetime.utcnow().isoformat()
-            for item in results:
-                current = dict(item)
-                current.setdefault("timestamp", now_iso)
-                current.setdefault("image", current.get("image_url") or current.get("image") or "")
-                stamped.append(current)
-            merged = _merge_temu_results(stamped)
-            _temu_runtime_flags["running"] = False
-            _update_temu_status(status="idle", message="Scan complete", count=len(merged), running=False, last_success=datetime.utcnow().isoformat())
-        except Exception as e:
-            _temu_runtime_flags["running"] = False
-            _update_temu_status(status="error", message="Temu scan failed", last_error=str(e), running=False)
-
-    _temu_runtime_flags["running"] = True
-    thread = threading.Thread(target=background_scan, daemon=True, name="clams-temu-manual")
-    _temu_runtime_flags["thread"] = thread
-    thread.start()
-    return RedirectResponse(f"/admin?email={email}&notice=Temu+scan+started", status_code=303)
-
-
-@app.post("/admin/run-temu-scan")
-async def run_temu_scan(request: Request, email: str = Form("")):
-    return await toggle_temu_scan(request, email)
-
-
-@app.post("/admin/control")
-async def admin_control_save(
-    request: Request,
-    email: str = Form(""),
-    free_temu_preview_count: int = Form(3),
-    pro_temu_limit: int = Form(20),
-    reseller_temu_limit: int = Form(50),
-    temu_flips_enabled: str = Form(None),
-    allow_free_temu_preview: str = Form(None),
-    lock_new_signups: str = Form(None),
-):
-    email = get_request_email(request, email)
-    if not email:
-        return RedirectResponse("/login", status_code=303)
-    user = ensure_user_exists(email)
-    if not user.get("is_admin"):
-        return RedirectResponse(f"/app?email={email}", status_code=303)
-    updated = _set_admin_control({
-        "temu_flips_enabled": bool(temu_flips_enabled),
-        "allow_free_temu_preview": bool(allow_free_temu_preview),
-        "lock_new_signups": bool(lock_new_signups),
-        "free_temu_preview_count": free_temu_preview_count,
-        "pro_temu_limit": pro_temu_limit,
-        "reseller_temu_limit": reseller_temu_limit,
-    })
-    if not updated.get("temu_flips_enabled", True):
-        _temu_runtime_flags["enabled"] = False
-    return RedirectResponse(f"/admin?email={email}&notice=Global+controls+saved", status_code=303)
 
 
 @app.post("/admin/user-access")
@@ -2537,74 +2137,59 @@ async def admin_user_access(
     target_email: str = Form(""),
     membership: str = Form("FREE"),
     temu_override: str = Form("inherit"),
-    reset_usage: str = Form(None),
+    reset_usage: Optional[str] = Form(None),
 ):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
-    user = ensure_user_exists(email)
-    if not user.get("is_admin"):
+
+    admin_user = ensure_user_exists(email)
+    if not admin_user.get("is_admin"):
         return RedirectResponse(f"/app?email={email}", status_code=303)
+
     target_email = (target_email or "").strip().lower()
-    target = get_user(target_email)
-    if not target:
-        return RedirectResponse(f"/admin?email={email}&error=Target+user+not+found", status_code=303)
-    updates = {"membership": str(membership or "FREE").upper()}
+    target_user = get_user(target_email)
+    if not target_user:
+        return _admin_redirect(email, error="User+not+found")
+
+    updates = {}
+    membership = str(membership or "FREE").upper().strip()
+    if membership in {"FREE", "PRO", "RESELLER"}:
+        updates["membership"] = membership
+
+    settings = dict(target_user.get("settings") or {})
     if temu_override == "on":
-        updates["temu_override"] = True
+        settings["temu_override"] = True
     elif temu_override == "off":
-        updates["temu_override"] = False
+        settings["temu_override"] = False
     else:
-        updates["temu_override"] = None
+        settings.pop("temu_override", None)
+    updates["settings"] = settings
+
     if reset_usage:
         updates["search_count"] = 0
         updates["search_reset_date"] = str(date.today())
-    update_user_record(target_email, updates)
-    return RedirectResponse(f"/admin?email={email}&notice=User+updated", status_code=303)
+
+    updated = update_user_record(target_email, updates)
+    if not updated:
+        return _admin_redirect(email, error="Could+not+save+user+changes")
+
+    return _admin_redirect(email, notice=f"Saved+access+for+{target_email}")
 
 
-@app.post("/radar/clear")
-async def radar_clear(request: Request, email: str = Form("")):
+@app.post("/admin/run-temu-scan")
+async def run_temu_scan(request: Request, email: str = Form("")):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
-    try:
-        _write_json_file(RADAR_RESULTS_FILE, [])
-        _write_json_file(RADAR_ANALYSIS_CACHE_FILE, {})
-        _write_json_file(RADAR_RUNTIME_CACHE_FILE, {"items": {}})
-        for path in [os.path.join(RADAR_DIR, "cache", "seen_deals.json"), os.path.join(RADAR_CACHE_DIR, "seen_deals.json")]:
-            if os.path.exists(path):
-                _write_json_file(path, {"links": [], "fingerprints": [], "titles": []})
-    except Exception as e:
-        return RedirectResponse(f"/radar?email={email}&notice=Clear+failed:+{str(e).replace(' ', '+')}", status_code=303)
-    _update_radar_status(message="Radar board cleared from UI", deals_found_today=0)
-    return RedirectResponse(f"/radar?email={email}&notice=Radar+board+cleared", status_code=303)
 
-@app.post("/admin/user-access")
-async def admin_user_access(
-    request: Request,
-    email: str = Form(""),
-    target_email: str = Form(""),
-    membership: str = Form(""),
-):
-    try:
-        email = get_request_email(request, email)
-        if not email:
-            return RedirectResponse("/login", status_code=303)
+    def background_scan():
+        _update_temu_status(status="running", message="Scanning Temu...")
+        seeds = _temu_seed_items()
+        results = fetch_temu_items(seeds)
+        _write_temu_results(results)
+        _update_temu_status(status="idle", message="Scan complete", count=len(results))
 
-        admin_user = ensure_user_exists(email)
-        if not admin_user.get("is_admin"):
-            return RedirectResponse(f"/app?email={email}", status_code=303)
+    threading.Thread(target=background_scan, daemon=True).start()
 
-        target_email = (target_email or "").strip().lower()
-        membership = (membership or "").strip().upper()
-
-        if membership not in ["FREE", "PRO", "RESELLER"]:
-            return RedirectResponse(f"/admin?email={email}&error=Invalid+membership", status_code=303)
-
-        update_user_record(target_email, {"membership": membership})
-
-        return RedirectResponse(f"/admin?email={email}&notice=Saved", status_code=303)
-
-    except Exception as e:
-        return RedirectResponse(f"/admin?email={email}&error=Update+failed", status_code=303)
+    return RedirectResponse(f"/admin?email={email}&notice=Temu+scan+started", status_code=303)
