@@ -83,9 +83,10 @@ def fetch_temu_items(seed_items=None, should_continue=None):
             "score": round((max(profit, 0) * 2.0) + (sell_through_pct * 0.4), 2),
             "source": "temu",
             "timestamp": datetime.utcnow().isoformat(),
-            "image": (listing or {}).get("image", "") if isinstance(listing, dict) else "",
-            "image_url": (listing or {}).get("image", "") if isinstance(listing, dict) else "",
+            "image": (listing or {}).get("image") or (listing or {}).get("image_url") or (listing or {}).get("galleryURL") or "" if isinstance(listing, dict) else "",
+            "image_url": (listing or {}).get("image") or (listing or {}).get("image_url") or (listing or {}).get("galleryURL") or "" if isinstance(listing, dict) else "",
             "ebay_url": (listing or {}).get("url", "") if isinstance(listing, dict) else "",
+            "temu_url": item.get("url") or item.get("link") or "" ,
         })
 
     if not results:

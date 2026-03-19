@@ -76,7 +76,7 @@
         {% endif %}
     </div>
 
-    <div class="compact-box">
+    <div class="compact-box" style="display:none;">
         <div class="section-kicker">Top 10 Ranked</div>
         {% if top_flips %}
         <div class="top-list">
@@ -84,7 +84,7 @@
             <div class="top-item">
                 <div>
                     <div class="top-rank">#{{ item.rank }}</div>
-                    <div style="font-weight:700;"><a class="temu-title-link" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></div>
+                    <div style="font-weight:700;"><a class="temu-title-link" href="{{ item.temu_url or "/app?email=" + email + "&query=" }}{{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></div>
                     <div style="opacity:.78;font-size:13px;">{{ item.get('query') or item.get('title') or '' }}</div>
                 </div>
                 <div style="text-align:right;">
@@ -112,7 +112,7 @@
         {% for item in temu_flips %}
         <div class="temu-card">
             <div class="temu-card-top">
-                <a class="temu-thumb" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">
+                <a class="temu-thumb" href="{{ item.temu_url or "/app?email=" + email + "&query=" }}{{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">
                     <img src="{{ item.display_image }}" alt="{{ item.get('title') or 'Temu flip' }}">
                 </a>
                 <div style="min-width:0;flex:1;">
@@ -129,7 +129,7 @@
                         <span>Net: ${{ '%.2f'|format(item.get('net_after_fees', 0)|float) }}</span>
                         <span>Sell-through: {{ item.get('sell_through', 0) }}%</span>
                     </div>
-                    <h3 style="margin:12px 0 8px 0;"><a class="temu-title-link" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></h3>
+                    <h3 style="margin:12px 0 8px 0;"><a class="temu-title-link" href="{{ item.temu_url or "/app?email=" + email + "&query=" }}{{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></h3>
                     <div style="opacity:.82;line-height:1.5;">{{ item.get('query') or item.get('title') or '' }}</div>
                 </div>
             </div>
@@ -142,7 +142,7 @@
                 <div class="temu-metric"><strong>ROI</strong><div>{{ item.get('roi', 0) }}%</div></div>
             </div>
             <div class="temu-actions">
-                <a class="temu-btn" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">Analyze it</a>
+                <a class="temu-btn" href="{{ item.temu_url or "/app?email=" + email + "&query=" }}{{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">Analyze it</a>
                 {% if item.temu_search_url %}<a class="temu-btn alt" href="{{ item.temu_search_url }}" target="_blank">Open Temu</a>{% endif %}
                 {% if item.ebay_url %}<a class="temu-btn alt" href="{{ item.ebay_url }}" target="_blank">Open eBay</a>{% endif %}
             </div>
