@@ -2261,8 +2261,9 @@ async def temu_flips_page(request: Request, email: str = ""):
     membership_tier = str(plan_ui.get("membership_tier") or "FREE").upper()
     admin_control = _get_admin_control()
 
-    flips, status = _build_temu_route_items(max_items=30)
-    all_count = len(flips)
+flips = _read_temu_results()
+status = _read_json_file(TEMU_STATUS_FILE, {}) or {}
+all_count = len(flips)
     manual_override = user.get("temu_override", None)
     full_access = membership_tier in {"ADMIN", "RESELLER"}
     if manual_override is True:
