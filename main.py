@@ -2273,7 +2273,7 @@ async def temu_flips_page(request: Request, email: str = ""):
 flips = _read_temu_results()
 status = _read_json_file(TEMU_STATUS_FILE, {}) or {}
 all_count = len(flips)
-manual_override = user.get("temu_override", None)
+    manual_override = user.get("temu_override", None)
     full_access = membership_tier in {"ADMIN", "RESELLER"}
     if manual_override is True:
         full_access = True
