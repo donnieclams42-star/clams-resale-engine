@@ -12,7 +12,7 @@
 .top-list{display:grid;gap:10px;margin:14px 0 20px}.top-item{display:flex;justify-content:space-between;gap:12px;background:#0b1220;border-radius:14px;padding:12px;color:#fff}.top-rank{display:inline-flex;align-items:center;background:rgba(249,115,22,.18);color:#fdba74;border:1px solid rgba(249,115,22,.35);padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;margin-bottom:7px}
 .access-box{background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;color:#fff;margin-bottom:16px}.access-box strong{display:block;margin-bottom:6px}.access-note{opacity:.84;line-height:1.6}.status-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}.status-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:8px 10px;border-radius:999px;font-size:13px;font-weight:700}.locked-card{position:relative;overflow:hidden}.locked-card::after{content:'';position:absolute;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(4px)}.locked-card-inner{position:relative;z-index:1}.profit-hero{font-size:28px;font-weight:900;line-height:1;margin:10px 0 8px;color:#86efac}.buy-sell-row{display:flex;gap:10px;flex-wrap:wrap;font-weight:700;margin:8px 0}.micro-row{display:flex;gap:12px;flex-wrap:wrap;opacity:.82;font-size:13px}.locked-banner{position:absolute;inset:auto 14px 14px 14px;z-index:2;background:rgba(15,23,42,.92);border:1px solid rgba(249,115,22,.35);border-radius:14px;padding:12px}.locked-banner strong{display:block;margin-bottom:6px}.metric-profit{border:1px solid rgba(34,197,94,.18)}
 .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:10003;display:none;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(15,23,42,.98);border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -10px 24px rgba(0,0,0,.28)}.bottom-nav a{display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px 8px;border-radius:14px;text-decoration:none;color:#fff;font-weight:800;font-size:12px;background:#111827}.bottom-nav a.active,.bottom-nav a.emphasis{background:#f97316}
-@media (max-width:900px){.header{padding-right:0}.header .nav-links{display:none}.mobile-menu-btn{display:block}.page-shell{padding-top:86px;padding-bottom:104px}.temu-card-top{flex-direction:column}.temu-thumb{width:100%;height:200px;min-width:0}.temu-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){.header{padding-right:0}.header .nav-links{display:none}.mobile-menu-btn{display:block}.page-shell{padding-top:86px;padding-bottom:104px}.temu-card-top{flex-direction:column}.temu-thumb{width:100%;height:200px;min-width:0}.temu-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.bottom-nav{display:grid}}
 </style>
 </head>
 <body>
@@ -77,43 +77,12 @@
         {% endif %}
     </div>
 
-    <div class="compact-box">
-        <div class="section-kicker">Top 10 Ranked</div>
-        {% if top_flips %}
-        <div class="top-list">
-            {% for item in top_flips %}
-            <div class="top-item">
-                <div>
-                    <div class="top-rank">#{{ item.rank }}</div>
-                    <div style="font-weight:700;"><a class="temu-title-link" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></div>
-                    <div style="opacity:.78;font-size:13px;">{{ item.get('query') or item.get('title') or '' }}</div>
-                </div>
-                <div style="text-align:right;">
-                    <div>${{ '%.2f'|format(item.asking_price|float) }} → ${{ '%.2f'|format(item.market_price|float) }}</div>
-                    <div style="opacity:.78;font-size:13px;">Net ${{ '%.2f'|format(item.get('net_after_fees', 0)|float) }} · Sell-through {{ item.get('sell_through', 0) }}%</div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="upload-note">No Temu-flips candidates have cleared the filter yet.</div>
-        {% endif %}
-        {% if not temu_access.full_access and temu_access.locked_count > 0 %}
-        <div class="access-box" style="margin-top:14px;">
-            <strong>🔒 {{ temu_access.locked_count }} more high-profit flips are locked</strong>
-            <div class="access-note">Free accounts see 2 flips. Pro unlocks the top 5. Reseller unlocks the full board.</div>
-            <div class="temu-actions" style="margin-top:12px;">
-                <a class="temu-btn" href="/account?email={{email}}">Upgrade to unlock more</a>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
+    
     <div class="temu-grid">
         {% for item in temu_flips %}
         <div class="temu-card">
             <div class="temu-card-top">
-                <a class="temu-thumb" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">
+                <a class="temu-thumb" href="{{ item.temu_url or item.temu_search_url or ('/app?email=' ~ email ~ '&query=' ~ ((item.analyzer_query or item.title or '')|replace(' ', '+'))) }}" target="_blank">
                     <img src="{{ item.display_image }}" alt="{{ item.get('title') or 'Temu flip' }}">
                 </a>
                 <div style="min-width:0;flex:1;">
@@ -131,7 +100,7 @@
                         <span>Net: ${{ '%.2f'|format(item.get('net_after_fees', 0)|float) }}</span>
                         <span>Sell-through: {{ item.get('sell_through', 0) }}%</span>
                     </div>
-                    <h3 style="margin:12px 0 8px 0;"><a class="temu-title-link" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></h3>
+                    <h3 style="margin:12px 0 8px 0;"><a class="temu-title-link" href="{{ item.temu_url or item.temu_search_url or ('/app?email=' ~ email ~ '&query=' ~ ((item.analyzer_query or item.title or '')|replace(' ', '+'))) }}" target="_blank">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></h3>
                     <div style="opacity:.82;line-height:1.5;">{{ item.get('query') or item.get('title') or '' }}</div>
                 </div>
             </div>
@@ -144,8 +113,8 @@
                 <div class="temu-metric"><strong>ROI</strong><div>{{ item.get('roi', 0) }}%</div></div>
             </div>
             <div class="temu-actions">
-                <a class="temu-btn" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">Analyze it</a>
-                {% if item.temu_search_url %}<a class="temu-btn alt" href="{{ item.temu_search_url }}" target="_blank">Open Temu</a>{% endif %}
+                {% if item.temu_url or item.temu_search_url %}<a class="temu-btn" href="{{ item.temu_url or item.temu_search_url }}" target="_blank">🛒 View on Temu</a>{% endif %}
+                <a class="temu-btn alt" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">Analyze it</a>
                 {% if item.ebay_url %}<a class="temu-btn alt" href="{{ item.ebay_url }}" target="_blank">Open eBay</a>{% endif %}
             </div>
         </div>
