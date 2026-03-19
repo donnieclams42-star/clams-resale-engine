@@ -10,7 +10,7 @@
 .temu-hero{padding:18px;border-radius:18px;background:#111827;color:#fff;margin-bottom:16px;border:1px solid rgba(255,255,255,.08)}.temu-kicker{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.8}.temu-title{font-size:32px;font-weight:800;margin:8px 0}.temu-sub{opacity:.85;max-width:860px}
 .temu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}.temu-card{background:#121826;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;color:#fff}.temu-card-top{display:flex;gap:12px}.temu-thumb{width:104px;height:104px;min-width:104px;border-radius:16px;overflow:hidden;background:#0b1220;border:1px solid rgba(255,255,255,.08)}.temu-thumb img{width:100%;height:100%;object-fit:cover;display:block}.temu-badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#7c2d12;color:#fff;font-size:12px;font-weight:700}.temu-title-link{color:#fff;text-decoration:none;font-weight:800}.temu-title-link:hover{text-decoration:underline}.temu-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.temu-metric{background:#0b1220;border-radius:14px;padding:10px}.temu-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.temu-btn{display:inline-block;padding:10px 12px;border-radius:12px;text-decoration:none;background:#f97316;color:#fff;font-weight:700}.temu-btn.alt{background:#1f2937}
 .top-list{display:grid;gap:10px;margin:14px 0 20px}.top-item{display:flex;justify-content:space-between;gap:12px;background:#0b1220;border-radius:14px;padding:12px;color:#fff}.top-rank{display:inline-flex;align-items:center;background:rgba(249,115,22,.18);color:#fdba74;border:1px solid rgba(249,115,22,.35);padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;margin-bottom:7px}
-.access-box{background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;color:#fff;margin-bottom:16px}.access-box strong{display:block;margin-bottom:6px}.access-note{opacity:.84;line-height:1.6}.status-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}.status-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:8px 10px;border-radius:999px;font-size:13px;font-weight:700}
+.access-box{background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;color:#fff;margin-bottom:16px}.access-box strong{display:block;margin-bottom:6px}.access-note{opacity:.84;line-height:1.6}.status-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}.status-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:8px 10px;border-radius:999px;font-size:13px;font-weight:700}.locked-card{position:relative;overflow:hidden}.locked-card::after{content:'';position:absolute;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(4px)}.locked-card-inner{position:relative;z-index:1}.profit-hero{font-size:28px;font-weight:900;line-height:1;margin:10px 0 8px;color:#86efac}.buy-sell-row{display:flex;gap:10px;flex-wrap:wrap;font-weight:700;margin:8px 0}.micro-row{display:flex;gap:12px;flex-wrap:wrap;opacity:.82;font-size:13px}.locked-banner{position:absolute;inset:auto 14px 14px 14px;z-index:2;background:rgba(15,23,42,.92);border:1px solid rgba(249,115,22,.35);border-radius:14px;padding:12px}.locked-banner strong{display:block;margin-bottom:6px}.metric-profit{border:1px solid rgba(34,197,94,.18)}
 @media (max-width:900px){.header{padding-right:0}.header .nav-links{display:none}.mobile-menu-btn{display:block}.page-shell{padding-top:86px}.temu-card-top{flex-direction:column}.temu-thumb{width:100%;height:200px;min-width:0}.temu-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
@@ -46,7 +46,7 @@
     <div class="temu-hero">
         <div class="temu-kicker">Primary subscription feature</div>
         <div class="temu-title">🔥 Temu-flips</div>
-        <div class="temu-sub">High-margin Temu flips ranked by real resale demand and speed</div>
+        <div class="temu-sub">Turn $5 Temu buys into $20–$60 flips — ranked by real demand and sell-through</div>
         <div class="status-row">
             <div class="status-pill">Status: {{ temu_status.status|upper }}</div>
             <div class="status-pill">Board: {{ temu_access.visible_count }} / {{ temu_access.all_count }}</div>
@@ -71,7 +71,7 @@
         </div>
         {% if not temu_access.full_access %}
         <div class="temu-actions" style="margin-top:12px;">
-            <a class="temu-btn" href="/account?email={{email}}">Upgrade Access</a>
+            <a class="temu-btn" href="/account?email={{email}}">Unlock full Temu-flips</a>
         </div>
         {% endif %}
     </div>
@@ -97,6 +97,15 @@
         {% else %}
         <div class="upload-note">No Temu-flips candidates have cleared the filter yet.</div>
         {% endif %}
+        {% if not temu_access.full_access and temu_access.locked_count > 0 %}
+        <div class="access-box" style="margin-top:14px;">
+            <strong>🔒 {{ temu_access.locked_count }} more high-profit flips are locked</strong>
+            <div class="access-note">Free accounts see 2 flips. Pro unlocks the top 5. Reseller unlocks the full board.</div>
+            <div class="temu-actions" style="margin-top:12px;">
+                <a class="temu-btn" href="/account?email={{email}}">Upgrade to unlock more</a>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <div class="temu-grid">
@@ -109,17 +118,28 @@
                 <div style="min-width:0;flex:1;">
                     <div class="top-rank">#{{ item.rank }}</div>
                     <div class="temu-badge">{{ item.get('category') or 'temu-flip' }}</div>
-                    <h3 style="margin:10px 0 8px 0;"><a class="temu-title-link" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></h3>
+                    <div class="profit-hero">🔥 +${{ '%.2f'|format(item.get('profit', 0)|float) }} PROFIT</div>
+                    <div class="buy-sell-row">
+                        <span>Buy: ${{ '%.2f'|format(item.asking_price|float) }}</span>
+                        <span>→</span>
+                        <span>Avg Sell: ${{ '%.2f'|format(item.market_price|float) }}</span>
+                    </div>
+                    <div class="micro-row">
+                        <span>Fees: ${{ '%.2f'|format(item.get('fees', 0)|float) }}</span>
+                        <span>Net: ${{ '%.2f'|format(item.get('net_after_fees', 0)|float) }}</span>
+                        <span>Sell-through: {{ item.get('sell_through', 0) }}%</span>
+                    </div>
+                    <h3 style="margin:12px 0 8px 0;"><a class="temu-title-link" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">{{ item.get('label') or item.get('query') or item.get('title') or 'Temu-flip' }}</a></h3>
                     <div style="opacity:.82;line-height:1.5;">{{ item.get('query') or item.get('title') or '' }}</div>
                 </div>
             </div>
             <div class="temu-metrics">
+                <div class="temu-metric metric-profit"><strong>Profit</strong><div>${{ '%.2f'|format(item.get('profit', 0)|float) }}</div></div>
                 <div class="temu-metric"><strong>Buy</strong><div>${{ '%.2f'|format(item.asking_price|float) }}</div></div>
                 <div class="temu-metric"><strong>Avg Sell</strong><div>${{ '%.2f'|format(item.market_price|float) }}</div></div>
-                <div class="temu-metric"><strong>Profit</strong><div>${{ '%.2f'|format(item.get('profit', 0)|float) }}</div></div>
-                <div class="temu-metric"><strong>Sell-through</strong><div>{{ item.get('sell_through', 0) }}%</div></div>
+                <div class="temu-metric"><strong>Fees</strong><div>${{ '%.2f'|format(item.get('fees', 0)|float) }}</div></div>
+                <div class="temu-metric"><strong>Net</strong><div>${{ '%.2f'|format(item.get('net_after_fees', 0)|float) }}</div></div>
                 <div class="temu-metric"><strong>ROI</strong><div>{{ item.get('roi', 0) }}%</div></div>
-                <div class="temu-metric"><strong>Trend</strong><div>{{ item.get('trend') or 'WATCH' }}</div></div>
             </div>
             <div class="temu-actions">
                 <a class="temu-btn" href="/app?email={{email}}&query={{ (item.analyzer_query or item.title or '')|replace(' ', '+') }}">Analyze it</a>
@@ -128,6 +148,43 @@
             </div>
         </div>
         {% endfor %}
+        {% if not temu_access.full_access %}
+        {% for item in locked_flips %}
+        <div class="temu-card locked-card">
+            <div class="locked-card-inner">
+                <div class="temu-card-top">
+                    <div class="temu-thumb">
+                        <img src="{{ item.display_image }}" alt="Locked Temu flip">
+                    </div>
+                    <div style="min-width:0;flex:1;">
+                        <div class="top-rank">#{{ item.rank }}</div>
+                        <div class="temu-badge">locked flip</div>
+                        <div class="profit-hero">🔥 +${{ '%.2f'|format(item.get('profit', 0)|float) }} PROFIT</div>
+                        <div class="buy-sell-row">
+                            <span>Buy: ${{ '%.2f'|format(item.asking_price|float) }}</span>
+                            <span>→</span>
+                            <span>Avg Sell: ${{ '%.2f'|format(item.market_price|float) }}</span>
+                        </div>
+                        <div class="micro-row">
+                            <span>Fees: ${{ '%.2f'|format(item.get('fees', 0)|float) }}</span>
+                            <span>Net: ${{ '%.2f'|format(item.get('net_after_fees', 0)|float) }}</span>
+                            <span>Sell-through: {{ item.get('sell_through', 0) }}%</span>
+                        </div>
+                        <h3 style="margin:12px 0 8px 0;">Hidden high-profit Temu flip</h3>
+                        <div style="opacity:.82;line-height:1.5;">Upgrade to unlock this deal and the rest of the premium board.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="locked-banner">
+                <strong>🔒 Locked premium flip</strong>
+                <div style="opacity:.84;font-size:13px;">Pro unlocks the top 5. Reseller unlocks the full board.</div>
+                <div class="temu-actions" style="margin-top:10px;">
+                    <a class="temu-btn" href="/account?email={{email}}">Upgrade Access</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
     </div>
 </div>
 </div>

@@ -1907,15 +1907,15 @@ def _get_admin_control():
     defaults = {
         "temu_flips_enabled": True,
         "allow_free_temu_preview": True,
-        "free_temu_preview_count": 3,
-        "pro_temu_limit": 20,
+        "free_temu_preview_count": 2,
+        "pro_temu_limit": 5,
         "reseller_temu_limit": 50,
         "lock_new_signups": False,
     }
     data = _read_json_file(ADMIN_CONTROL_FILE, {}) or {}
     defaults.update({k: data.get(k, v) for k, v in defaults.items()})
     defaults["free_temu_preview_count"] = max(0, min(20, int(defaults.get("free_temu_preview_count") or 0)))
-    defaults["pro_temu_limit"] = max(1, min(50, int(defaults.get("pro_temu_limit") or 20)))
+    defaults["pro_temu_limit"] = max(1, min(50, int(defaults.get("pro_temu_limit") or 5)))
     defaults["reseller_temu_limit"] = max(1, min(100, int(defaults.get("reseller_temu_limit") or 50)))
     defaults["temu_flips_enabled"] = bool(defaults.get("temu_flips_enabled"))
     defaults["allow_free_temu_preview"] = bool(defaults.get("allow_free_temu_preview"))
@@ -2260,13 +2260,28 @@ def _normalize_temu_flip_item(item) -> dict:
     }
 
 def _build_temu_route_items(max_items: int = 20):
-    items = [item for item in (_read_temu_results() or []) if isinstance(item, dict) and _temu_is_fresh(item)]
+    fresh_items = [item for item in (_read_temu_results() or []) if isinstance(item, dict) and _temu_is_fresh(item)]
+    items = fresh_items
     if not items:
         try:
             items = _run_temu_cycle()
         except Exception as e:
             _update_temu_status(status="error", message="Temu-flips failed to load", last_error=str(e), running=False)
-            items = [item for item in (_read_temu_results() or []) if isinstance(item, dict) and _temu_is_fresh(item)]
+            items = []
+
+    if not items:
+        cached_items = [item for item in (_read_temu_results() or []) if isinstance(item, dict)]
+        if cached_items:
+            status = get_temu_status()
+            status["message"] = status.get("message") or "Showing last saved Temu-flips board"
+            status["using_cached_results"] = True
+            normalized = [_normalize_temu_flip_item(item) for item in cached_items if item]
+            normalized.sort(key=lambda x: (_safe_float(x.get("score", 0)), _safe_float(x.get("profit", 0)), _safe_int(x.get("sell_through", 0))), reverse=True)
+            normalized = normalized[:max_items]
+            for idx, item in enumerate(normalized, start=1):
+                item["rank"] = idx
+            if normalized:
+                return normalized, status
 
     normalized = [_normalize_temu_flip_item(item) for item in items if item]
     normalized.sort(key=lambda x: (_safe_float(x.get("score", 0)), _safe_float(x.get("profit", 0)), _safe_int(x.get("sell_through", 0))), reverse=True)
@@ -2315,22 +2330,23 @@ async def temu_flips_page(request: Request, email: str = ""):
         full_access = True
         locked_message = ""
     elif full_access and membership_tier == "RESELLER":
-        visible_count = min(all_count, admin_control.get("reseller_temu_limit", 50))
+        visible_count = all_count
         access_mode = "full"
         locked_message = ""
     elif membership_tier == "PRO" and full_access:
-        visible_count = min(all_count, admin_control.get("pro_temu_limit", 20))
+        visible_count = min(all_count, admin_control.get("pro_temu_limit", 5))
         access_mode = "full"
         locked_message = ""
     else:
-        preview_count = min(admin_control.get("free_temu_preview_count", 3), all_count)
+        preview_count = min(admin_control.get("free_temu_preview_count", 2), all_count)
         visible_count = preview_count if admin_control.get("allow_free_temu_preview", True) else 0
         access_mode = "preview"
         full_access = False
         locked_message = "Free access is limited to the preview board."
 
     visible_flips = flips[:visible_count]
-    top_flips = visible_flips[:10]
+    locked_flips = flips[visible_count:]
+    top_flips = visible_flips[:10] if full_access else flips[:min(10, len(flips))]
 
     temu_access = {
         "visible_count": len(visible_flips),
@@ -2338,7 +2354,7 @@ async def temu_flips_page(request: Request, email: str = ""):
         "full_access": full_access,
         "access_mode": access_mode,
         "locked_message": locked_message,
-        "preview_count": min(admin_control.get("free_temu_preview_count", 3), all_count),
+        "preview_count": min(admin_control.get("free_temu_preview_count", 2), all_count),
         "locked_count": max(0, all_count - len(visible_flips)),
     }
 
@@ -2352,6 +2368,7 @@ async def temu_flips_page(request: Request, email: str = ""):
             "temu_access": temu_access,
             "temu_flips": visible_flips,
             "top_flips": top_flips,
+            "locked_flips": locked_flips,
             "temu_status": status,
             "admin_control": admin_control,
             **plan_ui,
@@ -2560,8 +2577,8 @@ async def stop_temu_scan(request: Request, email: str = Form("")):
 async def admin_control_save(
     request: Request,
     email: str = Form(""),
-    free_temu_preview_count: int = Form(3),
-    pro_temu_limit: int = Form(20),
+    free_temu_preview_count: int = Form(2),
+    pro_temu_limit: int = Form(5),
     reseller_temu_limit: int = Form(50),
     temu_flips_enabled: str = Form(None),
     allow_free_temu_preview: str = Form(None),
@@ -2664,18 +2681,3 @@ async def admin_user_access(
 
     except Exception as e:
         return RedirectResponse(f"/admin?email={email}&error=Update+failed", status_code=303)
-
-
-# --- TEMU STOP CONTROL ---
-temu_stop_requested = False
-
-def request_temu_stop():
-    global temu_stop_requested
-    temu_stop_requested = True
-
-def reset_temu_stop():
-    global temu_stop_requested
-    temu_stop_requested = False
-
-def should_continue_temu():
-    return not temu_stop_requested
