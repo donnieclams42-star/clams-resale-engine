@@ -1,160 +1,54 @@
-import json
-import os
-import random
+
 import re
-import time
-from urllib.parse import urljoin
 
-import requests
-from bs4 import BeautifulSoup
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CACHE_DIR = os.path.join(BASE_DIR, "cache")
-CACHE_FILE = os.path.join(CACHE_DIR, "temu_cache.json")
-CACHE_SECONDS = int(os.getenv("TEMU_CACHE_SECONDS", "86400") or 86400)
-TEMU_URL = os.getenv("TEMU_SOURCE_URL", "https://www.temu.com/")
-REQUEST_TIMEOUT = int(os.getenv("TEMU_REQUEST_TIMEOUT", "15") or 15)
-MAX_ITEMS = int(os.getenv("TEMU_MAX_ITEMS", "24") or 24)
-
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Mobile Safari/537.36",
+BLOCK_TERMS = [
+    "mail in","repair","service","upgrade","unlock","mod","installation"
 ]
 
-PRICE_RE = re.compile(r"\$(\d{1,4}(?:\.\d{1,2})?)")
-BAD_TITLE_TERMS = {
-    "download",
-    "app",
-    "coupon",
-    "free shipping on orders",
-    "sign in",
-    "join now",
-    "privacy policy",
-}
+ACCESSORY_TERMS = [
+    "case","cover","stick","module","shell","housing","replacement","parts","for ps5","compatible"
+]
 
+GAME_TERMS = [
+    "ps5 game","playstation game","xbox game"
+]
 
-def _read_cache(allow_stale: bool = False):
-    if not os.path.exists(CACHE_FILE):
+def is_blocked(title: str) -> bool:
+    t = title.lower()
+    if any(term in t for term in BLOCK_TERMS):
+        return True
+    if any(term in t for term in ACCESSORY_TERMS):
+        return True
+    return False
+
+def classify_item(title: str) -> str:
+    t = title.lower()
+    if "ps5" in t and "game" not in t:
+        return "console"
+    if "game" in t:
+        return "game"
+    if any(x in t for x in ACCESSORY_TERMS):
+        return "accessory"
+    return "unknown"
+
+def valid_price(category: str, price: float) -> bool:
+    if category == "console":
+        return 150 <= price <= 600
+    if category == "game":
+        return 5 <= price <= 80
+    return True
+
+def clean_item(item: dict):
+    title = item.get("title","")
+    price = float(item.get("price",0))
+
+    if is_blocked(title):
         return None
-    try:
-        with open(CACHE_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        timestamp = float(data.get("timestamp", 0) or 0)
-        items = data.get("items") or []
-        if not isinstance(items, list):
-            return None
-        if allow_stale or (time.time() - timestamp < CACHE_SECONDS):
-            return items
-    except Exception:
+
+    category = classify_item(title)
+
+    if not valid_price(category, price):
         return None
-    return None
 
-
-def _write_cache(items):
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    payload = {"timestamp": time.time(), "items": items}
-    tmp_path = f"{CACHE_FILE}.tmp"
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    os.replace(tmp_path, CACHE_FILE)
-
-
-def _normalize_title(text: str) -> str:
-    text = re.sub(r"\s+", " ", (text or "").replace("\u200b", " ").strip())
-    return text.strip(" -|\t\n\r")
-
-
-def _extract_price(text: str):
-    if not text:
-        return None
-    match = PRICE_RE.search(text.replace(",", ""))
-    if not match:
-        return None
-    try:
-        value = float(match.group(1))
-    except Exception:
-        return None
-    if value <= 0 or value > 1000:
-        return None
-    return round(value, 2)
-
-
-def _collect_anchor_candidates(soup: BeautifulSoup):
-    items = []
-    seen = set()
-
-    for tag in soup.find_all("a", href=True):
-        href = (tag.get("href") or "").strip()
-        title = _normalize_title(tag.get("title") or tag.get_text(" ", strip=True) or "")
-        lower_title = title.lower()
-
-        if not href or not title:
-            continue
-        if len(title) < 12 or len(title) > 180:
-            continue
-        if any(term in lower_title for term in BAD_TITLE_TERMS):
-            continue
-        if not any(ch.isalpha() for ch in title):
-            continue
-
-        container_text = _normalize_title(tag.parent.get_text(" ", strip=True) if tag.parent else title)
-        combined_text = f"{title} {container_text}".strip()
-        price = _extract_price(combined_text)
-        if price is None:
-            continue
-
-        full_url = urljoin(TEMU_URL, href)
-        key = (title.lower(), price)
-        if key in seen:
-            continue
-        seen.add(key)
-
-        items.append(
-            {
-                "title": title,
-                "price": price,
-                "asking_price": price,
-                "url": full_url,
-                "source": "temu",
-                "category": "temu-flip",
-                "category_label": "Temu Candidate",
-                "trend": "WATCH",
-                "confidence": "LOW",
-            }
-        )
-
-        if len(items) >= MAX_ITEMS:
-            break
-
-    return items
-
-
-def fetch_temu_items(force_refresh: bool = False):
-    if not force_refresh:
-        cached = _read_cache()
-        if cached:
-            return cached
-
-    headers = {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Accept-Language": "en-US,en;q=0.9",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-    }
-
-    try:
-        response = requests.get(TEMU_URL, headers=headers, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
-        items = _collect_anchor_candidates(soup)
-        if items:
-            _write_cache(items)
-            return items
-    except Exception as e:
-        print("Temu error:", e)
-
-    fallback = _read_cache(allow_stale=True)
-    if fallback:
-        return fallback
-    return []
+    item["category"] = category
+    return item
