@@ -231,12 +231,7 @@ def _source_enabled_for_cycle(source_name: str, cycle_count: int, radar_config) 
     if name == "ebay":
         return bool(getattr(radar_config, "ENABLE_EBAY", True)) and (cycle_count % max(1, int(getattr(radar_config, "EBAY_SCAN_FREQUENCY", 1) or 1)) == 0)
     if name == "mercari":
-        return bool(getattr(radar_config, "ENABLE_MERCARI", True)) and (cycle_count % max(1, int(getattr(radar_config, "MERCARI_SCAN_FREQUENCY", 1) or 1)) == 0)
-    if name == "offerup":
-        return bool(getattr(radar_config, "ENABLE_OFFERUP", True)) and (cycle_count % max(1, int(getattr(radar_config, "OFFERUP_SCAN_FREQUENCY", 2) or 2)) == 0)
-    if name == "facebook":
-        return bool(getattr(radar_config, "ENABLE_FACEBOOK", True)) and (cycle_count % max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 8) or 8)) == 0)
-    return False
+        return False  # 🔒 DISABLED (user choice - reduce 403 + noise)
 
 
 def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
@@ -1763,6 +1758,12 @@ def start_temu_background_worker():
 
 
 
+def get_radar_dashboard_context(limit=4):
+    ctx = build_radar_page_context(limit=limit)
+    deals = ctx.get("radar_deals") or []
+    ctx["radar_has_hits"] = bool(deals)
+    ctx["radar_indicator_count"] = len(deals)
+    return ctx
 
 
 def _safe_float(value, default=0.0) -> float:
