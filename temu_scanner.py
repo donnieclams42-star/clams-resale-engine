@@ -19,7 +19,9 @@ def fetch_temu_items(seed_items=None, should_continue=None):
         title = item.get("label") or item.get("query") or "Temu Flip"
         price = round(random.uniform(3, 10), 2)
         estimated_value = round(random.uniform(12, 25), 2)
-        profit = round(max(estimated_value - price - 3.5, 0), 2)
+        fees = round(estimated_value * 0.13, 2)
+        net_after_fees = round(estimated_value - fees, 2)
+        profit = round(max(net_after_fees - price, 0), 2)
         roi = int(round((profit / price) * 100)) if price > 0 else 0
         sell_through_pct = random.randint(45, 88)
 
@@ -32,6 +34,8 @@ def fetch_temu_items(seed_items=None, should_continue=None):
             "asking_price": price,
             "estimated_value": estimated_value,
             "market_price": estimated_value,
+            "fees": fees,
+            "net_after_fees": net_after_fees,
             "profit": profit,
             "roi": roi,
             "sell_through": sell_through_pct,

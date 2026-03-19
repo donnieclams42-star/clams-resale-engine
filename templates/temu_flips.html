@@ -115,7 +115,7 @@
             </div>
             <div class="temu-metrics">
                 <div class="temu-metric"><strong>Buy</strong><div>${{ '%.2f'|format(item.asking_price|float) }}</div></div>
-                <div class="temu-metric"><strong>Market</strong><div>${{ '%.2f'|format(item.market_price|float) }}</div></div>
+                <div class="temu-metric"><strong>Avg Sell</strong><div>${{ '%.2f'|format(item.market_price|float) }}</div></div>
                 <div class="temu-metric"><strong>Profit</strong><div>${{ '%.2f'|format(item.get('profit', 0)|float) }}</div></div>
                 <div class="temu-metric"><strong>Sell-through</strong><div>{{ item.get('sell_through', 0) }}%</div></div>
                 <div class="temu-metric"><strong>ROI</strong><div>{{ item.get('roi', 0) }}%</div></div>

@@ -2664,3 +2664,18 @@ async def admin_user_access(
 
     except Exception as e:
         return RedirectResponse(f"/admin?email={email}&error=Update+failed", status_code=303)
+
+
+# --- TEMU STOP CONTROL ---
+temu_stop_requested = False
+
+def request_temu_stop():
+    global temu_stop_requested
+    temu_stop_requested = True
+
+def reset_temu_stop():
+    global temu_stop_requested
+    temu_stop_requested = False
+
+def should_continue_temu():
+    return not temu_stop_requested
