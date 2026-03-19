@@ -30,6 +30,86 @@ except Exception:
     OpenAI = None
 
 import stripe
+
+
+# === CLAMS RADAR FILTERS (tightened) ===
+_BAD_TERMS = [
+    "case","cover","controller","disc only","game only",
+    "replacement","screen","digitizer","housing","shell","parts",
+    "back glass","lens","battery","charger","cable","dock","adapter"
+]
+
+def _is_bad_accessory(title: str) -> bool:
+    t = (title or "").lower()
+    return any(term in t for term in _BAD_TERMS)
+
+def _is_game_not_console(title: str) -> bool:
+    t = (title or "").lower()
+    if any(x in t for x in ["ps5","playstation","xbox"]):
+        if any(w in t for w in ["game","disc","copy","edition"]):
+            return True
+    return False
+
+def _value_sanity_fail(asking: float, market_price: float) -> bool:
+    try:
+        if asking and market_price and market_price > asking * 3.5:
+            return True
+    except Exception:
+        pass
+    return False
+
+def _quality_floor_fail(asking: float, profit: float, sell_through: float) -> bool:
+    try:
+        if asking is not None and asking < 25:
+            return True
+        if profit is not None and profit < 8:
+            return True
+        if sell_through is not None and sell_through < 15:
+            return True
+    except Exception:
+        pass
+    return False
+
+def _title_mismatch(query: str, listing_title: str) -> bool:
+    try:
+        q = (query or "").lower().strip()
+        lt = (listing_title or "").lower()
+        if not q:
+            return False
+        # simple containment or first word containment
+        if q in lt:
+            return False
+        first = q.split(" ")[0]
+        if first and first in lt:
+            return False
+        return True
+    except Exception:
+        return False
+
+# Wrapper to validate a deal dict before returning to UI
+def _clams_filter_deal(deal: dict) -> bool:
+    title = deal.get("title") or ""
+    asking = deal.get("price") or deal.get("asking_price") or 0
+    market_price = deal.get("market_price") or deal.get("avg_price") or 0
+    profit = deal.get("profit") or deal.get("profit_delta")
+    sell_through = deal.get("sell_through") or deal.get("sell_through_pct")
+    query = deal.get("query") or ""
+    listing_title = deal.get("listing_title") or title
+
+    if _is_bad_accessory(title):
+        return False
+    if _is_game_not_console(title):
+        return False
+    if _value_sanity_fail(asking, market_price):
+        return False
+    if _quality_floor_fail(asking, profit, sell_through):
+        return False
+    if _title_mismatch(query, listing_title):
+        return False
+    return True
+# === END FILTERS ===
+
+
 from supabase import create_client, Client
 
 app = FastAPI()
@@ -118,8 +198,8 @@ def get_radar_status():
 def get_radar_results(limit=None):
     deals = _read_json_file(RADAR_RESULTS_FILE, []) or []
     if limit is not None:
-        return deals[:limit]
-    return deals
+        return [d for d in deals if _clams_filter_deal(d)][:limit]
+    return [d for d in deals if _clams_filter_deal(d)]
 
 
 def _category_label(raw: str) -> str:
@@ -1900,7 +1980,7 @@ def _merge_temu_results(new_items):
     items.sort(key=lambda x: (float(x.get("score") or 0), float(x.get("profit") or 0), int(x.get("sell_through_pct") or x.get("sell_through") or 0)), reverse=True)
     items = items[:30]
     _write_temu_results(items)
-    return items
+    return [d for d in items if _clams_filter_deal(d)]
 
 
 def _get_admin_control():
