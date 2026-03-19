@@ -89,9 +89,9 @@
     </div>
 
     <div class="admin-actions">
-<form method="post" action="/admin/run-temu-scan">
+<form method="post" action="{{ temu_scan_button_action }}">
     <input type="hidden" name="email" value="{{ email }}">
-    <button class="admin-btn">Run Temu Scan</button>
+    <button class="admin-btn">{{ temu_scan_button_label }}</button>
 </form>
 
         <a class="admin-btn" href="/api/clear-deals?email={{email}}">Clear Deals</a>
