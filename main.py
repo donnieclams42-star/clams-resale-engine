@@ -2075,3 +2075,22 @@ async def admin_page(request: Request, email: str = ""):
     }
 
     return templates.TemplateResponse("admin_panel.html", context)
+
+
+
+@app.post("/admin/run-temu-scan")
+async def run_temu_scan(request: Request, email: str = Form("")):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
+    def background_scan():
+        _update_temu_status(status="running", message="Scanning Temu...")
+        seeds = _temu_seed_items()
+        results = fetch_temu_items(seeds)
+        _write_temu_results(results)
+        _update_temu_status(status="idle", message="Scan complete", count=len(results))
+
+    threading.Thread(target=background_scan, daemon=True).start()
+
+    return RedirectResponse(f"/admin?email={email}&notice=Temu+scan+started", status_code=303)

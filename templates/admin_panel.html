@@ -89,6 +89,11 @@
     </div>
 
     <div class="admin-actions">
+<form method="post" action="/admin/run-temu-scan">
+    <input type="hidden" name="email" value="{{ email }}">
+    <button class="admin-btn">Run Temu Scan</button>
+</form>
+
         <a class="admin-btn" href="/api/clear-deals?email={{email}}">Clear Deals</a>
         <a class="admin-btn alt" href="/radar/test-discord?email={{email}}" target="_blank">Test Discord</a>
         <a class="admin-btn alt" href="/temu?email={{email}}">Open Temu-flips</a>
