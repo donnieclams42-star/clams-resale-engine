@@ -817,20 +817,20 @@ def update_user_record(email: str, updates: dict):
     if not email:
         return None
 
-    email = email.strip().lower()
-    updates = dict(updates)
-updates.pop("temu_override", None)
+     email = email.strip().lower()
+     updates = dict(updates)
+     updates.pop("temu_override", None)
 
-    if "settings" in updates:
-        updates["settings"] = normalize_settings(updates["settings"])
+     if "settings" in updates:
+            updates["settings"] = normalize_settings(updates["settings"])
 
-    if supabase:
-        try:
-            supabase.table("users").update(updates).eq("email", email).execute()
-            return get_user(email)
-        except Exception as e:
-            print("Supabase update_user_record failed:", e)
-            return get_user(email)
+     if supabase:
+            try:
+                supabase.table("users").update(updates).eq("email", email).execute()
+                return get_user(email)
+            except Exception as e:
+                print("Supabase update_user_record failed:", e)
+                    return get_user(email)
 
     if email in users:
         users[email].update(updates)
