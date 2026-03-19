@@ -2459,6 +2459,9 @@ async def admin_page(request: Request, email: str = ""):
         "radar_runtime_enabled": _radar_runtime_flags.get("enabled", True),
         "temu_runtime_enabled": _temu_runtime_flags.get("enabled", True),
         "temu_runtime_running": _temu_runtime_flags.get("running", False),
+        "temu_stop_available": _temu_runtime_flags.get("running", False),
+        "temu_scan_button_label": "Stop Temu Scan" if _temu_runtime_flags.get("running", False) else "Run Temu Scan",
+        "temu_scan_button_action": "/admin/stop-temu-scan" if _temu_runtime_flags.get("running", False) else "/admin/run-temu-scan",
 
         "seen_counts": seen_counts,
         "managed_users": managed_users,
@@ -2498,7 +2501,7 @@ async def toggle_temu_scan(request: Request, email: str = Form("")):
     if _temu_runtime_flags.get("running"):
         _temu_runtime_flags["stop_requested"] = True
         _temu_runtime_flags["enabled"] = False
-        _update_temu_status(status="paused", message="Stopping Temu scan...", running=False)
+        _update_temu_status(status="paused", message="Stopping Temu scan...", running=True)
         return RedirectResponse(f"/admin?email={email}&notice=Temu+scan+stopping", status_code=303)
 
     _temu_runtime_flags["stop_requested"] = False
@@ -2533,6 +2536,24 @@ async def toggle_temu_scan(request: Request, email: str = Form("")):
 @app.post("/admin/run-temu-scan")
 async def run_temu_scan(request: Request, email: str = Form("")):
     return await toggle_temu_scan(request, email)
+
+
+@app.post("/admin/stop-temu-scan")
+async def stop_temu_scan(request: Request, email: str = Form("")):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    user = ensure_user_exists(email)
+    if not user.get("is_admin"):
+        return RedirectResponse(f"/app?email={email}", status_code=303)
+
+    if not _temu_runtime_flags.get("running"):
+        return RedirectResponse(f"/admin?email={email}&notice=Temu+scan+is+not+running", status_code=303)
+
+    _temu_runtime_flags["stop_requested"] = True
+    _temu_runtime_flags["enabled"] = False
+    _update_temu_status(status="paused", message="Stopping Temu scan...", running=True)
+    return RedirectResponse(f"/admin?email={email}&notice=Temu+scan+stopping", status_code=303)
 
 
 @app.post("/admin/control")
