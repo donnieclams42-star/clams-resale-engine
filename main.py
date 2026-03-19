@@ -817,6 +817,29 @@ def update_user_record(email: str, updates: dict):
     if not email:
         return None
 
+    email = email.strip().lower()
+    updates = dict(updates)
+
+    # prevent Supabase crash if column doesn't exist
+    updates.pop("temu_override", None)
+
+    if "settings" in updates:
+        updates["settings"] = normalize_settings(updates["settings"])
+
+    if supabase:
+        try:
+            supabase.table("users").update(updates).eq("email", email).execute()
+            return get_user(email)
+        except Exception as e:
+            print("Supabase update_user_record failed:", e)
+            return get_user(email)
+
+    if email in users:
+        users[email].update(updates)
+        return normalize_user(users[email])
+
+    return None
+
    
 
     if email in users:
