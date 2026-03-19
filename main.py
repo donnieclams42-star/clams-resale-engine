@@ -231,7 +231,12 @@ def _source_enabled_for_cycle(source_name: str, cycle_count: int, radar_config) 
     if name == "ebay":
         return bool(getattr(radar_config, "ENABLE_EBAY", True)) and (cycle_count % max(1, int(getattr(radar_config, "EBAY_SCAN_FREQUENCY", 1) or 1)) == 0)
     if name == "mercari":
-        return False  # 🔒 DISABLED (user choice - reduce 403 + noise)
+        return bool(getattr(radar_config, "ENABLE_MERCARI", True)) and (cycle_count % max(1, int(getattr(radar_config, "MERCARI_SCAN_FREQUENCY", 1) or 1)) == 0)
+    if name == "offerup":
+        return bool(getattr(radar_config, "ENABLE_OFFERUP", True)) and (cycle_count % max(1, int(getattr(radar_config, "OFFERUP_SCAN_FREQUENCY", 2) or 2)) == 0)
+    if name == "facebook":
+        return bool(getattr(radar_config, "ENABLE_FACEBOOK", True)) and (cycle_count % max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 8) or 8)) == 0)
+    return False
 
 
 def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
@@ -1996,3 +2001,77 @@ async def temu_flips_page(request: Request, email: str = ""):
             **plan_ui,
         },
     )
+
+
+# ---------- ADMIN HELPERS (SAFE DEFAULTS) ----------
+def _safe_len(x):
+    try:
+        return len(x)
+    except Exception:
+        return 0
+
+def _get_temu_results_safe():
+    try:
+        return _read_temu_results()
+    except Exception:
+        return []
+
+def _get_seen_counts_safe():
+    # placeholder until wired to real seen_deals store
+    try:
+        return {"total": 0, "links": 0, "fingerprints": 0, "titles": 0}
+    except Exception:
+        return {"total": 0, "links": 0, "fingerprints": 0, "titles": 0}
+
+def _get_managed_users_safe():
+    # placeholder; later we can pull from supabase/users store
+    try:
+        return []
+    except Exception:
+        return []
+
+
+# ---------- ADMIN PAGE ----------
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+
+    user = ensure_user_exists(email)
+
+    # 🔒 admin check
+    if not user.get("is_admin"):
+        return RedirectResponse(f"/app?email={email}", status_code=303)
+
+    radar_status = get_radar_status()
+    radar_deals = get_radar_results(limit=50)
+
+    temu_items = _get_temu_results_safe()
+    seen_counts = _get_seen_counts_safe()
+    managed_users = _get_managed_users_safe()
+
+    context = {
+        "request": request,
+        "email": email,
+        "user": user,
+
+        # REQUIRED BY TEMPLATE
+        "radar_status": radar_status,
+        "radar_count": _safe_len(radar_deals),
+        "temu_count": _safe_len(temu_items),
+
+        "admin_control": {
+            "temu_flips_enabled": True,
+            "allow_free_temu_preview": True,
+            "free_temu_preview_count": 3,
+            "pro_temu_limit": 20,
+            "reseller_temu_limit": 50,
+            "lock_new_signups": False,
+        },
+
+        "seen_counts": seen_counts,
+        "managed_users": managed_users,
+    }
+
+    return templates.TemplateResponse("admin_panel.html", context)
