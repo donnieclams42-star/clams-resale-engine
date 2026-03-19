@@ -144,7 +144,7 @@ def _assign_deal_category(deal: dict) -> str:
 
 
 def _confidence_rank(value: str) -> int:
-    return _ensure_safe_item({"high": 3, "medium": 2, "low": 1}.get(str(value or "").strip().lower(), 0)
+    return {"high": 3, "medium": 2, "low": 1}.get(str(value or "").strip().lower(), 0)
 
 
 def _deal_sort_key(deal: dict):
@@ -171,7 +171,7 @@ def build_radar_page_context(limit: int = 50) -> dict:
             continue
         items = sorted(items, key=_deal_sort_key, reverse=True)[:12]
         grouped.append({"key": key, "label": _category_label(key), "deals": items})
-    return _ensure_safe_item({"radar_status": get_radar_status(), "radar_deals": deals, "radar_top_deals": top_deals, "radar_groups": grouped}
+    return {"radar_status": get_radar_status(), "radar_deals": deals, "radar_top_deals": top_deals, "radar_groups": grouped}
 
 
 def get_radar_dashboard_context(limit=4):
@@ -522,7 +522,7 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def build_default_settings():
-    return _ensure_safe_item({
+    return {
         "platforms": DEFAULT_USER_SETTINGS["platforms"][:],
         "default_profit": DEFAULT_USER_SETTINGS["default_profit"],
         "local_factor": DEFAULT_USER_SETTINGS["local_factor"],
@@ -731,7 +731,7 @@ def get_membership_limits(user: dict):
     is_admin = user.get("is_admin", False)
 
     if is_admin:
-        return _ensure_safe_item({
+        return {
             "membership": "ADMIN",
             "daily_limit": None,
             "advanced_enabled": True,
@@ -740,7 +740,7 @@ def get_membership_limits(user: dict):
         }
 
     if membership == "FREE":
-        return _ensure_safe_item({
+        return {
             "membership": "FREE",
             "daily_limit": FREE_LIMIT,
             "advanced_enabled": False,
@@ -749,7 +749,7 @@ def get_membership_limits(user: dict):
         }
 
     if membership == "PRO":
-        return _ensure_safe_item({
+        return {
             "membership": "PRO",
             "daily_limit": None,
             "advanced_enabled": False,
@@ -757,7 +757,7 @@ def get_membership_limits(user: dict):
             "is_admin": False,
         }
 
-    return _ensure_safe_item({
+    return {
         "membership": "RESELLER",
         "daily_limit": None,
         "advanced_enabled": True,
@@ -816,7 +816,7 @@ def get_plan_ui_context(user: dict):
     plan_info = get_membership_limits(user)
     membership_tier = plan_info["membership"]
     ai_access = "Enabled" if plan_info["ai_photo_enabled"] else "Locked"
-    return _ensure_safe_item({
+    return {
         "plan_info": plan_info,
         "membership_tier": membership_tier,
         "ai_access": ai_access,
@@ -1690,7 +1690,7 @@ def _build_temu_flip_from_query(seed: dict):
         search_q = title.replace(" ", "+")
     confidence = "HIGH" if sell_through >= 0.75 and profit >= 14 else "MEDIUM"
     trend = "🔥 HOT FLIP" if confidence == "HIGH" else "✅ GOOD FLIP"
-    return _ensure_safe_item({
+    return {
         "title": title,
         "category_label": seed.get("label") or "Temu-flip",
         "category": seed.get("category") or "temu-flip",
@@ -1782,8 +1782,25 @@ def _safe_int(value, default=0) -> int:
         return int(default)
 
 
+
+
+def _ensure_safe_item(item):
+    if not isinstance(item, dict):
+        return {}
+    defaults = {
+        "asking_price": 0.0,
+        "market_price": 0.0,
+        "profit": 0.0,
+        "roi": 0.0,
+        "score": 0.0,
+    }
+    for k, v in defaults.items():
+        if item.get(k) is None:
+            item[k] = v
+    return item
+
 def _temu_placeholder_item(message: str = "Temu-flips warming up") -> dict:
-    return _ensure_safe_item({
+    return {
         "title": "Temu-flips warming up",
         "label": "Temu-flips warming up",
         "query": message,
@@ -1816,22 +1833,6 @@ def _temu_placeholder_item(message: str = "Temu-flips warming up") -> dict:
         "placeholder": True,
     }
 
-
-
-def _ensure_safe_item(item):
-    if not isinstance(item, dict):
-        return _ensure_safe_item({}
-    defaults = {
-        "asking_price": 0,
-        "market_price": 0,
-        "profit": 0,
-        "roi": 0,
-        "score": 0,
-    }
-    for k,v in defaults.items():
-        if item.get(k) is None:
-            item[k] = v
-    return item
 
 def _normalize_temu_flip_item(item) -> dict:
     if not isinstance(item, dict):
@@ -1867,7 +1868,7 @@ def _normalize_temu_flip_item(item) -> dict:
         sell_through_pct = _safe_int(sell_through)
     score = _safe_float(item.get("score", (max(profit, 0) * 2.0) + (sell_through_pct * 0.4)))
 
-    return _ensure_safe_item({
+    return {
         "title": title,
         "label": str(item.get("label") or title),
         "query": str(item.get("query") or item.get("title") or title),
