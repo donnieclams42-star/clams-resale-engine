@@ -11,7 +11,8 @@
 .temu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}.temu-card{background:#121826;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;color:#fff}.temu-card-top{display:flex;gap:12px}.temu-thumb{width:104px;height:104px;min-width:104px;border-radius:16px;overflow:hidden;background:#0b1220;border:1px solid rgba(255,255,255,.08)}.temu-thumb img{width:100%;height:100%;object-fit:cover;display:block}.temu-badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#7c2d12;color:#fff;font-size:12px;font-weight:700}.temu-title-link{color:#fff;text-decoration:none;font-weight:800}.temu-title-link:hover{text-decoration:underline}.temu-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.temu-metric{background:#0b1220;border-radius:14px;padding:10px}.temu-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.temu-btn{display:inline-block;padding:10px 12px;border-radius:12px;text-decoration:none;background:#f97316;color:#fff;font-weight:700}.temu-btn.alt{background:#1f2937}
 .top-list{display:grid;gap:10px;margin:14px 0 20px}.top-item{display:flex;justify-content:space-between;gap:12px;background:#0b1220;border-radius:14px;padding:12px;color:#fff}.top-rank{display:inline-flex;align-items:center;background:rgba(249,115,22,.18);color:#fdba74;border:1px solid rgba(249,115,22,.35);padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;margin-bottom:7px}
 .access-box{background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:16px;color:#fff;margin-bottom:16px}.access-box strong{display:block;margin-bottom:6px}.access-note{opacity:.84;line-height:1.6}.status-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}.status-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:8px 10px;border-radius:999px;font-size:13px;font-weight:700}.locked-card{position:relative;overflow:hidden}.locked-card::after{content:'';position:absolute;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(4px)}.locked-card-inner{position:relative;z-index:1}.profit-hero{font-size:28px;font-weight:900;line-height:1;margin:10px 0 8px;color:#86efac}.buy-sell-row{display:flex;gap:10px;flex-wrap:wrap;font-weight:700;margin:8px 0}.micro-row{display:flex;gap:12px;flex-wrap:wrap;opacity:.82;font-size:13px}.locked-banner{position:absolute;inset:auto 14px 14px 14px;z-index:2;background:rgba(15,23,42,.92);border:1px solid rgba(249,115,22,.35);border-radius:14px;padding:12px}.locked-banner strong{display:block;margin-bottom:6px}.metric-profit{border:1px solid rgba(34,197,94,.18)}
-@media (max-width:900px){.header{padding-right:0}.header .nav-links{display:none}.mobile-menu-btn{display:block}.page-shell{padding-top:86px}.temu-card-top{flex-direction:column}.temu-thumb{width:100%;height:200px;min-width:0}.temu-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:10003;display:none;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(15,23,42,.98);border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -10px 24px rgba(0,0,0,.28)}.bottom-nav a{display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px 8px;border-radius:14px;text-decoration:none;color:#fff;font-weight:800;font-size:12px;background:#111827}.bottom-nav a.active,.bottom-nav a.emphasis{background:#f97316}
+@media (max-width:900px){.header{padding-right:0}.header .nav-links{display:none}.mobile-menu-btn{display:block}.page-shell{padding-top:86px;padding-bottom:104px}.temu-card-top{flex-direction:column}.temu-thumb{width:100%;height:200px;min-width:0}.temu-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -89,7 +90,7 @@
                 </div>
                 <div style="text-align:right;">
                     <div>${{ '%.2f'|format(item.asking_price|float) }} → ${{ '%.2f'|format(item.market_price|float) }}</div>
-                    <div style="opacity:.78;font-size:13px;">Profit ${{ '%.2f'|format(item.get('profit', 0)|float) }} · Sell-through {{ item.get('sell_through', 0) }}%</div>
+                    <div style="opacity:.78;font-size:13px;">Net ${{ '%.2f'|format(item.get('net_after_fees', 0)|float) }} · Sell-through {{ item.get('sell_through', 0) }}%</div>
                 </div>
             </div>
             {% endfor %}
@@ -125,6 +126,7 @@
                         <span>Avg Sell: ${{ '%.2f'|format(item.market_price|float) }}</span>
                     </div>
                     <div class="micro-row">
+                        <span>Gross: ${{ '%.2f'|format(((item.market_price or 0) - (item.asking_price or 0))|float) }}</span>
                         <span>Fees: ${{ '%.2f'|format(item.get('fees', 0)|float) }}</span>
                         <span>Net: ${{ '%.2f'|format(item.get('net_after_fees', 0)|float) }}</span>
                         <span>Sell-through: {{ item.get('sell_through', 0) }}%</span>
@@ -196,5 +198,12 @@ function toggleDrawer(open){
   backdrop.classList.toggle('open',open);
 }
 </script>
+<div class="bottom-nav">
+    <a href="/app?email={{email}}">Home</a>
+    <a href="/radar?email={{email}}">Radar</a>
+    <a href="/temu?email={{email}}" class="active emphasis">Temu</a>
+    <a href="/settings?email={{email}}">Settings</a>
+    <a href="/account?email={{email}}">Account</a>
+</div>
 </body>
 </html>

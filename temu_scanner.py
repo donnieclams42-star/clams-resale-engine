@@ -1,7 +1,5 @@
-# FULL FILE: temu_scanner.py
-
-import time
-import random
+from ebay import search_ebay
+from market_analysis import analyze_market
 from datetime import datetime
 
 
@@ -13,38 +11,62 @@ def fetch_temu_items(seed_items=None, should_continue=None):
         if callable(should_continue) and not should_continue():
             break
 
-        delay = random.choice([5, 7, 12])
-        time.sleep(delay)
+        query = (item.get("query") or item.get("label") or item.get("title") or "Temu Flip").strip()
+        asking_price = float(item.get("asking_price") or item.get("buy_price") or item.get("price") or 0)
 
-        title = item.get("label") or item.get("query") or "Temu Flip"
-        price = round(random.uniform(3, 10), 2)
-        estimated_value = round(random.uniform(12, 25), 2)
-        fees = round(estimated_value * 0.13, 2)
-        net_after_fees = round(estimated_value - fees, 2)
-        profit = round(max(net_after_fees - price, 0), 2)
-        roi = int(round((profit / price) * 100)) if price > 0 else 0
-        sell_through_pct = random.randint(45, 88)
+        if asking_price <= 0:
+            continue
+
+        sold_prices, active_prices, _suggestions, listing = search_ebay(query)
+        if not sold_prices:
+            continue
+
+        analysis = analyze_market(
+            sold_prices,
+            active_prices,
+            "A",
+            0.30,
+            0.82,
+            asking_price=asking_price,
+        )
+        if not analysis:
+            continue
+
+        market_price = round(float(analysis.get("market_price") or 0), 2)
+        fees = round(float(analysis.get("estimated_fees") or 0), 2)
+        shipping_cost = round(float(analysis.get("estimated_shipping") or 0), 2)
+        net_after_fees = round(float(analysis.get("net_sale_estimate") or 0), 2)
+        profit = round(float(analysis.get("profit_delta") or 0), 2)
+        roi = round((profit / asking_price) * 100, 1) if asking_price > 0 else 0.0
+        sell_through_pct = int(analysis.get("sell_through") or 0)
+        gross_profit = round(max(market_price - asking_price, 0), 2)
 
         results.append({
-            "title": title,
-            "label": title,
-            "query": item.get("query") or title,
+            "title": item.get("title") or query,
+            "label": item.get("label") or query,
+            "query": query,
             "category": item.get("category") or "temu-flip",
-            "price": price,
-            "asking_price": price,
-            "estimated_value": estimated_value,
-            "market_price": estimated_value,
+            "price": asking_price,
+            "asking_price": asking_price,
+            "buy_price": asking_price,
+            "estimated_value": market_price,
+            "market_price": market_price,
+            "average_sale_price": market_price,
+            "avg_price": market_price,
+            "gross_profit": gross_profit,
             "fees": fees,
+            "shipping_cost": shipping_cost,
             "net_after_fees": net_after_fees,
             "profit": profit,
             "roi": roi,
             "sell_through": sell_through_pct,
             "sell_through_pct": sell_through_pct,
-            "score": round((profit * 2.0) + (sell_through_pct * 0.4), 2),
+            "score": round((max(profit, 0) * 2.0) + (sell_through_pct * 0.4), 2),
             "source": "temu",
             "timestamp": datetime.utcnow().isoformat(),
-            "image": "",
-            "image_url": "",
+            "image": (listing or {}).get("image", "") if isinstance(listing, dict) else "",
+            "image_url": (listing or {}).get("image", "") if isinstance(listing, dict) else "",
+            "ebay_url": (listing or {}).get("url", "") if isinstance(listing, dict) else "",
         })
 
     return results

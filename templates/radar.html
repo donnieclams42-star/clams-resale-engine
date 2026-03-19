@@ -26,13 +26,14 @@
 .radar-card-title a{color:#fff;text-decoration:none;font-weight:800;line-height:1.35}.radar-card-title a:hover{text-decoration:underline}
 .radar-card-meta{opacity:.76;font-size:13px;line-height:1.5}.radar-card-price{font-size:15px;font-weight:700}.radar-card-profit{font-size:15px;line-height:1.5}
 .radar-stat-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.radar-stat{background:#0b1220;border-radius:14px;padding:10px}.radar-stat-label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;opacity:.72}.radar-stat-value{font-size:16px;font-weight:800;margin-top:3px}
-.radar-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}.radar-link-btn{display:inline-block;text-decoration:none;background:#1f2937;color:#fff;padding:9px 11px;border-radius:12px;font-weight:700}.radar-link-btn.primary{background:#f97316}
+.radar-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}.radar-link-btn{display:inline-block;text-decoration:none;background:#1f2937;color:#fff;padding:9px 11px;border-radius:12px;font-weight:700}.radar-link-btn.primary{background:#f97316}.profit-hero{font-size:28px;font-weight:900;line-height:1;margin:10px 0 8px;color:#86efac}.buy-sell-row{display:flex;gap:10px;flex-wrap:wrap;font-weight:700;margin:8px 0}.micro-row{display:flex;gap:12px;flex-wrap:wrap;opacity:.82;font-size:13px}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:10003;display:none;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(15,23,42,.98);border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -10px 24px rgba(0,0,0,.28)}.bottom-nav a{display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px 8px;border-radius:14px;text-decoration:none;color:#fff;font-weight:800;font-size:12px;background:#111827}.bottom-nav a.active,.bottom-nav a.emphasis{background:#f97316}
 @media (max-width:900px){
   .header{padding-right:0}
   .header .nav-links{display:none}
   .mobile-menu-btn{display:block}
   .radar-page-top{grid-template-columns:1fr}
-  .page-shell{padding-top:86px}
+  .page-shell{padding-top:86px;padding-bottom:104px}
 }
 </style>
 </head>
@@ -111,11 +112,14 @@
                         <div class="radar-card-title"><a href="/app?email={{email}}&query={{ (deal.analyzer_query or deal.title or '')|replace(' ', '+') }}">{{ deal.title }}</a></div>
                         <div class="radar-card-meta">{{ deal.category_label or deal.category }} · {{ deal.source or deal.market }}</div>
                         <div class="radar-card-meta">Confidence {{ deal.confidence }} · Edge {{ deal.edge_score }}</div>
+                        <div class="profit-hero">🔥 +${{ '%.2f'|format(deal.profit|float) }} PROFIT</div>
+                        <div class="buy-sell-row"><span>Buy: ${{ '%.2f'|format(deal.price|float) }}</span><span>→</span><span>Avg Sell: ${{ '%.2f'|format((deal.market_value or deal.resale or 0)|float) }}</span></div>
+                        <div class="micro-row"><span>Sell-through: {{ deal.sell_through_pct or 0 }}%</span><span>Score: {{ deal.edge_score or 0 }}</span><span>{{ deal.confidence }}</span></div>
                     </div>
                 </div>
                 <div class="radar-stat-row">
                     <div class="radar-stat"><div class="radar-stat-label">Buy</div><div class="radar-stat-value">${{ '%.2f'|format(deal.price|float) }}</div></div>
-                    <div class="radar-stat"><div class="radar-stat-label">Profit</div><div class="radar-stat-value">${{ '%.2f'|format(deal.profit|float) }}</div></div>
+                    <div class="radar-stat"><div class="radar-stat-label">Gross</div><div class="radar-stat-value">${{ '%.2f'|format(((deal.market_value or deal.resale or 0) - (deal.price or 0))|float) }}</div></div>
                     <div class="radar-stat"><div class="radar-stat-label">Sell-through</div><div class="radar-stat-value">{{ deal.sell_through_pct or 0 }}%</div></div>
                 </div>
                 <div class="radar-links">
@@ -143,11 +147,14 @@
                         <div class="radar-card-title"><a href="/app?email={{email}}&query={{ (deal.analyzer_query or deal.title or '')|replace(' ', '+') }}">{{ deal.title }}</a></div>
                         <div class="radar-card-meta">{{ deal.category_label or deal.category }} · {{ deal.source or deal.market }}</div>
                         <div class="radar-card-meta">Confidence {{ deal.confidence }} · Edge {{ deal.edge_score }}</div>
+                        <div class="profit-hero">🔥 +${{ '%.2f'|format(deal.profit|float) }} PROFIT</div>
+                        <div class="buy-sell-row"><span>Buy: ${{ '%.2f'|format(deal.price|float) }}</span><span>→</span><span>Avg Sell: ${{ '%.2f'|format((deal.market_value or deal.resale or 0)|float) }}</span></div>
+                        <div class="micro-row"><span>Sell-through: {{ deal.sell_through_pct or 0 }}%</span><span>Score: {{ deal.edge_score or 0 }}</span><span>{{ deal.confidence }}</span></div>
                     </div>
                 </div>
                 <div class="radar-stat-row">
                     <div class="radar-stat"><div class="radar-stat-label">Buy</div><div class="radar-stat-value">${{ '%.2f'|format(deal.price|float) }}</div></div>
-                    <div class="radar-stat"><div class="radar-stat-label">Profit</div><div class="radar-stat-value">${{ '%.2f'|format(deal.profit|float) }}</div></div>
+                    <div class="radar-stat"><div class="radar-stat-label">Gross</div><div class="radar-stat-value">${{ '%.2f'|format(((deal.market_value or deal.resale or 0) - (deal.price or 0))|float) }}</div></div>
                     <div class="radar-stat"><div class="radar-stat-label">Sell-through</div><div class="radar-stat-value">{{ deal.sell_through_pct or 0 }}%</div></div>
                 </div>
                 <div class="radar-links">
@@ -171,5 +178,12 @@ function toggleDrawer(open){
   backdrop.classList.toggle('open',open);
 }
 </script>
+<div class="bottom-nav">
+    <a href="/app?email={{email}}">Home</a>
+    <a href="/radar?email={{email}}" class="active">Radar</a>
+    <a href="/temu?email={{email}}" class="emphasis">Temu</a>
+    <a href="/settings?email={{email}}">Settings</a>
+    <a href="/account?email={{email}}">Account</a>
+</div>
 </body>
 </html>
