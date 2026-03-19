@@ -21,6 +21,7 @@ from market_analysis import analyze_market
 from listing_generator import generate_listings
 
 from dj_deal_project.utils.model_parser import normalize_text, detect_category, is_accessory_listing
+from radar_filters import radar_precheck, radar_postcheck
 
 
 try:
@@ -370,6 +371,9 @@ def _run_radar_cycle():
         query = _clean_radar_query(deal)
         if not query:
             continue
+        pre_ok, pre_reason = radar_precheck(deal)
+        if not pre_ok:
+            continue
         if is_accessory_listing(str(deal.get("title") or ""), str(deal.get("search_keyword") or query)):
             continue
         cached = analysis_cache.get(query)
@@ -381,6 +385,9 @@ def _run_radar_cycle():
         try:
             result = _build_vetted_deal(deal, analysis_cache, radar_config)
             if not result:
+                continue
+            post_ok, post_reason = radar_postcheck(result)
+            if not post_ok:
                 continue
             approved.append(result)
         except Exception as e:
