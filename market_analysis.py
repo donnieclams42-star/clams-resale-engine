@@ -111,12 +111,22 @@ def analyze_market(sold_prices, active_prices, condition, profit_target, local_f
 
     if asking_price is not None:
         asking_price = float(asking_price)
-        if market_price > 0:
-            deal_margin = (local_market_value - asking_price) / market_price
-            deal_score = int(max(0, min(deal_margin * 100, 100)))
-        profit_delta = round(local_market_value - asking_price, 2)
+
+        # REALISTIC profit calculation (fees + shipping)
+        estimated_fees = market_price * 0.13
+        estimated_shipping = 5.0
+
+        net_sale = market_price - estimated_fees - estimated_shipping
+
+        profit_delta = round(net_sale - asking_price, 2)
+
         if asking_price > 0:
             profit_margin_percent = round((profit_delta / asking_price) * 100, 1)
+
+        if market_price > 0:
+            deal_margin = (net_sale - asking_price) / market_price
+            deal_score = int(max(0, min(deal_margin * 100, 100)))
+
         deal_temperature = classify_deal_temperature(asking_price, max_buy, local_market_value)
 
     if sell_through > 80 and volatility == "Low":
@@ -162,4 +172,7 @@ def analyze_market(sold_prices, active_prices, condition, profit_target, local_f
         "profit_delta": profit_delta,
         "profit_margin_percent": profit_margin_percent,
         "deal_temperature": deal_temperature,
+        "estimated_fees": round(estimated_fees, 2) if asking_price is not None else None,
+        "estimated_shipping": estimated_shipping if asking_price is not None else None,
+        "net_sale_estimate": round(net_sale, 2) if asking_price is not None else None,
     }
