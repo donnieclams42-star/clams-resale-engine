@@ -1763,12 +1763,6 @@ def start_temu_background_worker():
 
 
 
-def get_radar_dashboard_context(limit=4):
-    ctx = build_radar_page_context(limit=limit)
-    deals = ctx.get("radar_deals") or []
-    ctx["radar_has_hits"] = bool(deals)
-    ctx["radar_indicator_count"] = len(deals)
-    return ctx
 
 
 def _safe_float(value, default=0.0) -> float:
