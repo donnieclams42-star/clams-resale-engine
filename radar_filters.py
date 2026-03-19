@@ -7,6 +7,7 @@ BAD_TERMS = [
     "bundle", "lot", "kit", "pack",
     "book", "guide", "manual", "for dummies",
     "repair", "service", "mail-in", "unlock",
+    "game only", "disc only", "digital code", "download code", "empty box", "box only", "accessory only",
 ]
 
 QUESTIONABLE_DAMAGE_TERMS = [
@@ -14,16 +15,25 @@ QUESTIONABLE_DAMAGE_TERMS = [
 ]
 
 DEVICE_TERMS = [
-    "iphone", "ipad", "ps5", "ps4", "xbox", "graphics card", "gpu", "laptop", "tablet"
+    "iphone", "ipad", "ps5", "ps4", "xbox", "graphics card", "gpu", "laptop", "tablet", "macbook", "switch"
 ]
 
 ALLOWED_HINTS = [
-    "iphone", "android", "phone", "console", "playstation", "xbox",
-    "laptop", "tablet", "ipad", "tool", "drill", "saw", "appliance"
+    "iphone", "android", "phone", "console", "playstation", "xbox", "nintendo", "switch",
+    "laptop", "tablet", "ipad", "tool", "drill", "saw", "appliance", "milwaukee", "dewalt"
 ]
+
+CONSOLE_GAME_MISMATCHES = [
+    ("ps5", ["game", "disc", "digital", "dlc", "steelbook"]),
+    ("ps4", ["game", "disc", "digital", "dlc", "steelbook"]),
+    ("xbox", ["game", "disc", "digital", "dlc", "steelbook"]),
+    ("switch", ["game", "cartridge", "case only", "empty case"]),
+]
+
 
 def _norm(text: str) -> str:
     return f" {(text or '').lower().strip()} "
+
 
 def radar_precheck(deal: Dict[str, Any]) -> Tuple[bool, str]:
     title = str(deal.get("title") or "")
@@ -33,12 +43,16 @@ def radar_precheck(deal: Dict[str, Any]) -> Tuple[bool, str]:
     if any(term in text for term in BAD_TERMS):
         return False, "blocked accessory/part/service term"
 
+    for device, mismatch_terms in CONSOLE_GAME_MISMATCHES:
+        if device in text and any(term in text for term in mismatch_terms):
+            return False, "console/game mismatch"
+
     # protect against device keyword hijacks like "for iphone", "gpu bracket", etc.
     if any(dev in text for dev in DEVICE_TERMS):
         accessory_context = [
             " for ", "compatible", "case", "cover", "folio", "protector", "grip", "mount",
             "stand", "bracket", "holder", "fan", "part", "parts", "replacement", "kit", "bundle",
-            "manual", "book", "guide"
+            "manual", "book", "guide", "attachment", "dock", "controller only", "charger only"
         ]
         if any(term in text for term in accessory_context):
             return False, "device accessory/part mismatch"
@@ -55,6 +69,7 @@ def radar_postcheck(result: Dict[str, Any]) -> Tuple[bool, str]:
     value = float(result.get("market_value") or result.get("resale") or 0)
     profit = float(result.get("profit") or 0)
     sold_count = int(result.get("sold_count") or 0)
+    sell_through_pct = int(result.get("sell_through_pct") or result.get("sell_through") or 0)
 
     title = str(result.get("title") or "")
     keyword = str(result.get("search_keyword") or "")
@@ -78,5 +93,8 @@ def radar_postcheck(result: Dict[str, Any]) -> Tuple[bool, str]:
 
     if sold_count < 3:
         return False, "not enough sold comps"
+
+    if sell_through_pct and sell_through_pct < 35:
+        return False, "sell-through too weak"
 
     return True, "ok"

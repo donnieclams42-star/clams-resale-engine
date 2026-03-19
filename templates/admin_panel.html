@@ -5,48 +5,30 @@
 <title>Admin | CLAMS Intelligence</title>
 <link rel="stylesheet" href="/static/styles.css">
 <style>
-.admin-shell{display:grid;gap:18px}
-.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.admin-card{background:#111827;color:#fff;border-radius:18px;padding:18px;border:1px solid rgba(255,255,255,.08)}
-.admin-card h3{margin:8px 0 6px 0}
-.admin-card p{margin:0;opacity:.84;line-height:1.5}
-.admin-actions{display:flex;gap:10px;flex-wrap:wrap}
-.admin-btn{display:inline-block;padding:10px 14px;border-radius:12px;text-decoration:none;background:#f97316;color:#fff;font-weight:700}
-.admin-btn.alt{background:#1f2937}
-.admin-panel-box{background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;color:#fff}
-.admin-panel-box h2{margin:0 0 14px 0}
-.admin-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.admin-field label{display:block;font-size:13px;opacity:.78;margin-bottom:6px}
-.admin-field input,.admin-field select{width:100%;padding:11px 12px;border-radius:10px;border:none;background:#fff;color:#111827}
-.admin-checks{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0}
-.admin-checks label{display:flex;align-items:center;gap:8px;font-size:14px}
-.admin-save-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}
-.user-table-wrap{overflow:auto}
-.user-table{width:100%;border-collapse:collapse;min-width:880px}
-.user-table th,.user-table td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top;font-size:14px}
-.user-table th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
-.user-inline-form{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:10px;align-items:center}
-.user-pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(59,130,246,.18);color:#93c5fd;border:1px solid rgba(59,130,246,.35)}
-.user-pill.admin{background:rgba(34,197,94,.16);color:#86efac;border-color:rgba(34,197,94,.35)}
-.user-pill.free{background:rgba(148,163,184,.16);color:#cbd5e1;border-color:rgba(148,163,184,.35)}
-.user-pill.pro{background:rgba(249,115,22,.14);color:#fdba74;border-color:rgba(249,115,22,.35)}
-.user-pill.reseller{background:rgba(168,85,247,.15);color:#d8b4fe;border-color:rgba(168,85,247,.35)}
-.subtext{font-size:12px;opacity:.75;margin-top:4px}
-.status-good{color:#86efac;font-weight:700}
-.status-bad{color:#fca5a5;font-weight:700}
-@media (max-width:900px){
-  .admin-form-grid{grid-template-columns:1fr}
-  .user-inline-form{grid-template-columns:1fr}
-  .user-table{min-width:0}
-}
+.page-shell{padding-top:78px}.sticky-home{position:fixed;top:12px;left:12px;z-index:10000;background:#f97316;color:#fff;text-decoration:none;padding:11px 14px;border-radius:999px;font-weight:800;box-shadow:0 10px 24px rgba(0,0,0,.24)}.mobile-menu-btn{position:fixed;top:12px;right:12px;z-index:10001;border:none;background:#111827;color:#fff;border-radius:12px;padding:11px 14px;font-size:18px;font-weight:800;display:none}.mobile-drawer{position:fixed;top:0;right:-320px;width:280px;max-width:84vw;height:100vh;background:#0f172a;color:#fff;z-index:10002;padding:82px 18px 18px;border-left:1px solid rgba(255,255,255,.08);transition:right .22s ease;box-shadow:-14px 0 30px rgba(0,0,0,.28)}.mobile-drawer.open{right:0}.mobile-drawer a{display:block;color:#fff;text-decoration:none;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);font-weight:700}.drawer-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.45);z-index:10001;display:none}.drawer-backdrop.open{display:block}
+.admin-shell{display:grid;gap:18px}.admin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.admin-card{background:#111827;color:#fff;border-radius:18px;padding:18px;border:1px solid rgba(255,255,255,.08)}.admin-card h3{margin:8px 0 6px 0}.admin-card p{margin:0;opacity:.84;line-height:1.5}.admin-actions{display:flex;gap:10px;flex-wrap:wrap}.admin-btn{display:inline-block;padding:10px 14px;border-radius:12px;text-decoration:none;background:#f97316;color:#fff;font-weight:700;border:none}.admin-btn.alt{background:#1f2937}.admin-panel-box{background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;color:#fff}.admin-panel-box h2{margin:0 0 14px 0}.admin-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.admin-field label{display:block;font-size:13px;opacity:.78;margin-bottom:6px}.admin-field input,.admin-field select{width:100%;padding:11px 12px;border-radius:10px;border:none;background:#fff;color:#111827}.admin-checks{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0}.admin-checks label{display:flex;align-items:center;gap:8px;font-size:14px}.admin-save-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}.user-table-wrap{overflow:auto}.user-table{width:100%;border-collapse:collapse;min-width:880px}.user-table th,.user-table td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;vertical-align:top;font-size:14px}.user-table th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}.user-inline-form{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:10px;align-items:center}.user-pill{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(59,130,246,.18);color:#93c5fd;border:1px solid rgba(59,130,246,.35)}.user-pill.admin{background:rgba(34,197,94,.16);color:#86efac;border-color:rgba(34,197,94,.35)}.user-pill.free{background:rgba(148,163,184,.16);color:#cbd5e1;border-color:rgba(148,163,184,.35)}.user-pill.pro{background:rgba(249,115,22,.14);color:#fdba74;border-color:rgba(249,115,22,.35)}.user-pill.reseller{background:rgba(168,85,247,.15);color:#d8b4fe;border-color:rgba(168,85,247,.35)}.subtext{font-size:12px;opacity:.75;margin-top:4px}.status-good{color:#86efac;font-weight:700}.status-bad{color:#fca5a5;font-weight:700}.header{padding-right:190px}.header .nav-links{display:flex;gap:12px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.runtime-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800;background:rgba(255,255,255,.08)}.runtime-pill.live{color:#86efac}.runtime-pill.stop{color:#fca5a5}
+@media (max-width:900px){.admin-form-grid{grid-template-columns:1fr}.user-inline-form{grid-template-columns:1fr}.user-table{min-width:0}.header{padding-right:0}.header .nav-links{display:none}.mobile-menu-btn{display:block}.page-shell{padding-top:86px}}
 </style>
 </head>
 <body>
+<a class="sticky-home" href="/app?email={{email}}">Home</a>
+<button type="button" class="mobile-menu-btn" onclick="toggleDrawer(true)">☰</button>
+<div id="drawerBackdrop" class="drawer-backdrop" onclick="toggleDrawer(false)"></div>
+<nav id="mobileDrawer" class="mobile-drawer">
+    <a href="/app?email={{email}}">Home / Analyze</a>
+    <a href="/radar?email={{email}}">Radar</a>
+    <a href="/temu?email={{email}}">Temu-flips</a>
+    <a href="/settings?email={{email}}">Settings</a>
+    <a href="/account?email={{email}}">Account</a>
+    <a href="/admin?email={{email}}">Admin</a>
+</nav>
+<div class="page-shell">
 <div class="header">
     <div class="logo">
         <div class="logo-main">CLAMS Intelligence</div>
         <div class="logo-sub">Admin Console</div>
-        <div class="logo-quote">Control access, subscriptions, and flip visibility from one place.</div>
+        <div class="logo-quote">Control access, subscriptions, scanners, and cache from one place.</div>
     </div>
     <div class="nav-links">
         <a href="/temu?email={{email}}" class="nav-temu">🔥 Temu-flips</a>
@@ -67,12 +49,14 @@
             <h3>{{ radar_status.status|upper }}</h3>
             <p>{{ radar_status.message }}</p>
             <div class="subtext">Deals ready: {{ radar_count }}</div>
+            <div class="subtext"><span class="runtime-pill {{ 'live' if radar_runtime_enabled else 'stop' }}">{{ 'RUNNING' if radar_runtime_enabled else 'STOPPED' }}</span></div>
         </div>
         <div class="admin-card">
             <div class="section-kicker">Temu-flips</div>
             <h3>{{ temu_count }}</h3>
             <p>{{ 'Enabled' if admin_control.temu_flips_enabled else 'Disabled' }} · Free preview {{ 'on' if admin_control.allow_free_temu_preview else 'off' }}</p>
             <div class="subtext">Free {{ admin_control.free_temu_preview_count }} · Pro {{ admin_control.pro_temu_limit }} · Reseller {{ admin_control.reseller_temu_limit }}</div>
+            <div class="subtext"><span class="runtime-pill {{ 'live' if temu_runtime_enabled else 'stop' }}">{{ 'SCANNING' if temu_runtime_running else ('READY' if temu_runtime_enabled else 'STOPPED') }}</span></div>
         </div>
         <div class="admin-card">
             <div class="section-kicker">Cache</div>
@@ -89,12 +73,18 @@
     </div>
 
     <div class="admin-actions">
-<form method="post" action="/admin/run-temu-scan">
-    <input type="hidden" name="email" value="{{ email }}">
-    <button class="admin-btn">Run Temu Scan</button>
-</form>
-
-        <a class="admin-btn" href="/api/clear-deals?email={{email}}">Clear Deals</a>
+        <form method="post" action="/admin/toggle-radar">
+            <input type="hidden" name="email" value="{{ email }}">
+            <button class="admin-btn">{{ 'Stop Radar' if radar_runtime_enabled else 'Start Radar' }}</button>
+        </form>
+        <form method="post" action="/admin/toggle-temu-scan">
+            <input type="hidden" name="email" value="{{ email }}">
+            <button class="admin-btn">{{ 'Stop Temu Scan' if temu_runtime_running else 'Run Temu Scan' }}</button>
+        </form>
+        <form method="post" action="/radar/clear">
+            <input type="hidden" name="email" value="{{ email }}">
+            <button class="admin-btn alt">Clear Deals</button>
+        </form>
         <a class="admin-btn alt" href="/radar/test-discord?email={{email}}" target="_blank">Test Discord</a>
         <a class="admin-btn alt" href="/temu?email={{email}}">Open Temu-flips</a>
     </div>
@@ -206,5 +196,14 @@
         </div>
     </div>
 </div>
+</div>
+<script>
+function toggleDrawer(open){
+  const drawer=document.getElementById('mobileDrawer');
+  const backdrop=document.getElementById('drawerBackdrop');
+  drawer.classList.toggle('open',open);
+  backdrop.classList.toggle('open',open);
+}
+</script>
 </body>
 </html>
