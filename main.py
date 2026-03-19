@@ -819,6 +819,7 @@ def update_user_record(email: str, updates: dict):
 
     email = email.strip().lower()
     updates = dict(updates)
+updates.pop("temu_override", None)
 
     if "settings" in updates:
         updates["settings"] = normalize_settings(updates["settings"])
