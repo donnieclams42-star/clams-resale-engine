@@ -1,13 +1,3 @@
-import json
-
-
-def load_temu_results():
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
-
 from temu_scanner import fetch_temu_items, build_temu_seed_items
 from typing import List, Optional
 import os
@@ -282,11 +272,11 @@ def build_radar_page_context(limit: int = 50) -> dict:
         if not items:
             continue
         grouped.append({"key": key, "label": _category_label(key), "deals": items[:12]})
-    return {"deals": []}
+    return {"radar_status": get_radar_status(), "radar_deals": deals, "radar_top_deals": top_deals, "radar_groups": grouped}
 
 
 def get_radar_dashboard_context(limit=4):
-    return {"deals": []}
+    return build_radar_page_context(limit=limit)
 
 
 def _update_radar_status(**kwargs):
@@ -341,18 +331,18 @@ def _source_enabled_for_cycle(source_name: str, cycle_count: int, radar_config) 
     name = source_name.lower()
     if name == "ebay":
         frequency = max(1, int(getattr(radar_config, "EBAY_SCAN_FREQUENCY", 1) or 1))
-        return {"deals": []}
+        return bool(getattr(radar_config, "ENABLE_EBAY", True)) and (cycle_count % frequency == 0)
     if name == "mercari":
         configured = max(1, int(getattr(radar_config, "MERCARI_SCAN_FREQUENCY", 2) or 2))
         frequency = min(configured, 3)
-        return {"deals": []}
+        return bool(getattr(radar_config, "ENABLE_MERCARI", True)) and (cycle_count % frequency == 0)
     if name == "offerup":
         frequency = max(1, int(getattr(radar_config, "OFFERUP_SCAN_FREQUENCY", 2) or 2))
-        return {"deals": []}
+        return bool(getattr(radar_config, "ENABLE_OFFERUP", True)) and (cycle_count % frequency == 0)
     if name == "facebook":
         configured = max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 8) or 8))
         frequency = min(configured, 6)
-        return {"deals": []}
+        return bool(getattr(radar_config, "ENABLE_FACEBOOK", True)) and (cycle_count % frequency == 0)
     return False
 
 
@@ -1976,7 +1966,7 @@ def _set_admin_control(data: dict):
 
 
 def _temu_seed_items():
-    return []
+    return build_temu_seed_items()
 
 
 def _looks_like_temu_flip_title(title: str) -> bool:
@@ -2053,7 +2043,7 @@ def _run_temu_cycle():
     _temu_runtime_flags["stop_requested"] = False
     _temu_runtime_flags["running"] = True
     try:
-        items = [], should_continue=lambda: not _temu_runtime_flags.get("stop_requested") and _temu_runtime_flags.get("enabled", True))
+        items = fetch_temu_items(_temu_seed_items())
     except Exception as e:
         _temu_runtime_flags["running"] = False
         _update_temu_status(status="error", message="Temu-flips scan failed", last_error=str(e), running=False)
@@ -2621,7 +2611,7 @@ async def toggle_temu_scan(request: Request, email: str = Form("")):
         try:
             _update_temu_status(status="running", message="Scanning Temu...", running=True)
             seeds = _temu_seed_items()
-            results = [] and not _temu_runtime_flags.get("stop_requested", False))
+            results = fetch_temu_items(seeds)
             stamped = []
             now_iso = datetime.utcnow().isoformat()
             for item in results:
@@ -2742,9 +2732,9 @@ async def radar_clear(request: Request, email: str = Form("")):
             if os.path.exists(path):
                 _write_json_file(path, {"links": [], "fingerprints": [], "titles": []})
     except Exception as e:
-        return {"deals": []}
+        return RedirectResponse(f"/radar?email={email}&notice=Clear+failed:+{str(e).replace(' ', '+')}", status_code=303)
     _update_radar_status(message="Radar board cleared from UI", deals_found_today=0)
-    return {"deals": []}
+    return RedirectResponse(f"/radar?email={email}&notice=Radar+board+cleared", status_code=303)
 
 @app.post("/admin/user-access")
 async def admin_user_access(
