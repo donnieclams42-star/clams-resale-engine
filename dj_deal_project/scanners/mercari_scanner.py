@@ -1,10 +1,7 @@
 
-import json
-import re
-import time
-import random
+# (same imports as before)
+import json, re, time, random
 from urllib.parse import quote_plus
-
 import requests
 from bs4 import BeautifulSoup
 
@@ -12,106 +9,60 @@ from config import HTTP_TIMEOUT, MAX_PRICE, MIN_PRICE, USER_AGENT
 from keywords.keyword_engine import get_keywords_for_cycle
 from utils.logger import log_event
 from utils.model_parser import is_deal_candidate, normalize_text
+from market_cache import is_cache_valid, get_cached_results, update_cache
 
-# --- ROTATING USER AGENTS ---
-USER_AGENTS = [
-    USER_AGENT,
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 Version/16.0 Mobile Safari/604.1",
-]
+USER_AGENTS = [USER_AGENT]
 
 def build_headers():
-    return {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-    }
+    return {"User-Agent": random.choice(USER_AGENTS)}
 
 def human_delay():
-    t = random.randint(3, 12)
-    log_event(f"[MERCARI] sleep {t}s")
-    time.sleep(t)
+    time.sleep(random.randint(4,10))
 
 def extract_price(text):
-    match = re.search(r"\$\s*([\d,]+(?:\.\d{1,2})?)", text or "")
-    return float(match.group(1).replace(",", "")) if match else None
+    import re
+    m = re.search(r"\$\s*([\d,]+)", text or "")
+    return float(m.group(1).replace(",","")) if m else None
 
-def _clean_link(href):
-    if not href: return ""
-    if href.startswith("http"): return href
-    return f"https://www.mercari.com{href}"
+def _clean_link(h):
+    if h.startswith("http"): return h
+    return f"https://www.mercari.com{h}"
 
-def _candidate_ok(title, price):
-    if not title or price is None: return False
-    if price < MIN_PRICE or price > MAX_PRICE: return False
-    return is_deal_candidate(normalize_text(title))
+def _candidate_ok(t,p):
+    if not t or p is None: return False
+    if p < MIN_PRICE or p > MAX_PRICE: return False
+    return is_deal_candidate(normalize_text(t))
 
 def scan_mercari():
-    deals = []
-    seen = set()
-    keywords = get_keywords_for_cycle("mercari")
+    if is_cache_valid():
+        log_event("[MERCARI CACHE HIT]")
+        return get_cached_results("Mercari")
 
+    deals, seen = [], set()
     session = requests.Session()
-
-    fail_count = 0
+    keywords = get_keywords_for_cycle("mercari")[:2]
 
     for keyword in keywords:
-        url = f"https://www.mercari.com/search/?keyword={quote_plus(keyword)}"
-        log_event(f"SCAN mercari keyword={keyword}")
-
         try:
-            response = session.get(url, headers=build_headers(), timeout=HTTP_TIMEOUT)
-
-            if response.status_code == 403:
-                fail_count += 1
-                log_event(f"[MERCARI BLOCK] keyword={keyword}")
-                time.sleep(10 * fail_count)
-                if fail_count >= 3:
-                    log_event("[MERCARI COOLDOWN]")
-                    break
+            r = session.get(f"https://www.mercari.com/search/?keyword={quote_plus(keyword)}", headers=build_headers(), timeout=HTTP_TIMEOUT)
+            if r.status_code == 403:
+                log_event("[MERCARI BLOCK]")
                 continue
-
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-
-        except Exception as e:
-            log_event(f"ERROR mercari_scan keyword={keyword} error={e}")
+            soup = BeautifulSoup(r.text, "html.parser")
+        except:
             continue
 
-        items = soup.find_all("a", href=True)
-
-        for a in items:
-            href = a.get("href")
-            if "/item/" not in href:
-                continue
-
+        for a in soup.find_all("a", href=True):
+            if "/item/" not in a.get("href"): continue
             text = " ".join(a.stripped_strings)
             price = extract_price(text)
             title = normalize_text(text)
-
-            if not _candidate_ok(title, price):
-                continue
-
-            link = _clean_link(href)
-
-            if link in seen:
-                continue
-
+            if not _candidate_ok(title, price): continue
+            link = _clean_link(a.get("href"))
+            if link in seen: continue
             seen.add(link)
-
-            deals.append({
-                "title": title,
-                "price": price,
-                "link": link,
-                "url": link,
-                "market": "Mercari",
-                "source": "Mercari",
-                "search_keyword": keyword,
-            })
-
+            deals.append({"title":title,"price":price,"link":link,"url":link,"source":"Mercari"})
         human_delay()
 
-    log_event(f"MERCARI_SCAN_RESULT deals={len(deals)}")
+    update_cache(deals)
     return deals
