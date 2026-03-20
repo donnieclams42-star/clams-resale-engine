@@ -1,4 +1,4 @@
-from temu_scanner import fetch_temu_items
+from temu_scanner import fetch_temu_items, build_temu_seed_items
 from typing import List, Optional
 import os
 import re
@@ -133,6 +133,7 @@ def _category_label(raw: str) -> str:
         "liquidation": "Local Lots / Bulk",
         "repair": "Parts / Repair",
         "other": "Other Deals",
+    }
     return mapping.get((raw or "other").lower(), "Other Deals")
 
 
@@ -642,6 +643,7 @@ RESELLER_PRICE = 49
 
 ADMIN_EMAILS = {
     "donnieclams42@gmail.com",
+}
 
 
 # ---------- STRIPE ----------
@@ -671,6 +673,7 @@ DEFAULT_USER_SETTINGS = {
     "default_profit": 40,
     "local_factor": 80,
     "mode": "simple",
+}
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -682,6 +685,7 @@ def build_default_settings():
         "default_profit": DEFAULT_USER_SETTINGS["default_profit"],
         "local_factor": DEFAULT_USER_SETTINGS["local_factor"],
         "mode": DEFAULT_USER_SETTINGS["mode"],
+    }
 
 
 def normalize_settings(settings):
@@ -817,6 +821,7 @@ def create_user_record(email: str, password: str = ""):
         "search_reset_date": str(date.today()),
         "settings": build_default_settings(),
         "stripe_customer_id": None,
+    }
 
     if supabase:
         try:
@@ -893,6 +898,7 @@ def get_membership_limits(user: dict):
             "advanced_enabled": True,
             "ai_photo_enabled": True,
             "is_admin": True,
+        }
 
     if membership == "FREE":
         return {
@@ -901,6 +907,7 @@ def get_membership_limits(user: dict):
             "advanced_enabled": False,
             "ai_photo_enabled": False,
             "is_admin": False,
+        }
 
     if membership == "PRO":
         return {
@@ -909,6 +916,7 @@ def get_membership_limits(user: dict):
             "advanced_enabled": False,
             "ai_photo_enabled": True,
             "is_admin": False,
+        }
 
     return {
         "membership": "RESELLER",
@@ -916,6 +924,7 @@ def get_membership_limits(user: dict):
         "advanced_enabled": True,
         "ai_photo_enabled": True,
         "is_admin": False,
+    }
 
 
 def clamp_score(value):
@@ -974,6 +983,7 @@ def get_plan_ui_context(user: dict):
         "ai_access": ai_access,
         "pro_price": PRO_PRICE,
         "reseller_price": RESELLER_PRICE,
+    }
 
 
 # ---------- OPENAI CLIENT ----------
@@ -1023,6 +1033,7 @@ Return only the search phrase.
                         "image_url": f"data:{mime_type};base64,{image_b64}",
                     },
                 ],
+            }
         ],
     )
 
@@ -1671,6 +1682,7 @@ async def radar_test_discord(request: Request, email: str = ""):
             "source": "System Test",
             "url": f"{request.base_url}radar?email={email}",
             "edge_score": 100,
+        }
 
         ok = bool(send_discord_alert(test_deal))
         status = get_radar_status()
@@ -1934,6 +1946,7 @@ def _get_admin_control():
         "pro_temu_limit": 5,
         "reseller_temu_limit": 10,
         "lock_new_signups": False,
+    }
     data = _read_json_file(ADMIN_CONTROL_FILE, {}) or {}
     defaults.update({k: data.get(k, v) for k, v in defaults.items()})
     defaults["free_temu_preview_count"] = max(0, min(20, int(defaults.get("free_temu_preview_count") or 0)))
@@ -1953,20 +1966,7 @@ def _set_admin_control(data: dict):
 
 
 def _temu_seed_items():
-    return [
-        {"query": "led strip lights kit", "label": "LED Light Kits", "category": "home gadgets"},
-        {"query": "magnetic phone mount", "label": "Phone Mounts", "category": "car gadgets"},
-        {"query": "car organizer seat gap", "label": "Car Organizers", "category": "car gadgets"},
-        {"query": "usb desk fan mini", "label": "Mini Gadgets", "category": "home gadgets"},
-        {"query": "pet grooming glove", "label": "Pet Items", "category": "pet"},
-        {"query": "silicone air fryer liners", "label": "Kitchen Gadgets", "category": "kitchen"},
-        {"query": "makeup brush cleaner bowl", "label": "Beauty Tools", "category": "beauty"},
-        {"query": "portable vacuum cleaner mini", "label": "Portable Gadgets", "category": "home gadgets"},
-        {"query": "under cabinet lights motion sensor", "label": "Lighting", "category": "home gadgets"},
-        {"query": "drawer organizer set", "label": "Organizers", "category": "home gadgets"},
-        {"query": "resistance bands set", "label": "Fitness Accessories", "category": "fitness"},
-        {"query": "cable clips organizer", "label": "Desk Accessories", "category": "office"},
-    ]
+    return build_temu_seed_items()
 
 
 def _looks_like_temu_flip_title(title: str) -> bool:
@@ -2032,27 +2032,23 @@ def _build_temu_flip_from_query(seed: dict):
         "temu_search_url": f"https://www.temu.com/search_result.html?search_key={search_q}",
         "google_search_url": f"https://www.google.com/search?q=temu+{search_q}",
         "score": round((sell_through * 40) + (profit * 2), 2),
+    }
 
 
 def _run_temu_cycle():
-    items = []
     control = _get_admin_control()
     if not control.get("temu_flips_enabled", True):
         _update_temu_status(status="paused", message="Temu-flips disabled from admin control", running=False)
         return _read_temu_results()
     _temu_runtime_flags["stop_requested"] = False
     _temu_runtime_flags["running"] = True
-    for seed in _temu_seed_items():
-        if _temu_runtime_flags.get("stop_requested") or not _temu_runtime_flags.get("enabled", True):
-            break
-        try:
-            item = _build_temu_flip_from_query(seed)
-            if item:
-                item.setdefault("timestamp", datetime.utcnow().isoformat())
-                items.append(item)
-        except Exception:
-            continue
-    merged_items = _merge_temu_results(items)
+    try:
+        items = fetch_temu_items(_temu_seed_items(), should_continue=lambda: not _temu_runtime_flags.get("stop_requested") and _temu_runtime_flags.get("enabled", True))
+    except Exception as e:
+        _temu_runtime_flags["running"] = False
+        _update_temu_status(status="error", message="Temu-flips scan failed", last_error=str(e), running=False)
+        return _read_temu_results()
+    merged_items = _merge_temu_results(items or [])
     _temu_runtime_flags["running"] = False
     _update_temu_status(
         status="live" if not _temu_runtime_flags.get("stop_requested") else "paused",
@@ -2073,7 +2069,7 @@ def _temu_background_loop():
         try:
             _update_temu_status(status="scanning", message="Scanning Temu-flips candidates...", running=True)
             _run_temu_cycle()
-            wait_time = max(TEMU_RESULTS_TTL_SECONDS, int(os.getenv("TEMU_FLIPS_INTERVAL", str(TEMU_RESULTS_TTL_SECONDS)) or TEMU_RESULTS_TTL_SECONDS))
+            wait_time = max(86400, int(os.getenv("TEMU_FLIPS_INTERVAL", "86400") or 86400))
         except Exception as e:
             _temu_runtime_flags["running"] = False
             _update_temu_status(status="error", message="Temu-flips hit an error", last_error=str(e), running=False)
@@ -2136,6 +2132,7 @@ def _ensure_safe_item(item):
         "profit": 0.0,
         "roi": 0.0,
         "score": 0.0,
+    }
     for k, v in defaults.items():
         if item.get(k) is None:
             item[k] = v
@@ -2174,6 +2171,7 @@ def _temu_placeholder_item(message: str = "Temu-flips warming up") -> dict:
         "google_search_url": "",
         "status": message,
         "placeholder": True,
+    }
 
 
 def _normalize_temu_flip_item(item) -> dict:
@@ -2279,6 +2277,7 @@ def _normalize_temu_flip_item(item) -> dict:
         "image": str(item.get("display_image") or item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
         "analyzer_query": str(item.get("query") or title),
         "timestamp": str(item.get("timestamp") or datetime.utcnow().isoformat()),
+    }
 
 def _build_temu_route_items(max_items: int = 20):
     fresh_items = [item for item in (_read_temu_results() or []) if isinstance(item, dict) and _temu_is_fresh(item)]
@@ -2377,6 +2376,7 @@ async def temu_flips_page(request: Request, email: str = ""):
         "locked_message": locked_message,
         "preview_count": min(admin_control.get("free_temu_preview_count", 2), all_count),
         "locked_count": max(0, all_count - len(visible_flips)),
+    }
 
     return templates.TemplateResponse(
         "temu_flips.html",
@@ -2454,6 +2454,7 @@ async def api_radar_summary(request: Request, email: str = ""):
             "combined_count": len(combined),
             "combined_deals": combined[:50],
             "updated_at": datetime.utcnow().isoformat(),
+        }
     )
 
 
@@ -2487,6 +2488,7 @@ def _get_seen_counts_safe():
                 "links": len(links),
                 "fingerprints": len(fingerprints),
                 "titles": len(titles),
+            }
     return {"total": 0, "links": 0, "fingerprints": 0, "titles": 0}
 
 def _get_managed_users_safe():
@@ -2563,6 +2565,7 @@ async def admin_page(request: Request, email: str = ""):
 
         "seen_counts": seen_counts,
         "managed_users": managed_users,
+    }
 
     return templates.TemplateResponse("admin_panel.html", context)
 
