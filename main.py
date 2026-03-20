@@ -2779,3 +2779,8 @@ except Exception as e:
 @app.head("/")
 def health_check():
     return {"status": "ok"}
+
+
+# ---------- RADAR THROTTLE ----------
+import random, time
+time.sleep(random.randint(30, 90))
