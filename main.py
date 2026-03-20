@@ -1918,14 +1918,14 @@ def _get_admin_control():
         "allow_free_temu_preview": True,
         "free_temu_preview_count": 2,
         "pro_temu_limit": 5,
-        "reseller_temu_limit": 50,
+        "reseller_temu_limit": 10,
         "lock_new_signups": False,
     }
     data = _read_json_file(ADMIN_CONTROL_FILE, {}) or {}
     defaults.update({k: data.get(k, v) for k, v in defaults.items()})
     defaults["free_temu_preview_count"] = max(0, min(20, int(defaults.get("free_temu_preview_count") or 0)))
     defaults["pro_temu_limit"] = max(1, min(50, int(defaults.get("pro_temu_limit") or 5)))
-    defaults["reseller_temu_limit"] = max(1, min(100, int(defaults.get("reseller_temu_limit") or 50)))
+    defaults["reseller_temu_limit"] = max(1, min(20, int(defaults.get("reseller_temu_limit") or 10)))
     defaults["temu_flips_enabled"] = bool(defaults.get("temu_flips_enabled"))
     defaults["allow_free_temu_preview"] = bool(defaults.get("allow_free_temu_preview"))
     defaults["lock_new_signups"] = bool(defaults.get("lock_new_signups"))
@@ -2342,7 +2342,7 @@ async def temu_flips_page(request: Request, email: str = ""):
         full_access = True
         locked_message = ""
     elif full_access and membership_tier == "RESELLER":
-        visible_count = all_count
+        visible_count = min(all_count, admin_control.get("reseller_temu_limit", 10))
         access_mode = "full"
         locked_message = ""
     elif membership_tier == "PRO" and full_access:
@@ -2383,6 +2383,9 @@ async def temu_flips_page(request: Request, email: str = ""):
             "locked_flips": locked_flips,
             "temu_status": status,
             "admin_control": admin_control,
+            "temu_runtime_running": _temu_runtime_flags.get("running", False),
+            "temu_scan_button_label": "Stop Temu Scan" if _temu_runtime_flags.get("running", False) else "Run Temu Scan",
+            "temu_scan_button_action": "/admin/stop-temu-scan" if _temu_runtime_flags.get("running", False) else "/admin/run-temu-scan",
             **plan_ui,
         },
     )
@@ -2591,7 +2594,7 @@ async def admin_control_save(
     email: str = Form(""),
     free_temu_preview_count: int = Form(2),
     pro_temu_limit: int = Form(5),
-    reseller_temu_limit: int = Form(50),
+    reseller_temu_limit: int = Form(10),
     temu_flips_enabled: str = Form(None),
     allow_free_temu_preview: str = Form(None),
     lock_new_signups: str = Form(None),
@@ -2608,7 +2611,7 @@ async def admin_control_save(
         "lock_new_signups": bool(lock_new_signups),
         "free_temu_preview_count": free_temu_preview_count,
         "pro_temu_limit": pro_temu_limit,
-        "reseller_temu_limit": reseller_temu_limit,
+        "reseller_temu_limit": max(1, min(20, int(reseller_temu_limit or 10))),
     })
     if not updated.get("temu_flips_enabled", True):
         _temu_runtime_flags["enabled"] = False

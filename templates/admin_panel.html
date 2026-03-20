@@ -72,7 +72,7 @@
             <div class="section-kicker">Temu-flips</div>
             <h3>{{ temu_count }}</h3>
             <p>{{ 'Enabled' if admin_control.temu_flips_enabled else 'Disabled' }} · Free preview {{ 'on' if admin_control.allow_free_temu_preview else 'off' }}</p>
-            <div class="subtext">Free {{ admin_control.free_temu_preview_count }} · Pro {{ admin_control.pro_temu_limit }} · Reseller full board</div>
+            <div class="subtext">Free {{ admin_control.free_temu_preview_count }} · Pro {{ admin_control.pro_temu_limit }} · Reseller {{ admin_control.reseller_temu_limit }}</div>
         </div>
         <div class="admin-card">
             <div class="section-kicker">Cache</div>
@@ -92,6 +92,10 @@
 <form method="post" action="{{ temu_scan_button_action }}">
     <input type="hidden" name="email" value="{{ email }}">
     <button class="admin-btn">{{ temu_scan_button_label }}</button>
+</form>
+<form method="post" action="/admin/stop-temu-scan">
+    <input type="hidden" name="email" value="{{ email }}">
+    <button class="admin-btn alt">Stop Temu Scan</button>
 </form>
 
         <a class="admin-btn" href="/api/clear-deals?email={{email}}">Clear Deals</a>
@@ -119,7 +123,7 @@
                 </div>
                 <div class="admin-field">
                     <label>Reseller Temu-flips item count</label>
-                    <input type="number" name="reseller_temu_limit" min="1" max="100" value="{{ admin_control.reseller_temu_limit }}">
+                    <input type="number" name="reseller_temu_limit" min="1" max="20" value="{{ admin_control.reseller_temu_limit }}">
                 </div>
             </div>
             <div class="admin-save-row">
