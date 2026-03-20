@@ -5,6 +5,7 @@ import re
 import sys
 import json
 import time
+import asyncio
 import threading
 import base64
 from uuid import uuid4
@@ -601,6 +602,31 @@ def start_radar_background_worker():
             _update_radar_status(running=True, status="starting", message="Radar worker booting...")
         except Exception:
             pass
+
+
+# ---------- ASYNC LIFECYCLE ANCHOR ----------
+_keepalive_task = None
+
+async def _async_keepalive_loop():
+    while True:
+        await asyncio.sleep(60)
+
+@app.on_event("startup")
+async def _start_async_keepalive():
+    global _keepalive_task
+    if _keepalive_task is None or _keepalive_task.done():
+        _keepalive_task = asyncio.create_task(_async_keepalive_loop())
+
+@app.on_event("shutdown")
+async def _stop_async_keepalive():
+    global _keepalive_task
+    if _keepalive_task is not None:
+        _keepalive_task.cancel()
+        try:
+            await _keepalive_task
+        except asyncio.CancelledError:
+            pass
+        _keepalive_task = None
 
 
 # ---------- FALLBACK USER STORAGE ----------
@@ -2773,26 +2799,3 @@ try:
     threading.Thread(target=_start_temu_background, daemon=True).start()
 except Exception as e:
     print("[TEMU INIT ERROR]", e)
-
-
-# ---------- HEALTH CHECK FOR RENDER ----------
-@app.head("/")
-def health_check():
-    return {"status": "ok"}
-
-
-# ---------- RADAR THROTTLE ----------
-import random, time
-time.sleep(random.randint(30, 90))
-
-
-# ---------- KEEP ALIVE LOOP (PREVENT RENDER SHUTDOWN) ----------
-import threading, time
-
-def _keep_alive_loop():
-    while True:
-        time.sleep(60)
-
-@app.on_event("startup")
-def _start_keep_alive():
-    threading.Thread(target=_keep_alive_loop, daemon=True).start()
