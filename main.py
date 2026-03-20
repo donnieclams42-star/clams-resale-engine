@@ -2784,3 +2784,15 @@ def health_check():
 # ---------- RADAR THROTTLE ----------
 import random, time
 time.sleep(random.randint(30, 90))
+
+
+# ---------- KEEP ALIVE LOOP (PREVENT RENDER SHUTDOWN) ----------
+import threading, time
+
+def _keep_alive_loop():
+    while True:
+        time.sleep(60)
+
+@app.on_event("startup")
+def _start_keep_alive():
+    threading.Thread(target=_keep_alive_loop, daemon=True).start()
