@@ -1,16 +1,16 @@
 import requests
 import statistics
 
-from config import (
+from dj_deal_project.config import (
     EBAY_MARKET,
     HTTP_TIMEOUT,
     MAX_PRICE,
     MIN_PRICE,
 )
-from keywords.keyword_engine import get_keywords_for_cycle
-from scanners.ebay_auth import get_ebay_token
-from utils.logger import log_event
-from utils.model_parser import is_deal_candidate, normalize_text
+from dj_deal_project.keywords.keyword_engine import get_keywords_for_cycle
+from dj_deal_project.scanners.ebay_auth import get_ebay_token
+from dj_deal_project.utils.logger import log_event
+from dj_deal_project.utils.model_parser import is_deal_candidate, normalize_text
 
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 UNDERPRICED_FACTOR = 0.72

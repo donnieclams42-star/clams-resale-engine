@@ -1,5 +1,5 @@
 from datetime import datetime
-from config import LOG_FILE
+from dj_deal_project.config import LOG_FILE
 
 def log_event(message: str) -> None:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

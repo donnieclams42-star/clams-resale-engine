@@ -1,7 +1,7 @@
 import requests
-from scanners.ebay_auth import get_ebay_token
-from utils.logger import log_event
-from config import MAX_PRICE
+from dj_deal_project.scanners.ebay_auth import get_ebay_token
+from dj_deal_project.utils.logger import log_event
+from dj_deal_project.config import MAX_PRICE
 
 EBAY_MARKET = "EBAY_US"
 

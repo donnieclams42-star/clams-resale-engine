@@ -1,7 +1,7 @@
 import time
 import requests
 
-from config import EBAY_CLIENT_ID, EBAY_CLIENT_SECRET
+from dj_deal_project.config import EBAY_CLIENT_ID, EBAY_CLIENT_SECRET
 
 _token_cache = {
     "access_token": None,

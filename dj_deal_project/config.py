@@ -1,7 +1,7 @@
 import os
 
 try:
-    from keywords.search_terms import SEARCH_TERMS
+    from dj_deal_project.keywords.search_terms import SEARCH_TERMS
 except Exception:
     SEARCH_TERMS = []
 

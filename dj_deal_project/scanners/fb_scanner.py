@@ -3,10 +3,10 @@ import requests
 from urllib.parse import quote_plus
 from bs4 import BeautifulSoup
 
-from config import HTTP_TIMEOUT, USER_AGENT, MAX_PRICE, MIN_PRICE
-from keywords.keyword_engine import get_keywords_for_cycle
-from utils.logger import log_event
-from utils.model_parser import is_deal_candidate, normalize_text
+from dj_deal_project.config import HTTP_TIMEOUT, USER_AGENT, MAX_PRICE, MIN_PRICE
+from dj_deal_project.keywords.keyword_engine import get_keywords_for_cycle
+from dj_deal_project.utils.logger import log_event
+from dj_deal_project.utils.model_parser import is_deal_candidate, normalize_text
 
 
 HEADERS = {
