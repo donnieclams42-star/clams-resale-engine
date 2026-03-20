@@ -332,13 +332,13 @@ def _source_enabled_for_cycle(source_name: str, cycle_count: int, radar_config) 
     if name == "ebay":
         frequency = max(1, int(getattr(radar_config, "EBAY_SCAN_FREQUENCY", 1) or 1))
         return bool(getattr(radar_config, "ENABLE_EBAY", True)) and (cycle_count % frequency == 0)
-    if name == "DISABLED_MERCARI":
-        configured = max(1, int(getattr(radar_config, "DISABLED_MERCARI_SCAN_FREQUENCY", 2) or 2))
+    if name == "mercari":
+        configured = max(1, int(getattr(radar_config, "MERCARI_SCAN_FREQUENCY", 2) or 2))
         frequency = min(configured, 3)
-        return bool(getattr(radar_config, "ENABLE_DISABLED_MERCARI", True)) and (cycle_count % frequency == 0)
-    if name == "DISABLED_OFFERUP":
-        frequency = max(1, int(getattr(radar_config, "DISABLED_OFFERUP_SCAN_FREQUENCY", 2) or 2))
-        return bool(getattr(radar_config, "ENABLE_DISABLED_OFFERUP", True)) and (cycle_count % frequency == 0)
+        return bool(getattr(radar_config, "ENABLE_MERCARI", True)) and (cycle_count % frequency == 0)
+    if name == "offerup":
+        frequency = max(1, int(getattr(radar_config, "OFFERUP_SCAN_FREQUENCY", 2) or 2))
+        return bool(getattr(radar_config, "ENABLE_OFFERUP", True)) and (cycle_count % frequency == 0)
     if name == "facebook":
         configured = max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 8) or 8))
         frequency = min(configured, 6)
@@ -382,12 +382,12 @@ def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
     elif source_name == "ebay":
         min_profit = float(getattr(radar_config, "EBAY_MIN_PROFIT", min_profit) or min_profit)
         min_margin = float(getattr(radar_config, "EBAY_MIN_MARGIN", min_margin) or min_margin)
-    elif source_name == "DISABLED_MERCARI":
-        min_profit = float(getattr(radar_config, "DISABLED_MERCARI_MIN_PROFIT", 8) or 8)
-        min_margin = float(getattr(radar_config, "DISABLED_MERCARI_MIN_MARGIN", 0.05) or 0.05)
-    elif source_name == "DISABLED_OFFERUP":
-        min_profit = float(getattr(radar_config, "DISABLED_OFFERUP_MIN_PROFIT", min_profit) or min_profit)
-        min_margin = float(getattr(radar_config, "DISABLED_OFFERUP_MIN_MARGIN", min_margin) or min_margin)
+    elif source_name == "mercari":
+        min_profit = float(getattr(radar_config, "MERCARI_MIN_PROFIT", 8) or 8)
+        min_margin = float(getattr(radar_config, "MERCARI_MIN_MARGIN", 0.05) or 0.05)
+    elif source_name == "offerup":
+        min_profit = float(getattr(radar_config, "OFFERUP_MIN_PROFIT", min_profit) or min_profit)
+        min_margin = float(getattr(radar_config, "OFFERUP_MIN_MARGIN", min_margin) or min_margin)
     if profit < min_profit or margin < min_margin:
         if source_name != "facebook" or not _is_loose_fb_candidate(deal, profit, margin):
             return None
@@ -427,8 +427,8 @@ def _run_radar_cycle():
 
     import config as radar_config
     from scanners.ebay_scanner import scan_ebay
-    from scanners.DISABLED_MERCARI_scanner import scan_DISABLED_MERCARI
-    from scanners.DISABLED_OFFERUP_scanner import scan_DISABLED_OFFERUP
+    from scanners.mercari_scanner import scan_mercari
+    from scanners.offerup_scanner import scan_offerup
     from scanners.fb_scanner import scan_facebook
     from filters.scam_filter import is_scam_listing
     from alerts.discord_alert import send_discord_alert
@@ -438,8 +438,8 @@ def _run_radar_cycle():
     scanner_jobs = []
     possible_jobs = [
         ("eBay", scan_ebay),
-        ("DISABLED_MERCARI", scan_DISABLED_MERCARI),
-        ("DISABLED_OFFERUP", scan_DISABLED_OFFERUP),
+        ("Mercari", scan_mercari),
+        ("OfferUp", scan_offerup),
         ("Facebook", scan_facebook),
     ]
     now = time.time()
@@ -589,7 +589,7 @@ def _radar_background_loop():
 @app.on_event("startup")
 def start_radar_background_worker():
     global _radar_thread, _radar_started
-    if os.getenv("RADAR_AUTOSTART", "1") != "1":
+    if os.getenv("RADAR_AUTOSTART", "0") != "1":
         _update_radar_status(running=False, status="disabled", message="Radar autostart is disabled")
         return
     with _radar_lock:
@@ -2774,10 +2774,10 @@ try:
     def _start_temu_background():
         try:
             seeds = _temu_seed_items() if '_temu_seed_items' in globals() else []
-            start_temu_worker(seeds)
+            print("[TEMU] start_temu_worker disabled in web process")
         except Exception as e:
             print("[TEMU START ERROR]", e)
 
-    threading.Thread(target=_start_temu_background, daemon=True).start()
+    print("[TEMU] background thread disabled in web process")
 except Exception as e:
     print("[TEMU INIT ERROR]", e)
