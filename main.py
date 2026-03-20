@@ -2696,3 +2696,20 @@ async def admin_user_access(
 
     except Exception as e:
         return RedirectResponse(f"/admin?email={email}&error=Update+failed", status_code=303)
+
+
+# --- TEMU WORKER AUTO START (SAFE INJECTION) ---
+try:
+    from temu_worker import start_temu_worker
+    import threading
+
+    def _start_temu_background():
+        try:
+            seeds = _temu_seed_items() if '_temu_seed_items' in globals() else []
+            start_temu_worker(seeds)
+        except Exception as e:
+            print("[TEMU START ERROR]", e)
+
+    threading.Thread(target=_start_temu_background, daemon=True).start()
+except Exception as e:
+    print("[TEMU INIT ERROR]", e)
