@@ -1,81 +1,76 @@
-
-import time
 import json
-import random
+import os
 import threading
+import time
 from datetime import datetime
-from temu_scanner import fetch_temu_items
+
+from temu_scanner import build_temu_seed_items, fetch_temu_items
 
 RESULTS = "temu_flips_results.json"
 STATUS = "temu_flips_status.json"
-
+TEMU_SCAN_INTERVAL = int(os.getenv("TEMU_FULL_SCAN_INTERVAL", "86400"))
 _runtime = {"stop_requested": False, "running": False}
 
+
 def save(path, data):
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-def _worker_loop(seed_items):
+
+def _worker_loop(seed_items=None):
     print("[TEMU] Worker loop running")
-
     last_good = []
-    last_queries = {}
-
     while True:
         if _runtime.get("stop_requested"):
             print("[TEMU] STOPPED")
             _runtime["running"] = False
             break
-
         try:
-            filtered_seed = []
-            now = time.time()
-
-            for item in (seed_items or []):
-                query = (item.get("query") or item.get("label") or item.get("title") or "").strip()
-                last_time = last_queries.get(query, 0)
-
-                if now - last_time > 600:
-                    filtered_seed.append(item)
-                    last_queries[query] = now
-
-            if not filtered_seed:
-                filtered_seed = seed_items
-
-            results = fetch_temu_items(seed_items=filtered_seed)
-
+            seeds = seed_items or build_temu_seed_items()
+            results = fetch_temu_items(seed_items=seeds, should_continue=lambda: not _runtime.get('stop_requested', False))
             if results:
                 last_good = results
                 save(RESULTS, results)
-
                 save(STATUS, {
                     "status": "live",
+                    "running": True,
                     "count": len(results),
-                    "last_success": datetime.utcnow().isoformat()
+                    "message": f"{len(results)} Temu results ready",
+                    "last_success": datetime.utcnow().isoformat(),
                 })
-            else:
-                if last_good:
-                    save(RESULTS, last_good)
-
+            elif last_good:
+                save(RESULTS, last_good)
+                save(STATUS, {
+                    "status": "live",
+                    "running": True,
+                    "count": len(last_good),
+                    "message": "No new Temu results; serving last good cache",
+                    "last_success": datetime.utcnow().isoformat(),
+                })
         except Exception as e:
             print("[TEMU ERROR]", e)
+            save(STATUS, {
+                "status": "error",
+                "running": False,
+                "count": len(last_good),
+                "message": str(e),
+                "last_success": datetime.utcnow().isoformat(),
+            })
+        print(f"[TEMU] Sleeping {TEMU_SCAN_INTERVAL}s")
+        time.sleep(TEMU_SCAN_INTERVAL)
 
-        sleep_time = random.randint(90, 180)
-        print(f"[TEMU] Sleeping {sleep_time}s")
-        time.sleep(sleep_time)
 
-def start_temu_worker(seed_items):
+def start_temu_worker(seed_items=None):
     if _runtime.get("running"):
         print("[TEMU] Worker already running")
         return
-
     print("[TEMU] Starting background worker")
-
     _runtime["stop_requested"] = False
     _runtime["running"] = True
-
-    thread = threading.Thread(target=_worker_loop, args=(seed_items,), daemon=True)
+    thread = threading.Thread(target=_worker_loop, args=(seed_items,), daemon=True, name="temu-worker")
     thread.start()
+    return thread
+
 
 def stop_temu_worker():
     _runtime["stop_requested"] = True

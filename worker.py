@@ -1,35 +1,48 @@
+import time
 
-import time, random, threading
-
-from dj_deal_project.scanners.ebay_scanner import run_ebay_scan
-from dj_deal_project.scanners.mercari_scanner import run_mercari_scan
-from dj_deal_project.scanners.offerup_scanner import run_offerup_scan
 from temu_worker import start_temu_worker
+
+try:
+    from dj_deal_project import config as cfg
+    from dj_deal_project.scanners.ebay_scanner import run_ebay_scan
+    from dj_deal_project.scanners.mercari_scanner import run_mercari_scan
+    from dj_deal_project.scanners.offerup_scanner import run_offerup_scan
+    from dj_deal_project.scanners.fb_scanner import run_facebook_scan
+    from dj_deal_project.scanners.craigslist_scanner import run_craigslist_scan
+except Exception:
+    import config as cfg
+    from scanners.ebay_scanner import run_ebay_scan
+    from scanners.mercari_scanner import run_mercari_scan
+    from scanners.offerup_scanner import run_offerup_scan
+    from scanners.fb_scanner import run_facebook_scan
+    from scanners.craigslist_scanner import run_craigslist_scan
 
 
 def radar_loop():
     while True:
         try:
             print("[WORKER] Running scan cycle")
-
-            run_ebay_scan()
-            run_mercari_scan()
-            run_offerup_scan()
-
-            sleep_time = random.randint(60, 180)
+            if getattr(cfg, 'ENABLE_EBAY', True):
+                run_ebay_scan()
+            if getattr(cfg, 'ENABLE_MERCARI', True):
+                run_mercari_scan()
+            if getattr(cfg, 'ENABLE_OFFERUP', True):
+                run_offerup_scan()
+            if getattr(cfg, 'ENABLE_FACEBOOK', True):
+                run_facebook_scan()
+            if getattr(cfg, 'ENABLE_CRAIGSLIST', True):
+                run_craigslist_scan()
+            sleep_time = int(getattr(cfg, 'SCAN_INTERVAL', 90) or 90)
             print(f"[WORKER] Sleeping {sleep_time}s")
             time.sleep(sleep_time)
-
         except Exception as e:
             print(f"[WORKER ERROR] {e}")
-            time.sleep(10)
+            time.sleep(15)
 
 
 def start_worker():
     print("[WORKER] Starting system")
-
-    threading.Thread(target=start_temu_worker, daemon=True).start()
-
+    start_temu_worker()
     radar_loop()
 
 

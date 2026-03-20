@@ -1,2 +1,1 @@
-# Temu-flips logic is embedded in main.py for this drop-in build.
-# This file is included as a placeholder for future modularization.
+# Temu-flips logic now lives in temu_scanner.py and main.py
