@@ -1,4 +1,4 @@
-from temu_scanner import fetch_temu_items
+from temu_scanner import fetch_temu_items, build_temu_seed_items
 from typing import List, Optional
 import os
 import re
@@ -332,13 +332,13 @@ def _source_enabled_for_cycle(source_name: str, cycle_count: int, radar_config) 
     if name == "ebay":
         frequency = max(1, int(getattr(radar_config, "EBAY_SCAN_FREQUENCY", 1) or 1))
         return bool(getattr(radar_config, "ENABLE_EBAY", True)) and (cycle_count % frequency == 0)
-    if name == "mercari":
-        configured = max(1, int(getattr(radar_config, "MERCARI_SCAN_FREQUENCY", 2) or 2))
+    if name == "DISABLED_MERCARI":
+        configured = max(1, int(getattr(radar_config, "DISABLED_MERCARI_SCAN_FREQUENCY", 2) or 2))
         frequency = min(configured, 3)
-        return bool(getattr(radar_config, "ENABLE_MERCARI", True)) and (cycle_count % frequency == 0)
-    if name == "offerup":
-        frequency = max(1, int(getattr(radar_config, "OFFERUP_SCAN_FREQUENCY", 2) or 2))
-        return bool(getattr(radar_config, "ENABLE_OFFERUP", True)) and (cycle_count % frequency == 0)
+        return bool(getattr(radar_config, "ENABLE_DISABLED_MERCARI", True)) and (cycle_count % frequency == 0)
+    if name == "DISABLED_OFFERUP":
+        frequency = max(1, int(getattr(radar_config, "DISABLED_OFFERUP_SCAN_FREQUENCY", 2) or 2))
+        return bool(getattr(radar_config, "ENABLE_DISABLED_OFFERUP", True)) and (cycle_count % frequency == 0)
     if name == "facebook":
         configured = max(1, int(getattr(radar_config, "FB_SCAN_FREQUENCY", 8) or 8))
         frequency = min(configured, 6)
@@ -382,12 +382,12 @@ def _build_vetted_deal(deal: dict, analysis_cache: dict, radar_config):
     elif source_name == "ebay":
         min_profit = float(getattr(radar_config, "EBAY_MIN_PROFIT", min_profit) or min_profit)
         min_margin = float(getattr(radar_config, "EBAY_MIN_MARGIN", min_margin) or min_margin)
-    elif source_name == "mercari":
-        min_profit = float(getattr(radar_config, "MERCARI_MIN_PROFIT", 8) or 8)
-        min_margin = float(getattr(radar_config, "MERCARI_MIN_MARGIN", 0.05) or 0.05)
-    elif source_name == "offerup":
-        min_profit = float(getattr(radar_config, "OFFERUP_MIN_PROFIT", min_profit) or min_profit)
-        min_margin = float(getattr(radar_config, "OFFERUP_MIN_MARGIN", min_margin) or min_margin)
+    elif source_name == "DISABLED_MERCARI":
+        min_profit = float(getattr(radar_config, "DISABLED_MERCARI_MIN_PROFIT", 8) or 8)
+        min_margin = float(getattr(radar_config, "DISABLED_MERCARI_MIN_MARGIN", 0.05) or 0.05)
+    elif source_name == "DISABLED_OFFERUP":
+        min_profit = float(getattr(radar_config, "DISABLED_OFFERUP_MIN_PROFIT", min_profit) or min_profit)
+        min_margin = float(getattr(radar_config, "DISABLED_OFFERUP_MIN_MARGIN", min_margin) or min_margin)
     if profit < min_profit or margin < min_margin:
         if source_name != "facebook" or not _is_loose_fb_candidate(deal, profit, margin):
             return None
@@ -427,8 +427,8 @@ def _run_radar_cycle():
 
     import config as radar_config
     from scanners.ebay_scanner import scan_ebay
-    from scanners.mercari_scanner import scan_mercari
-    from scanners.offerup_scanner import scan_offerup
+    from scanners.DISABLED_MERCARI_scanner import scan_DISABLED_MERCARI
+    from scanners.DISABLED_OFFERUP_scanner import scan_DISABLED_OFFERUP
     from scanners.fb_scanner import scan_facebook
     from filters.scam_filter import is_scam_listing
     from alerts.discord_alert import send_discord_alert
@@ -438,8 +438,8 @@ def _run_radar_cycle():
     scanner_jobs = []
     possible_jobs = [
         ("eBay", scan_ebay),
-        ("Mercari", scan_mercari),
-        ("OfferUp", scan_offerup),
+        ("DISABLED_MERCARI", scan_DISABLED_MERCARI),
+        ("DISABLED_OFFERUP", scan_DISABLED_OFFERUP),
         ("Facebook", scan_facebook),
     ]
     now = time.time()
@@ -1966,20 +1966,7 @@ def _set_admin_control(data: dict):
 
 
 def _temu_seed_items():
-    return [
-        {"query": "led strip lights kit", "label": "LED Light Kits", "category": "home gadgets"},
-        {"query": "magnetic phone mount", "label": "Phone Mounts", "category": "car gadgets"},
-        {"query": "car organizer seat gap", "label": "Car Organizers", "category": "car gadgets"},
-        {"query": "usb desk fan mini", "label": "Mini Gadgets", "category": "home gadgets"},
-        {"query": "pet grooming glove", "label": "Pet Items", "category": "pet"},
-        {"query": "silicone air fryer liners", "label": "Kitchen Gadgets", "category": "kitchen"},
-        {"query": "makeup brush cleaner bowl", "label": "Beauty Tools", "category": "beauty"},
-        {"query": "portable vacuum cleaner mini", "label": "Portable Gadgets", "category": "home gadgets"},
-        {"query": "under cabinet lights motion sensor", "label": "Lighting", "category": "home gadgets"},
-        {"query": "drawer organizer set", "label": "Organizers", "category": "home gadgets"},
-        {"query": "resistance bands set", "label": "Fitness Accessories", "category": "fitness"},
-        {"query": "cable clips organizer", "label": "Desk Accessories", "category": "office"},
-    ]
+    return build_temu_seed_items()
 
 
 def _looks_like_temu_flip_title(title: str) -> bool:
@@ -2049,24 +2036,19 @@ def _build_temu_flip_from_query(seed: dict):
 
 
 def _run_temu_cycle():
-    items = []
     control = _get_admin_control()
     if not control.get("temu_flips_enabled", True):
         _update_temu_status(status="paused", message="Temu-flips disabled from admin control", running=False)
         return _read_temu_results()
     _temu_runtime_flags["stop_requested"] = False
     _temu_runtime_flags["running"] = True
-    for seed in _temu_seed_items():
-        if _temu_runtime_flags.get("stop_requested") or not _temu_runtime_flags.get("enabled", True):
-            break
-        try:
-            item = _build_temu_flip_from_query(seed)
-            if item:
-                item.setdefault("timestamp", datetime.utcnow().isoformat())
-                items.append(item)
-        except Exception:
-            continue
-    merged_items = _merge_temu_results(items)
+    try:
+        items = fetch_temu_items(_temu_seed_items(), should_continue=lambda: not _temu_runtime_flags.get("stop_requested") and _temu_runtime_flags.get("enabled", True))
+    except Exception as e:
+        _temu_runtime_flags["running"] = False
+        _update_temu_status(status="error", message="Temu-flips scan failed", last_error=str(e), running=False)
+        return _read_temu_results()
+    merged_items = _merge_temu_results(items or [])
     _temu_runtime_flags["running"] = False
     _update_temu_status(
         status="live" if not _temu_runtime_flags.get("stop_requested") else "paused",
@@ -2087,7 +2069,7 @@ def _temu_background_loop():
         try:
             _update_temu_status(status="scanning", message="Scanning Temu-flips candidates...", running=True)
             _run_temu_cycle()
-            wait_time = max(TEMU_RESULTS_TTL_SECONDS, int(os.getenv("TEMU_FLIPS_INTERVAL", str(TEMU_RESULTS_TTL_SECONDS)) or TEMU_RESULTS_TTL_SECONDS))
+            wait_time = max(86400, int(os.getenv("TEMU_FLIPS_INTERVAL", "86400") or 86400))
         except Exception as e:
             _temu_runtime_flags["running"] = False
             _update_temu_status(status="error", message="Temu-flips hit an error", last_error=str(e), running=False)
