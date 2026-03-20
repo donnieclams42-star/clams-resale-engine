@@ -6,8 +6,8 @@ import json
 import random
 
 # --- CONFIG ---
-MIN_PROFIT = 5
-MIN_SELL_THROUGH = 20
+MIN_PROFIT = 2
+MIN_SELL_THROUGH = 5
 MEMORY_FILE = "temu_keyword_memory.json"
 
 EXPANSIONS = ["cheap","budget","portable","mini","wireless","usb","kit","set"]
@@ -97,15 +97,25 @@ def fetch_temu_items(seed_items=None, should_continue=None):
             profit = float(analysis.get("profit_delta") or 0)
             sell_through_pct = int(analysis.get("sell_through") or 0)
 
+            low_confidence = False
             if profit < MIN_PROFIT:
-                continue
+                low_confidence = True
 
             if sell_through_pct < MIN_SELL_THROUGH:
-                continue
+                low_confidence = True
 
             update_memory(memory, base_query, query, profit, sell_through_pct)
 
             market_price = round(float(analysis.get("market_price") or 0), 2)
+
+            if not market_price:
+                market_price = asking_price * 1.3
+
+            fees = round(market_price * 0.13, 2)
+            shipping_cost = 5.0
+            net_after_fees = round(market_price - fees - shipping_cost, 2)
+            profit = round(net_after_fees - asking_price, 2)
+
             fees = round(float(analysis.get("estimated_fees") or 0), 2)
             shipping_cost = round(float(analysis.get("estimated_shipping") or 0), 2)
             net_after_fees = round(float(analysis.get("net_sale_estimate") or 0), 2)
