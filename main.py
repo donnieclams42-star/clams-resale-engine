@@ -2773,3 +2773,9 @@ try:
     threading.Thread(target=_start_temu_background, daemon=True).start()
 except Exception as e:
     print("[TEMU INIT ERROR]", e)
+
+
+# ---------- HEALTH CHECK FOR RENDER ----------
+@app.head("/")
+def health_check():
+    return {"status": "ok"}
