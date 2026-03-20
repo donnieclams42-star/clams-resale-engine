@@ -1,13 +1,3 @@
-
-import json
-
-def load_temu_results():
-    try:
-        with open("temu_flips_results.json", "r") as f:
-            return json.load(f)
-    except:
-        return []
-
 from temu_scanner import fetch_temu_items, build_temu_seed_items
 from typing import List, Optional
 import os
@@ -1976,7 +1966,7 @@ def _set_admin_control(data: dict):
 
 
 def _temu_seed_items():
-    return []
+    return build_temu_seed_items()
 
 
 def _looks_like_temu_flip_title(title: str) -> bool:
@@ -2053,7 +2043,7 @@ def _run_temu_cycle():
     _temu_runtime_flags["stop_requested"] = False
     _temu_runtime_flags["running"] = True
     try:
-        items = load_temu_results(), should_continue=lambda: not _temu_runtime_flags.get("stop_requested") and _temu_runtime_flags.get("enabled", True))
+        items = fetch_temu_items(_temu_seed_items(), should_continue=lambda: not _temu_runtime_flags.get("stop_requested") and _temu_runtime_flags.get("enabled", True))
     except Exception as e:
         _temu_runtime_flags["running"] = False
         _update_temu_status(status="error", message="Temu-flips scan failed", last_error=str(e), running=False)
@@ -2621,7 +2611,7 @@ async def toggle_temu_scan(request: Request, email: str = Form("")):
         try:
             _update_temu_status(status="running", message="Scanning Temu...", running=True)
             seeds = _temu_seed_items()
-            results = load_temu_results() and not _temu_runtime_flags.get("stop_requested", False))
+            results = fetch_temu_items(seeds, should_continue=lambda: _temu_runtime_flags.get("enabled", True) and not _temu_runtime_flags.get("stop_requested", False))
             stamped = []
             now_iso = datetime.utcnow().isoformat()
             for item in results:
