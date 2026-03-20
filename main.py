@@ -1,4 +1,4 @@
-from temu_scanner import fetch_temu_items, build_temu_seed_items
+from temu_scanner import fetch_temu_items
 from typing import List, Optional
 import os
 import re
@@ -133,7 +133,6 @@ def _category_label(raw: str) -> str:
         "liquidation": "Local Lots / Bulk",
         "repair": "Parts / Repair",
         "other": "Other Deals",
-    }
     return mapping.get((raw or "other").lower(), "Other Deals")
 
 
@@ -643,7 +642,6 @@ RESELLER_PRICE = 49
 
 ADMIN_EMAILS = {
     "donnieclams42@gmail.com",
-}
 
 
 # ---------- STRIPE ----------
@@ -673,7 +671,6 @@ DEFAULT_USER_SETTINGS = {
     "default_profit": 40,
     "local_factor": 80,
     "mode": "simple",
-}
 
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -685,7 +682,6 @@ def build_default_settings():
         "default_profit": DEFAULT_USER_SETTINGS["default_profit"],
         "local_factor": DEFAULT_USER_SETTINGS["local_factor"],
         "mode": DEFAULT_USER_SETTINGS["mode"],
-    }
 
 
 def normalize_settings(settings):
@@ -821,7 +817,6 @@ def create_user_record(email: str, password: str = ""):
         "search_reset_date": str(date.today()),
         "settings": build_default_settings(),
         "stripe_customer_id": None,
-    }
 
     if supabase:
         try:
@@ -898,7 +893,6 @@ def get_membership_limits(user: dict):
             "advanced_enabled": True,
             "ai_photo_enabled": True,
             "is_admin": True,
-        }
 
     if membership == "FREE":
         return {
@@ -907,7 +901,6 @@ def get_membership_limits(user: dict):
             "advanced_enabled": False,
             "ai_photo_enabled": False,
             "is_admin": False,
-        }
 
     if membership == "PRO":
         return {
@@ -916,7 +909,6 @@ def get_membership_limits(user: dict):
             "advanced_enabled": False,
             "ai_photo_enabled": True,
             "is_admin": False,
-        }
 
     return {
         "membership": "RESELLER",
@@ -924,7 +916,6 @@ def get_membership_limits(user: dict):
         "advanced_enabled": True,
         "ai_photo_enabled": True,
         "is_admin": False,
-    }
 
 
 def clamp_score(value):
@@ -983,7 +974,6 @@ def get_plan_ui_context(user: dict):
         "ai_access": ai_access,
         "pro_price": PRO_PRICE,
         "reseller_price": RESELLER_PRICE,
-    }
 
 
 # ---------- OPENAI CLIENT ----------
@@ -1033,7 +1023,6 @@ Return only the search phrase.
                         "image_url": f"data:{mime_type};base64,{image_b64}",
                     },
                 ],
-            }
         ],
     )
 
@@ -1682,7 +1671,6 @@ async def radar_test_discord(request: Request, email: str = ""):
             "source": "System Test",
             "url": f"{request.base_url}radar?email={email}",
             "edge_score": 100,
-        }
 
         ok = bool(send_discord_alert(test_deal))
         status = get_radar_status()
@@ -1881,36 +1869,38 @@ _temu_started = False
 _temu_lock = threading.Lock()
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _read_temu_results():
+    return _read_json_file(TEMU_RESULTS_FILE, []) or []
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _write_temu_results(items):
+    _write_json_file(TEMU_RESULTS_FILE, items)
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _update_temu_status(**kwargs):
+    current = _read_json_file(TEMU_STATUS_FILE, {}) or {}
+    current.update(kwargs)
+    current["updated_at"] = datetime.utcnow().isoformat()
+    _write_json_file(TEMU_STATUS_FILE, current)
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def get_temu_status():
+    status = _read_json_file(TEMU_STATUS_FILE, {}) or {}
+    status.setdefault("status", "idle")
+    status.setdefault("message", "Temu-flips idle")
+    status.setdefault("count", 0)
+    status.setdefault("running", False)
+    return status
+
+
+def _temu_result_key(item: dict) -> str:
+    return _normalize_title_fingerprint(str(item.get("title") or item.get("label") or item.get("query") or "temu"))
+
+
+def _temu_is_fresh(item: dict) -> bool:
+    ts = str(item.get("timestamp") or item.get("updated_at") or item.get("created_at") or "").strip()
+    if not ts:
+        return False
     try:
         item_dt = datetime.fromisoformat(ts.replace("Z", ""))
     except Exception:
@@ -1918,12 +1908,22 @@ def get_temu(email: str = None):
     return (datetime.utcnow() - item_dt).total_seconds() <= TEMU_RESULTS_TTL_SECONDS
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _merge_temu_results(new_items):
+    existing = [dict(x) for x in (_read_temu_results() or []) if isinstance(x, dict)]
+    now_iso = datetime.utcnow().isoformat()
+    merged = {}
+    for item in existing:
+        if _temu_is_fresh(item):
+            merged[_temu_result_key(item)] = item
+    for item in new_items or []:
+        current = dict(item)
+        current.setdefault("timestamp", now_iso)
+        merged[_temu_result_key(current)] = current
+    items = list(merged.values())
+    items.sort(key=lambda x: (float(x.get("score") or 0), float(x.get("profit") or 0), int(x.get("sell_through_pct") or x.get("sell_through") or 0)), reverse=True)
+    items = items[:30]
+    _write_temu_results(items)
+    return items
 
 
 def _get_admin_control():
@@ -1934,7 +1934,6 @@ def _get_admin_control():
         "pro_temu_limit": 5,
         "reseller_temu_limit": 10,
         "lock_new_signups": False,
-    }
     data = _read_json_file(ADMIN_CONTROL_FILE, {}) or {}
     defaults.update({k: data.get(k, v) for k, v in defaults.items()})
     defaults["free_temu_preview_count"] = max(0, min(20, int(defaults.get("free_temu_preview_count") or 0)))
@@ -1953,20 +1952,34 @@ def _set_admin_control(data: dict):
     return current
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _temu_seed_items():
+    return [
+        {"query": "led strip lights kit", "label": "LED Light Kits", "category": "home gadgets"},
+        {"query": "magnetic phone mount", "label": "Phone Mounts", "category": "car gadgets"},
+        {"query": "car organizer seat gap", "label": "Car Organizers", "category": "car gadgets"},
+        {"query": "usb desk fan mini", "label": "Mini Gadgets", "category": "home gadgets"},
+        {"query": "pet grooming glove", "label": "Pet Items", "category": "pet"},
+        {"query": "silicone air fryer liners", "label": "Kitchen Gadgets", "category": "kitchen"},
+        {"query": "makeup brush cleaner bowl", "label": "Beauty Tools", "category": "beauty"},
+        {"query": "portable vacuum cleaner mini", "label": "Portable Gadgets", "category": "home gadgets"},
+        {"query": "under cabinet lights motion sensor", "label": "Lighting", "category": "home gadgets"},
+        {"query": "drawer organizer set", "label": "Organizers", "category": "home gadgets"},
+        {"query": "resistance bands set", "label": "Fitness Accessories", "category": "fitness"},
+        {"query": "cable clips organizer", "label": "Desk Accessories", "category": "office"},
+    ]
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _looks_like_temu_flip_title(title: str) -> bool:
+    title_n = normalize_text(title)
+    hot_terms = [
+        "led", "rgb", "usb", "portable", "wireless", "organizer", "holder", "mount",
+        "grooming", "liner", "vacuum", "sensor", "light", "mini", "beauty", "pet"
+    ]
+    reject_terms = [
+        "iphone", "samsung", "ps5", "ps4", "xbox", "nintendo", "graphics card", "gpu",
+        "cartridge", "disc", "hoodie", "shirt", "bag", "knob", "switch", "sensor replacement"
+    ]
+    return any(term in title_n for term in hot_terms) and not any(term in title_n for term in reject_terms)
 
 
 def _estimate_supplier_cost(avg_price: float) -> float:
@@ -1977,12 +1990,11 @@ def _estimate_supplier_cost(avg_price: float) -> float:
     return round(avg_price * 0.22, 2)
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _build_temu_flip_from_query(seed: dict):
+    query = seed["query"]
+    prices, _active, _suggestions, listing = search_ebay(query)
+    if not prices or len(prices) < 8:
+        return None
     avg_price = round(sum(prices[:20]) / min(len(prices), 20), 2)
     sold_count = len(prices)
     if avg_price < 8 or avg_price > 40:
@@ -2020,24 +2032,27 @@ def get_temu(email: str = None):
         "temu_search_url": f"https://www.temu.com/search_result.html?search_key={search_q}",
         "google_search_url": f"https://www.google.com/search?q=temu+{search_q}",
         "score": round((sell_through * 40) + (profit * 2), 2),
-    }
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _run_temu_cycle():
+    items = []
+    control = _get_admin_control()
+    if not control.get("temu_flips_enabled", True):
+        _update_temu_status(status="paused", message="Temu-flips disabled from admin control", running=False)
+        return _read_temu_results()
     _temu_runtime_flags["stop_requested"] = False
     _temu_runtime_flags["running"] = True
-    try:
-        items = fetch_temu_items(_temu_seed_items(), should_continue=lambda: not _temu_runtime_flags.get("stop_requested") and _temu_runtime_flags.get("enabled", True))
-    except Exception as e:
-        _temu_runtime_flags["running"] = False
-        _update_temu_status(status="error", message="Temu-flips scan failed", last_error=str(e), running=False)
-        return _read_temu_results()
-    merged_items = _merge_temu_results(items or [])
+    for seed in _temu_seed_items():
+        if _temu_runtime_flags.get("stop_requested") or not _temu_runtime_flags.get("enabled", True):
+            break
+        try:
+            item = _build_temu_flip_from_query(seed)
+            if item:
+                item.setdefault("timestamp", datetime.utcnow().isoformat())
+                items.append(item)
+        except Exception:
+            continue
+    merged_items = _merge_temu_results(items)
     _temu_runtime_flags["running"] = False
     _update_temu_status(
         status="live" if not _temu_runtime_flags.get("stop_requested") else "paused",
@@ -2049,12 +2064,47 @@ def get_temu(email: str = None):
     return merged_items
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _temu_background_loop():
+    while True:
+        if not _temu_runtime_flags.get("enabled", True):
+            _update_temu_status(status="paused", message="Temu-flips paused from admin control", running=False)
+            time.sleep(5)
+            continue
+        try:
+            _update_temu_status(status="scanning", message="Scanning Temu-flips candidates...", running=True)
+            _run_temu_cycle()
+            wait_time = max(TEMU_RESULTS_TTL_SECONDS, int(os.getenv("TEMU_FLIPS_INTERVAL", str(TEMU_RESULTS_TTL_SECONDS)) or TEMU_RESULTS_TTL_SECONDS))
+        except Exception as e:
+            _temu_runtime_flags["running"] = False
+            _update_temu_status(status="error", message="Temu-flips hit an error", last_error=str(e), running=False)
+            wait_time = 1800
+        time.sleep(wait_time)
+
+
+@app.on_event("startup")
+def start_temu_background_worker():
+    global _temu_thread, _temu_started
+    if os.getenv("TEMU_FLIPS_ENABLED", "true").lower() not in {"1", "true", "yes"}:
+        _update_temu_status(status="disabled", message="Temu-flips disabled")
+        _temu_runtime_flags["enabled"] = False
+        return
+    with _temu_lock:
+        if _temu_started:
+            return
+        _temu_started = True
+        _temu_runtime_flags["enabled"] = True
+        _temu_thread = threading.Thread(target=_temu_background_loop, daemon=True, name="clams-temu-worker")
+        _temu_runtime_flags["thread"] = _temu_thread
+        _temu_thread.start()
+
+
+
+def get_radar_dashboard_context(limit=4):
+    ctx = build_radar_page_context(limit=limit)
+    deals = ctx.get("radar_deals") or []
+    ctx["radar_has_hits"] = bool(deals)
+    ctx["radar_indicator_count"] = len(deals)
+    return ctx
 
 
 def _safe_float(value, default=0.0) -> float:
@@ -2086,18 +2136,13 @@ def _ensure_safe_item(item):
         "profit": 0.0,
         "roi": 0.0,
         "score": 0.0,
-    }
     for k, v in defaults.items():
         if item.get(k) is None:
             item[k] = v
     return item
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _temu_placeholder_item(message: str = "Temu-flips warming up") -> dict:
+    return {
         "title": "Temu-flips warming up",
         "label": "Temu-flips warming up",
         "query": message,
@@ -2129,15 +2174,72 @@ def get_temu(email: str = None):
         "google_search_url": "",
         "status": message,
         "placeholder": True,
-    }
 
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _normalize_temu_flip_item(item) -> dict:
+    if not isinstance(item, dict):
+        item = {"title": str(item or "Temu Flip")}
+
+    title = str(item.get("title") or item.get("label") or item.get("query") or "Temu Flip").strip() or "Temu Flip"
+
+    asking_price = _safe_float(
+        item.get("asking_price", item.get("buy_price", item.get("price", item.get("est_cost", 0.0))))
+    )
+
+    avg_sell_price = _safe_float(
+        item.get(
+            "average_sale_price",
+            item.get(
+                "avg_price",
+                item.get(
+                    "market_price",
+                    item.get(
+                        "market_value",
+                        item.get(
+                            "estimated_value",
+                            item.get("value", 0.0),
+                        ),
+                    ),
+                ),
+            ),
+        )
+    )
+
+    market_price = round(avg_sell_price, 2)
+
+    provided_fees = item.get("fees", item.get("estimated_fees"))
+    if provided_fees is None:
+        fees = round(market_price * 0.13, 2) if market_price > 0 else 0.0
+    else:
+        fees = _safe_float(provided_fees)
+
+    provided_shipping = item.get("shipping_cost", item.get("estimated_shipping"))
+    if provided_shipping is None:
+        if market_price <= 0:
+            shipping_cost = 0.0
+        elif market_price < 12:
+            shipping_cost = 2.99
+        elif market_price < 25:
+            shipping_cost = 4.25
+        else:
+            shipping_cost = 5.95
+    else:
+        shipping_cost = _safe_float(provided_shipping)
+
+    net_after_fees = round(_safe_float(item.get("net_after_fees", market_price - fees - shipping_cost)), 2)
+    profit = round(net_after_fees - asking_price, 2)
+    roi = round(((profit / asking_price) * 100.0), 1) if asking_price > 0 else 0.0
+
+    raw_sell_through = item.get("sell_through", item.get("sell_through_pct", 0))
+    sell_through = _safe_float(raw_sell_through)
+    if sell_through <= 1:
+        sell_through_pct = _safe_int(round(sell_through * 100))
+    else:
+        sell_through_pct = _safe_int(sell_through)
+
+    score = _safe_float(item.get("score", (max(profit, 0) * 2.0) + (sell_through_pct * 0.4)))
+
+    return {
         "title": title,
         "label": str(item.get("label") or title),
         "query": str(item.get("query") or item.get("title") or title),
@@ -2177,14 +2279,30 @@ def get_temu(email: str = None):
         "image": str(item.get("display_image") or item.get("image") or item.get("image_url") or _extract_listing_image(item) or "").strip() or _svg_placeholder_data_uri(title),
         "analyzer_query": str(item.get("query") or title),
         "timestamp": str(item.get("timestamp") or datetime.utcnow().isoformat()),
-    }
 
-def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+def _build_temu_route_items(max_items: int = 20):
+    fresh_items = [item for item in (_read_temu_results() or []) if isinstance(item, dict) and _temu_is_fresh(item)]
+    items = fresh_items
+    if not items:
+        try:
+            items = _run_temu_cycle()
+        except Exception as e:
+            _update_temu_status(status="error", message="Temu-flips failed to load", last_error=str(e), running=False)
+            items = []
+
+    if not items:
+        cached_items = [item for item in (_read_temu_results() or []) if isinstance(item, dict)]
+        if cached_items:
+            status = get_temu_status()
+            status["message"] = status.get("message") or "Showing last saved Temu-flips board"
+            status["using_cached_results"] = True
+            normalized = [_normalize_temu_flip_item(item) for item in cached_items if item]
+            normalized.sort(key=lambda x: (_safe_float(x.get("score", 0)), _safe_float(x.get("profit", 0)), _safe_int(x.get("sell_through", 0))), reverse=True)
+            normalized = normalized[:max_items]
+            for idx, item in enumerate(normalized, start=1):
+                item["rank"] = idx
+            if normalized:
+                return normalized, status
 
     normalized = [_normalize_temu_flip_item(item) for item in items if item]
     normalized.sort(key=lambda x: (_safe_float(x.get("score", 0)), _safe_float(x.get("profit", 0)), _safe_int(x.get("sell_through", 0))), reverse=True)
@@ -2201,12 +2319,10 @@ def get_temu(email: str = None):
 
 
 @app.get("/temu", response_class=HTMLResponse)
-async def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+async def temu_flips_page(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
 
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
@@ -2261,7 +2377,6 @@ async def get_temu(email: str = None):
         "locked_message": locked_message,
         "preview_count": min(admin_control.get("free_temu_preview_count", 2), all_count),
         "locked_count": max(0, all_count - len(visible_flips)),
-    }
 
     return templates.TemplateResponse(
         "temu_flips.html",
@@ -2285,12 +2400,45 @@ async def get_temu(email: str = None):
 
 
 @app.get("/api/radar/summary")
-async def radar_summary(email: str = None):
+async def api_radar_summary(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    radar_context = build_radar_page_context(limit=50)
+    radar_deals = radar_context.get("radar_deals", []) or []
+    radar_top_deals = radar_context.get("radar_top_deals", []) or []
+    radar_groups = radar_context.get("radar_groups", []) or []
+    radar_status = radar_context.get("radar_status", {}) or {}
+
     try:
-        with open("radar_results.json","r") as f:
-            return json.load(f)
-    except:
-        return {"deals": []}
+        temu_flips, temu_status = _build_temu_route_items(max_items=30)
+    except Exception as e:
+        temu_flips = [_normalize_temu_flip_item(_temu_placeholder_item("Temu-flips unavailable right now"))]
+        temu_status = get_temu_status()
+        temu_status["status"] = "error"
+        temu_status["message"] = "Temu-flips unavailable right now"
+        temu_status["last_error"] = str(e)
+
+    combined = []
+    for deal in radar_deals:
+        if isinstance(deal, dict):
+            current = dict(deal)
+            current.setdefault("board", "radar")
+            combined.append(current)
+    for flip in temu_flips:
+        if isinstance(flip, dict):
+            current = dict(flip)
+            current.setdefault("board", "temu")
+            combined.append(current)
+
+    combined.sort(
+        key=lambda x: (
+            float(x.get("score") or x.get("edge_score") or x.get("deal_score") or 0),
+            float(x.get("profit") or 0),
+            int(x.get("sell_through_pct") or x.get("sell_through") or 0),
+        ),
+        reverse=True,
+    )
+
+    return JSONResponse(
         {
             "ok": True,
             "email": email,
@@ -2306,7 +2454,6 @@ async def radar_summary(email: str = None):
             "combined_count": len(combined),
             "combined_deals": combined[:50],
             "updated_at": datetime.utcnow().isoformat(),
-        }
     )
 
 
@@ -2318,12 +2465,9 @@ def _safe_len(x):
     except Exception:
         return 0
 
-def get_temu(email: str = None):
+def _get_temu_results_safe():
     try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+        return _read_temu_results()
     except Exception:
         return []
 
@@ -2343,7 +2487,6 @@ def _get_seen_counts_safe():
                 "links": len(links),
                 "fingerprints": len(fingerprints),
                 "titles": len(titles),
-            }
     return {"total": 0, "links": 0, "fingerprints": 0, "titles": 0}
 
 def _get_managed_users_safe():
@@ -2420,7 +2563,6 @@ async def admin_page(request: Request, email: str = ""):
 
         "seen_counts": seen_counts,
         "managed_users": managed_users,
-    }
 
     return templates.TemplateResponse("admin_panel.html", context)
 
@@ -2445,12 +2587,10 @@ async def toggle_radar(request: Request, email: str = Form("")):
 
 
 @app.post("/admin/toggle-temu-scan")
-async def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+async def toggle_temu_scan(request: Request, email: str = Form("")):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
     user = ensure_user_exists(email)
     if not user.get("is_admin"):
         return RedirectResponse(f"/app?email={email}", status_code=303)
@@ -2491,21 +2631,15 @@ async def get_temu(email: str = None):
 
 
 @app.post("/admin/run-temu-scan")
-async def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+async def run_temu_scan(request: Request, email: str = Form("")):
+    return await toggle_temu_scan(request, email)
 
 
 @app.post("/admin/stop-temu-scan")
-async def get_temu(email: str = None):
-    try:
-        with open("temu_flips_results.json","r") as f:
-            return json.load(f)
-    except:
-        return []
+async def stop_temu_scan(request: Request, email: str = Form("")):
+    email = get_request_email(request, email)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
     user = ensure_user_exists(email)
     if not user.get("is_admin"):
         return RedirectResponse(f"/app?email={email}", status_code=303)
