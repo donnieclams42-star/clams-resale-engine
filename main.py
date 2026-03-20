@@ -1335,8 +1335,29 @@ async def _render_dashboard_analysis(request: Request, email: str, query: str, c
             },
         )
     user = update_user_record(email, {"search_count": user["search_count"] + 1, "search_reset_date": str(date.today())})
-    try:
-        sold_prices, active_prices, suggestions, listing = search_ebay(query)
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "data": None,
+            "generated_listings": None,
+            "listing": None,
+            "email": email,
+            "search_count": user["search_count"],
+            "user_settings": user["settings"],
+            "user": user,
+            "free_limit": FREE_LIMIT,
+            "pro_price": PRO_PRICE,
+            "reseller_price": RESELLER_PRICE,
+            "error": "Analyze temporarily disabled for stability",
+            **get_radar_dashboard_context(),
+            **plan_ui,
+        },
+    )
+
+    # original analyze disabled
+    # try:
+    #     sold_prices, active_prices, suggestions, listing = search_ebay(query)
         data = analyze_market(sold_prices, active_prices, condition, profit / 100, local_factor / 100, None)
         if not data:
             return templates.TemplateResponse(
@@ -1415,8 +1436,8 @@ async def app_page(request: Request, email: str = "", query: str = ""):
     email = get_request_email(request, email)
     if not email:
         return RedirectResponse("/login", status_code=303)
-    if (query or "").strip():
-        return await _render_dashboard_analysis(request, email, query=query, condition="A")
+    if False:
+        pass  # disabled blocking analyze
 
     user = ensure_user_exists(email)
     user = ensure_daily_reset(user)
@@ -1549,8 +1570,29 @@ async def analyze(
         },
     )
 
-    try:
-        sold_prices, active_prices, suggestions, listing = search_ebay(query)
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "data": None,
+            "generated_listings": None,
+            "listing": None,
+            "email": email,
+            "search_count": user["search_count"],
+            "user_settings": user["settings"],
+            "user": user,
+            "free_limit": FREE_LIMIT,
+            "pro_price": PRO_PRICE,
+            "reseller_price": RESELLER_PRICE,
+            "error": "Analyze temporarily disabled for stability",
+            **get_radar_dashboard_context(),
+            **plan_ui,
+        },
+    )
+
+    # original analyze disabled
+    # try:
+    #     sold_prices, active_prices, suggestions, listing = search_ebay(query)
         data = analyze_market(sold_prices, active_prices, condition, profit / 100, local_factor / 100, asking_price)
 
         if not data:
