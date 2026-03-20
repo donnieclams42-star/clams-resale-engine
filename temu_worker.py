@@ -1,6 +1,7 @@
 
 import time
 import json
+import random
 from datetime import datetime
 from temu_scanner import fetch_temu_items
 
@@ -17,6 +18,7 @@ def start_temu_worker(seed_items):
     print("[TEMU] Worker started")
 
     last_good = []
+    last_queries = {}
 
     while True:
         if _runtime.get("stop_requested"):
@@ -24,7 +26,23 @@ def start_temu_worker(seed_items):
             break
 
         try:
-            results = fetch_temu_items(seed_items=seed_items)
+            # simple cache control (per query cooldown)
+            filtered_seed = []
+            now = time.time()
+
+            for item in (seed_items or []):
+                query = (item.get("query") or item.get("label") or item.get("title") or "").strip()
+                last_time = last_queries.get(query, 0)
+
+                # 10 minute cooldown per query
+                if now - last_time > 600:
+                    filtered_seed.append(item)
+                    last_queries[query] = now
+
+            if not filtered_seed:
+                filtered_seed = seed_items
+
+            results = fetch_temu_items(seed_items=filtered_seed)
 
             if results:
                 last_good = results
@@ -42,4 +60,7 @@ def start_temu_worker(seed_items):
         except Exception as e:
             print("[TEMU ERROR]", e)
 
-        time.sleep(60)
+        # randomized delay (90–180 seconds)
+        sleep_time = random.randint(90, 180)
+        print(f"[TEMU] Sleeping {sleep_time}s")
+        time.sleep(sleep_time)
