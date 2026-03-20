@@ -1,4 +1,4 @@
-from temu_scanner import fetch_temu_items, build_temu_seed_items
+from temu_scanner import fetch_temu_items
 from typing import List, Optional
 import os
 import re
@@ -1966,7 +1966,20 @@ def _set_admin_control(data: dict):
 
 
 def _temu_seed_items():
-    return build_temu_seed_items()
+    return [
+        {"query": "led strip lights kit", "label": "LED Light Kits", "category": "home gadgets"},
+        {"query": "magnetic phone mount", "label": "Phone Mounts", "category": "car gadgets"},
+        {"query": "car organizer seat gap", "label": "Car Organizers", "category": "car gadgets"},
+        {"query": "usb desk fan mini", "label": "Mini Gadgets", "category": "home gadgets"},
+        {"query": "pet grooming glove", "label": "Pet Items", "category": "pet"},
+        {"query": "silicone air fryer liners", "label": "Kitchen Gadgets", "category": "kitchen"},
+        {"query": "makeup brush cleaner bowl", "label": "Beauty Tools", "category": "beauty"},
+        {"query": "portable vacuum cleaner mini", "label": "Portable Gadgets", "category": "home gadgets"},
+        {"query": "under cabinet lights motion sensor", "label": "Lighting", "category": "home gadgets"},
+        {"query": "drawer organizer set", "label": "Organizers", "category": "home gadgets"},
+        {"query": "resistance bands set", "label": "Fitness Accessories", "category": "fitness"},
+        {"query": "cable clips organizer", "label": "Desk Accessories", "category": "office"},
+    ]
 
 
 def _looks_like_temu_flip_title(title: str) -> bool:
@@ -2036,19 +2049,24 @@ def _build_temu_flip_from_query(seed: dict):
 
 
 def _run_temu_cycle():
+    items = []
     control = _get_admin_control()
     if not control.get("temu_flips_enabled", True):
         _update_temu_status(status="paused", message="Temu-flips disabled from admin control", running=False)
         return _read_temu_results()
     _temu_runtime_flags["stop_requested"] = False
     _temu_runtime_flags["running"] = True
-    try:
-        items = fetch_temu_items(_temu_seed_items(), should_continue=lambda: not _temu_runtime_flags.get("stop_requested") and _temu_runtime_flags.get("enabled", True))
-    except Exception as e:
-        _temu_runtime_flags["running"] = False
-        _update_temu_status(status="error", message="Temu-flips scan failed", last_error=str(e), running=False)
-        return _read_temu_results()
-    merged_items = _merge_temu_results(items or [])
+    for seed in _temu_seed_items():
+        if _temu_runtime_flags.get("stop_requested") or not _temu_runtime_flags.get("enabled", True):
+            break
+        try:
+            item = _build_temu_flip_from_query(seed)
+            if item:
+                item.setdefault("timestamp", datetime.utcnow().isoformat())
+                items.append(item)
+        except Exception:
+            continue
+    merged_items = _merge_temu_results(items)
     _temu_runtime_flags["running"] = False
     _update_temu_status(
         status="live" if not _temu_runtime_flags.get("stop_requested") else "paused",
@@ -2069,7 +2087,7 @@ def _temu_background_loop():
         try:
             _update_temu_status(status="scanning", message="Scanning Temu-flips candidates...", running=True)
             _run_temu_cycle()
-            wait_time = max(86400, int(os.getenv("TEMU_FLIPS_INTERVAL", "86400") or 86400))
+            wait_time = max(TEMU_RESULTS_TTL_SECONDS, int(os.getenv("TEMU_FLIPS_INTERVAL", str(TEMU_RESULTS_TTL_SECONDS)) or TEMU_RESULTS_TTL_SECONDS))
         except Exception as e:
             _temu_runtime_flags["running"] = False
             _update_temu_status(status="error", message="Temu-flips hit an error", last_error=str(e), running=False)
