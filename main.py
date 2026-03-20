@@ -2391,6 +2391,66 @@ async def temu_flips_page(request: Request, email: str = ""):
     )
 
 
+@app.get("/api/radar/summary")
+async def api_radar_summary(request: Request, email: str = ""):
+    email = get_request_email(request, email)
+    radar_context = build_radar_page_context(limit=50)
+    radar_deals = radar_context.get("radar_deals", []) or []
+    radar_top_deals = radar_context.get("radar_top_deals", []) or []
+    radar_groups = radar_context.get("radar_groups", []) or []
+    radar_status = radar_context.get("radar_status", {}) or {}
+
+    try:
+        temu_flips, temu_status = _build_temu_route_items(max_items=30)
+    except Exception as e:
+        temu_flips = [_normalize_temu_flip_item(_temu_placeholder_item("Temu-flips unavailable right now"))]
+        temu_status = get_temu_status()
+        temu_status["status"] = "error"
+        temu_status["message"] = "Temu-flips unavailable right now"
+        temu_status["last_error"] = str(e)
+
+    combined = []
+    for deal in radar_deals:
+        if isinstance(deal, dict):
+            current = dict(deal)
+            current.setdefault("board", "radar")
+            combined.append(current)
+    for flip in temu_flips:
+        if isinstance(flip, dict):
+            current = dict(flip)
+            current.setdefault("board", "temu")
+            combined.append(current)
+
+    combined.sort(
+        key=lambda x: (
+            float(x.get("score") or x.get("edge_score") or x.get("deal_score") or 0),
+            float(x.get("profit") or 0),
+            int(x.get("sell_through_pct") or x.get("sell_through") or 0),
+        ),
+        reverse=True,
+    )
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "email": email,
+            "radar_status": radar_status,
+            "radar_count": len(radar_deals),
+            "radar_top_count": len(radar_top_deals),
+            "radar_deals": radar_deals,
+            "radar_top_deals": radar_top_deals,
+            "radar_groups": radar_groups,
+            "temu_status": temu_status,
+            "temu_count": len(temu_flips),
+            "temu_flips": temu_flips,
+            "combined_count": len(combined),
+            "combined_deals": combined[:50],
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+    )
+
+
+
 # ---------- ADMIN HELPERS (SAFE DEFAULTS) ----------
 def _safe_len(x):
     try:
