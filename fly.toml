@@ -1,0 +1,37 @@
+app = "market-radar"
+primary_region = "ewr"
+
+[env]
+PORT = "10000"
+RADAR_CACHE_DIR = "/data/cache"
+APIFY_FB_MARKETPLACE_ACTOR = "datascrapers/facebook-marketplace"
+MARKETPLACE_DEFAULT_LOCATION = "Atlantic City, New Jersey"
+MARKET_RADAR_DEFAULT_LOCATION = "Atlantic City, New Jersey"
+MARKETPLACE_ENABLE_SCHEDULER = "0"
+MARKETPLACE_SCANNER_SCHEDULER = "0"
+MARKETPLACE_ALLOW_FALLBACK = "0"
+
+[[mounts]]
+source = "market_radar_data"
+destination = "/data"
+
+[http_service]
+internal_port = 10000
+force_https = true
+auto_stop_machines = false
+auto_start_machines = true
+min_machines_running = 1
+processes = ["app"]
+
+[[http_service.checks]]
+interval = "15s"
+timeout = "5s"
+grace_period = "90s"
+method = "GET"
+path = "/health"
+
+[[vm]]
+memory = "1gb"
+cpus = 1
+memory_mb = 1024
+
