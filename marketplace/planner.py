@@ -12,11 +12,13 @@ from marketplace.store import (
     active_run_for_target,
     create_scan_run,
     due_targets,
+    due_targets_for_market,
     finish_run,
     list_targets,
     mark_run_started,
     record_target_failure,
     row_to_target,
+    running_discovery_run,
 )
 
 logger = logging.getLogger("market_radar.marketplace")
@@ -38,6 +40,13 @@ async def start_target_run(target: ScanTarget, *, config: MarketplaceConfig | No
     cfg = config or get_config()
     if not cfg.scanner_enabled:
         return {"ok": False, "error": "scanner_disabled", "message": "Marketplace Scanner paused"}
+    try:
+        from dealbrain.spend import can_spend_apify
+        ok, reason, spent = can_spend_apify(0.05)
+        if not ok:
+            return {"ok": False, "error": reason, "message": f"First Profit Apify daily cap reached (${spent:.2f})", "spend_blocked": True}
+    except Exception:
+        pass
     if not provider_enabled(target.provider, cfg):
         return {"ok": False, "error": "provider_disabled", "message": "Marketplace provider disabled"}
     ok, reason = can_start_target(target)
@@ -120,18 +129,79 @@ async def start_canary_runs(
     return {"ok": True, "started": started, "skipped": skipped, "count": len(started)}
 
 
+def _prefer_treasure_slot() -> bool:
+    try:
+        from dealbrain.spend import facebook_runs_today
+        return facebook_runs_today() % 5 == 4
+    except Exception:
+        return False
+
+
+def _next_staggered_target(protect_core: bool = False) -> dict[str, Any]:
+    from marketplace.catalog import LEVEL1_PROTECTED_MARKET_IDS, first_profit_level1_markets
+    from dealbrain.spend import last_facebook_market
+
+    groups = [row["id"] for row in first_profit_level1_markets()]
+    if protect_core:
+        groups = [mid for mid in groups if mid in LEVEL1_PROTECTED_MARKET_IDS] or groups
+    last = last_facebook_market()
+    start = 0
+    if last in groups:
+        start = (groups.index(last) + 1) % len(groups)
+    prefer_treasure = _prefer_treasure_slot()
+    for offset in range(len(groups)):
+        market_id = groups[(start + offset) % len(groups)]
+        if prefer_treasure:
+            treasure = due_targets_for_market(market_id, limit=1, cadence="TREASURE")
+            if treasure:
+                return treasure[0]
+        precision = due_targets_for_market(market_id, limit=1, cadence="PRECISION")
+        if precision:
+            return precision[0]
+        rows = due_targets_for_market(market_id, limit=1)
+        if rows:
+            return rows[0]
+    fallback = due_targets(limit=1)
+    return fallback[0] if fallback else {}
+
+
 async def planner_tick(config: MarketplaceConfig | None = None) -> dict[str, Any]:
     cfg = config or get_config()
     if not cfg.scanner_enabled or not cfg.scheduler_enabled:
         return {"ok": True, "skipped": True, "reason": "scheduler_disabled"}
     if not cfg.apify_configured and cfg.primary_provider != "mock":
         return {"ok": True, "skipped": True, "reason": "not_configured"}
-    started = []
-    for row in due_targets(limit=1):
-        target = row_to_target(row)
-        jitter = random.randint(0, max(0, cfg.jitter_seconds))
-        if jitter:
-            logger.info("MARKETPLACE_PLANNER_JITTER target=%s seconds=%s", target.id, jitter)
-        result = await start_target_run(target, config=cfg)
-        started.append(result)
-    return {"ok": True, "started": started}
+    if cfg.allow_fallback:
+        cfg = replace(cfg, allow_fallback=False)
+    if running_discovery_run():
+        return {"ok": True, "skipped": True, "reason": "run_in_flight"}
+    from marketplace.catalog import ESTIMATED_APIFY_USD_PER_RUN, LEVEL1_PROTECTED_MARKET_IDS
+    mark_facebook_level1_start = None
+    ok, reason, meta = True, "ok", {}
+    try:
+        from dealbrain.spend import can_start_facebook_run, mark_facebook_level1_start as _mark_start
+        mark_facebook_level1_start = _mark_start
+        ok, reason, meta = can_start_facebook_run(ESTIMATED_APIFY_USD_PER_RUN)
+        if not ok:
+            logger.info("MARKETPLACE_PLANNER_BLOCKED reason=%s", reason)
+            return {"ok": True, "skipped": True, "reason": reason, "spend": meta}
+    except Exception:
+        mark_facebook_level1_start = None
+        ok, reason, meta = True, "ok", {}
+    protect = bool((meta or {}).get("protect_core_regions"))
+    row = _next_staggered_target(protect_core=protect)
+    if not row:
+        return {"ok": True, "skipped": True, "reason": "no_due_targets"}
+    if protect and str(row.get("market_id") or "") not in LEVEL1_PROTECTED_MARKET_IDS:
+        return {"ok": True, "skipped": True, "reason": "protect_core_regions"}
+    target = row_to_target(row)
+    jitter = random.randint(0, max(0, min(cfg.jitter_seconds, 8)))
+    if jitter:
+        logger.info("MARKETPLACE_PLANNER_JITTER target=%s seconds=%s", target.id, jitter)
+    result = await start_target_run(target, config=cfg)
+    if result.get("ok") and mark_facebook_level1_start:
+        try:
+            mark_facebook_level1_start(target.market_id)
+        except Exception:
+            pass
+    return {"ok": True, "started": [result], "stagger_market": target.market_id}

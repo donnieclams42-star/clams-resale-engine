@@ -110,6 +110,13 @@ async def marketplace_canary(request: Request, background: BackgroundTasks):
         return JSONResponse({"ok": False, "error": "not_configured", "message": "Marketplace Scanner not configured"}, status_code=400)
     if not cfg.scanner_enabled:
         return JSONResponse({"ok": False, "error": "paused", "message": "Marketplace Scanner paused"}, status_code=400)
+    try:
+        from dealbrain.spend import can_spend_apify
+        ok, reason, spent = can_spend_apify(0.05)
+        if not ok:
+            return JSONResponse({"ok": False, "error": reason, "message": f"First Profit Apify daily cap reached (${spent:.2f})"}, status_code=429)
+    except Exception:
+        pass
     payload: dict[str, Any] = {}
     try:
         payload = await request.json()

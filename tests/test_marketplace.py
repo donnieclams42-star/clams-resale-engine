@@ -17,7 +17,7 @@ from marketplace.identity import identify_product
 from marketplace.ingest import ingest_dataset, mark_provider_failure
 from marketplace.models import ScanTarget
 from marketplace.normalize import canonical_facebook_url, extract_listing_id, listing_id_from_url, normalize_provider_item, parse_currency, parse_price
-from marketplace.planner import can_start_target, start_canary_runs
+from marketplace.planner import can_start_target, planner_tick, start_canary_runs
 from marketplace.providers.mock import MockMarketplaceProvider
 from marketplace.providers.k1ra import K1raMarketplaceProvider
 from marketplace.providers.rigelbytes import RigelBytesMarketplaceProvider
@@ -26,12 +26,16 @@ from marketplace.stage1 import evaluate_stage1
 from marketplace.store import (
     active_run_for_target,
     create_scan_run,
+    enable_first_profit_level1_targets,
+    finish_run,
     get_run,
     listing_by_hard,
     list_feed,
+    list_targets,
     mark_run_started,
     record_target_failure,
     remember_webhook,
+    row_to_target,
     seed_defaults,
     set_db_path,
     upsert_listing,
@@ -191,6 +195,14 @@ class MarketplaceTests(unittest.TestCase):
         self.assertEqual(rental["stage1_status"], "REJECT")
         case_only = evaluate_stage1({"title": "iPhone 15 Pro case only", "asking_price": 10, "lifecycle_status": "NEW"}, _target().to_dict())
         self.assertEqual(case_only["stage1_status"], "REJECT")
+        box_only = evaluate_stage1({"title": "iPhone 15 Pro box only", "asking_price": 20, "lifecycle_status": "NEW"}, _target().to_dict())
+        self.assertEqual(box_only["stage1_status"], "REJECT")
+        deposit = evaluate_stage1({"title": "iPhone 15 Pro $50 deposit", "asking_price": 50, "lifecycle_status": "NEW"}, _target().to_dict())
+        self.assertEqual(deposit["stage1_status"], "REJECT")
+        auction = evaluate_stage1({"title": "iPhone 15 Pro 256", "asking_price": 200, "lifecycle_status": "NEW", "buying_options": ["AUCTION"]}, _target().to_dict())
+        self.assertEqual(auction["stage1_status"], "REJECT")
+        locked = evaluate_stage1({"title": "iPhone 15 Pro activation locked", "asking_price": 180, "lifecycle_status": "NEW"}, _target().to_dict())
+        self.assertEqual(locked["stage1_status"], "CANDIDATE")
         ceiling = evaluate_stage1({"title": "iPhone 15 Pro Max unlocked", "asking_price": 1200, "lifecycle_status": "NEW"}, _target(maximum_price=700).to_dict())
         self.assertEqual(ceiling["stage1_status"], "REJECT")
         seen = evaluate_stage1({"title": "iPhone 15 Pro", "asking_price": 300, "lifecycle_status": "SEEN"}, _target().to_dict())
@@ -213,7 +225,8 @@ class MarketplaceTests(unittest.TestCase):
         self.assertNotEqual(identify_product("RTX 4070")["candidate_model"], identify_product("RTX 4070 SUPER")["candidate_model"])
         self.assertEqual(identify_product("Nintendo Switch OLED white")["candidate_model"], "Nintendo Switch OLED")
         self.assertEqual(identify_product("Nintendo Switch Lite")["candidate_model"], "Nintendo Switch Lite")
-        self.assertEqual(identify_product("Nintendo Switch console")["identity_confidence"], "FAMILY_ONLY")
+        self.assertEqual(identify_product("Nintendo Switch console")["candidate_model"], "Nintendo Switch")
+        self.assertEqual(identify_product("Nintendo Switch OLED")["candidate_model"], "Nintendo Switch OLED")
         self.assertEqual(identify_product("NES Classic Edition")["candidate_model"], "NES Classic Edition")
         self.assertEqual(identify_product("Original NES console")["candidate_model"], "NES")
         self.assertEqual(identify_product("MacBook Pro 2019 Intel i7")["candidate_model"], "MacBook Intel")
@@ -341,6 +354,131 @@ class MarketplaceTests(unittest.TestCase):
         self.assertEqual(result["started"][0]["query"], "iphone 15 pro")
         self.assertEqual(result["started"][0]["market_id"], "philadelphia")
         self.assertEqual(len(result["started"]), 1)
+
+    def test_level1_cells_queries_caps_and_k1ra_disabled(self):
+        from marketplace.catalog import (
+            FIRST_PROFIT_LEVEL1_MARKETS,
+            FIRST_PROFIT_TREASURE,
+            FIRST_PROFIT_WATCHLIST,
+            PRECISION_CADENCE_MINUTES,
+            PRECISION_RESULT_LIMIT,
+            TREASURE_CADENCE_HOURS,
+            TREASURE_RESULT_LIMIT,
+        )
+        from marketplace.models import CADENCE_SECONDS
+        self.assertEqual([row["id"] for row in FIRST_PROFIT_LEVEL1_MARKETS], ["south-jersey", "philadelphia", "trenton", "newark"])
+        self.assertEqual(FIRST_PROFIT_LEVEL1_MARKETS[0]["radius_miles"], 70)
+        self.assertEqual(FIRST_PROFIT_LEVEL1_MARKETS[1]["radius_miles"], 55)
+        self.assertEqual(len(FIRST_PROFIT_WATCHLIST), 25)
+        self.assertEqual(len(FIRST_PROFIT_TREASURE), 11)
+        self.assertFalse(any("camera" in row["query"] for row in FIRST_PROFIT_WATCHLIST))
+        self.assertEqual(PRECISION_RESULT_LIMIT, 12)
+        self.assertEqual(TREASURE_RESULT_LIMIT, 15)
+        self.assertEqual(PRECISION_CADENCE_MINUTES, 40)
+        self.assertEqual(TREASURE_CADENCE_HOURS, 3)
+        self.assertEqual(CADENCE_SECONDS["PRECISION"], 40 * 60)
+        self.assertEqual(CADENCE_SECONDS["TREASURE"], 3 * 60 * 60)
+        summary = enable_first_profit_level1_targets("rigelbytes")
+        self.assertEqual(summary["precision_targets"], 100)
+        self.assertEqual(summary["treasure_targets"], 44)
+        self.assertEqual(summary["markets"], ["south-jersey", "philadelphia", "trenton", "newark"])
+        enabled = list_targets(enabled_only=True)
+        self.assertEqual(len(enabled), 144)
+        self.assertTrue(all(row.get("provider") == "rigelbytes" for row in enabled))
+        k1ra = [row for row in list_targets() if row.get("provider") == "k1ra"]
+        self.assertTrue(k1ra)
+        self.assertTrue(all(int(row.get("enabled") or 0) == 0 for row in k1ra))
+
+    def test_overlap_keeps_home_market_and_first_seen(self):
+        listing = normalize_provider_item(_raw(), watch={"market_id": "philadelphia", "query": "iphone 15 pro"})
+        saved, life, is_new = upsert_listing(listing, "run-phl")
+        self.assertTrue(is_new)
+        self.assertEqual(life, "NEW")
+        self.assertEqual(saved["market_id"], "philadelphia")
+        first_seen = saved["first_seen_at"]
+        self.assertTrue(first_seen)
+        self.assertEqual(listing["listing_created_at"], "2026-09-10T09:00:00+00:00")
+        self.assertNotEqual(first_seen, listing["listing_created_at"])
+        again = normalize_provider_item(_raw(), watch={"market_id": "south-jersey", "query": "iphone 15 pro"})
+        saved2, life2, is_new2 = upsert_listing(again, "run-sj")
+        self.assertFalse(is_new2)
+        self.assertEqual(life2, "SEEN")
+        self.assertEqual(saved2["id"], saved["id"])
+        self.assertEqual(saved2["market_id"], "philadelphia")
+        self.assertEqual(saved2["first_seen_at"], first_seen)
+
+    def test_seen_skips_deep_analyze_price_drop_reanalyzes(self):
+        enable_first_profit_level1_targets("mock")
+        row = next(
+            item for item in list_targets(enabled_only=True)
+            if item["query"] == "iphone 15 pro" and item["market_id"] == "philadelphia"
+        )
+        target = row_to_target(row)
+        with patch("marketplace.ingest._maybe_analyze_candidate", return_value="WATCH") as mocked:
+            provider = MockMarketplaceProvider([_raw()])
+            run_id = create_scan_run(target, stage="discovery", provider="mock")
+            started = asyncio.run(provider.start_discovery_run(target))
+            mark_run_started(run_id, apify_run_id=started.run_id, dataset_id=started.dataset_id, status="RUNNING")
+            asyncio.run(ingest_dataset(run_id=run_id, provider=provider, dataset_id=started.dataset_id, apify_run_id=started.run_id, config=_cfg(stage2_max_per_run=0)))
+            self.assertGreaterEqual(mocked.call_count, 1)
+            mocked.reset_mock()
+            seen_run = create_scan_run(target, stage="discovery", provider="mock")
+            seen_started = asyncio.run(provider.start_discovery_run(target))
+            mark_run_started(seen_run, apify_run_id=seen_started.run_id, dataset_id=seen_started.dataset_id, status="RUNNING")
+            asyncio.run(ingest_dataset(run_id=seen_run, provider=provider, dataset_id=seen_started.dataset_id, apify_run_id=seen_started.run_id, config=_cfg(stage2_max_per_run=0)))
+            self.assertEqual(mocked.call_count, 0)
+            drop_provider = MockMarketplaceProvider([_raw(priceAmount=200, price="$200")])
+            drop_run = create_scan_run(target, stage="discovery", provider="mock")
+            drop_started = asyncio.run(drop_provider.start_discovery_run(target))
+            mark_run_started(drop_run, apify_run_id=drop_started.run_id, dataset_id=drop_started.dataset_id, status="RUNNING")
+            asyncio.run(ingest_dataset(run_id=drop_run, provider=drop_provider, dataset_id=drop_started.dataset_id, apify_run_id=drop_started.run_id, config=_cfg(stage2_max_per_run=0)))
+            self.assertGreaterEqual(mocked.call_count, 1)
+
+    def test_discovery_live_when_old_detail_failed(self):
+        target = _target()
+        discovery_id = create_scan_run(target, stage="discovery", provider="mock")
+        finish_run(discovery_id, status="SUCCEEDED", raw_row_count=8, unique_count=5, candidate_count=2)
+        detail_id = create_scan_run({"id": "stage2"}, stage="detail", provider="mock")
+        finish_run(detail_id, status="FAILED", error_code="provider_error", error_message="detail failed")
+        from marketplace.status import scanner_status
+        with patch("marketplace.status.get_config", return_value=_cfg(primary_provider="mock")):
+            status = scanner_status()
+        self.assertEqual(status["discovery_health"], "LIVE")
+        self.assertEqual(status["detail_health"], "DEGRADED")
+        self.assertEqual(status["operational"], "LIVE")
+        self.assertNotEqual(status["operational"], "DEGRADED")
+
+    def test_facebook_run_and_spend_caps_block_planner(self):
+        cfg = _cfg(scheduler_enabled=True, primary_provider="mock")
+        with patch("dealbrain.spend.can_start_facebook_run", return_value=(False, "facebook_daily_run_cap", {"runs": 30, "run_cap": 30})):
+            blocked = asyncio.run(planner_tick(cfg))
+        self.assertTrue(blocked.get("skipped"))
+        self.assertEqual(blocked.get("reason"), "facebook_daily_run_cap")
+        with patch("dealbrain.spend.can_start_facebook_run", return_value=(False, "apify_daily_cap", {"spent": 0.50, "cap": 0.50})):
+            spent_out = asyncio.run(planner_tick(cfg))
+        self.assertTrue(spent_out.get("skipped"))
+        self.assertEqual(spent_out.get("reason"), "apify_daily_cap")
+
+    def test_level1_hard_cap_is_fifty_cents_and_protects_core(self):
+        from dataclasses import replace
+        from dealbrain.config import get_config
+        from dealbrain.spend import can_start_facebook_run
+        cfg = replace(get_config(), first_profit_apify_daily_cap_usd=0.50, level1_max_fb_runs_per_day=30, level1_max_provider_dollars_per_day=3.0)
+        self.assertEqual(cfg.apify_daily_cap_usd(), 0.50)
+        with patch("dealbrain.spend.get_config", return_value=cfg):
+            with patch("dealbrain.spend.apify_spend_today", return_value=0.40), patch("dealbrain.spend.facebook_runs_today", return_value=12):
+                ok, reason, meta = can_start_facebook_run(0.016)
+                self.assertTrue(ok)
+                self.assertEqual(reason, "ok")
+                self.assertTrue(meta["protect_core_regions"])
+            with patch("dealbrain.spend.apify_spend_today", return_value=0.49), patch("dealbrain.spend.facebook_runs_today", return_value=12):
+                ok, reason, meta = can_start_facebook_run(0.016)
+                self.assertFalse(ok)
+                self.assertEqual(reason, "apify_daily_cap")
+            with patch("dealbrain.spend.apify_spend_today", return_value=0.10), patch("dealbrain.spend.facebook_runs_today", return_value=30):
+                ok, reason, meta = can_start_facebook_run(0.016)
+                self.assertFalse(ok)
+                self.assertEqual(reason, "facebook_daily_run_cap")
 
 
 if __name__ == "__main__":

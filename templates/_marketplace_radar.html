@@ -1,0 +1,201 @@
+<section class="radar-card" id="marketplace-status">
+  <div class="radar-hero" style="margin-bottom:10px;">
+    <div>
+      <div class="section-kicker">First Profit Mode</div>
+      <h2 class="radar-title" style="font-size:22px;">Best current opportunities</h2>
+      <p class="radar-copy">{{ mp_message or 'Open a listing, check the spread, decide whether to buy.' }}</p>
+    </div>
+    {% if user.is_admin %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="radar-btn" type="button" id="mp-canary-btn" onclick="runMarketplaceCanary()">FB precision run</button>
+      <button class="radar-btn soft" type="button" id="ebay-canary-btn" onclick="runEbayCanary()">eBay precision run</button>
+      <button class="radar-btn soft" type="button" id="mp-test-sms-btn" onclick="testMarketplaceSms()">Test SMS</button>
+    </div>
+    {% endif %}
+  </div>
+  <div class="radar-status-grid">
+    <div class="radar-stat"><div class="radar-stat-label">FIRST PROFIT</div><div class="radar-stat-value" style="font-size:16px;">{{ first_profit_mode or 'READY' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Scale</div><div class="radar-stat-value" style="font-size:16px;">{{ scale_level or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Facebook</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_discovery_health or mp_scanner.operational or mp_status.operational or 'idle' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">FB Level</div><div class="radar-stat-value" style="font-size:16px;">{{ facebook_level or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">FB markets</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_markets_active or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Precision / Treasure</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_precision_targets or 0 }} / {{ fb_treasure_targets or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">FB runs today</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_runs_today or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Seen / unique today</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_listings_seen_today or 0 }} / {{ fb_unique_listings_today or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Candidates today</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_candidates_today or mp_counts.stage1_candidates or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">FB detail</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_detail_health or 'IDLE' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">eBay</div><div class="radar-stat-value" style="font-size:16px;">{{ db_status.operational or 'idle' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">MONSTER</div><div class="radar-stat-value">{{ mp_counts.monster or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">HOT</div><div class="radar-stat-value">{{ mp_counts.hot or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">STRONG</div><div class="radar-stat-value">{{ mp_counts.strong or mp_counts.buy or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Apify today</div><div class="radar-stat-value" style="font-size:13px;">${{ '%.2f'|format(first_profit_spend.apify_spend_today or 0) }} / ${{ '%.2f'|format(apify_daily_cap_usd or 0.25) }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">eBay calls</div><div class="radar-stat-value" style="font-size:13px;">{{ first_profit_spend.ebay_calls_today or 0 }} / {{ first_profit_spend.ebay_call_cap or 40 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">SMS</div><div class="radar-stat-value" style="font-size:13px;">{% if alert_dry_run %}Dry run{% elif mp_twilio_ok %}Ready{% else %}Off{% endif %}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">PriceCharting</div><div class="radar-stat-value" style="font-size:13px;">{{ pricecharting.status or 'ON HOLD' }}</div></div>
+  </div>
+</section>
+
+<section class="radar-card" id="marketplace-feed">
+  <div class="section-kicker">First Profit feed</div>
+  <form class="form-grid" method="get" action="/radar" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));margin-bottom:12px;">
+    {% if email %}<input type="hidden" name="email" value="{{ email }}">{% endif %}
+    <div><label class="radar-label">Mode</label>
+      <select class="radar-field" name="mp_mode">
+        <option value="first_profit" {% if mp_filters.mode!='all' %}selected{% endif %}>First Profit</option>
+        <option value="all" {% if mp_filters.mode=='all' %}selected{% endif %}>All classes</option>
+      </select>
+    </div>
+    <div><label class="radar-label">Class</label>
+      <select class="radar-field" name="mp_class">
+        <option value="">MONSTER / HOT / STRONG</option>
+        {% for klass in ['MONSTER','HOT','STRONG','WATCH','RISK'] %}
+        <option value="{{ klass }}" {% if mp_filters.classification==klass %}selected{% endif %}>{{ klass }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div><label class="radar-label">Source</label>
+      <select class="radar-field" name="mp_source">
+        <option value="">All</option>
+        <option value="facebook_marketplace" {% if mp_filters.source=='facebook_marketplace' %}selected{% endif %}>Facebook</option>
+        <option value="ebay" {% if mp_filters.source=='ebay' %}selected{% endif %}>eBay</option>
+      </select>
+    </div>
+    <div><label class="radar-label">Sort</label>
+      <select class="radar-field" name="mp_sort">
+        <option value="best" {% if mp_filters.sort=='best' %}selected{% endif %}>Dollar profit first</option>
+        <option value="newest" {% if mp_filters.sort=='newest' %}selected{% endif %}>Newest</option>
+        <option value="profit" {% if mp_filters.sort=='profit' %}selected{% endif %}>Profit</option>
+        <option value="roi" {% if mp_filters.sort=='roi' %}selected{% endif %}>ROI</option>
+        <option value="price_drop" {% if mp_filters.sort=='price_drop' %}selected{% endif %}>Price drops</option>
+      </select>
+    </div>
+    <div><button class="radar-btn" type="submit">Filter</button></div>
+  </form>
+
+  {% if mp_deals %}
+  <div class="deal-grid">
+    {% for deal in mp_deals %}
+    <article class="deal">
+      <div class="radar-card-media">
+        {% if deal.primary_image or deal.thumbnail_url %}
+        <img src="{{ deal.primary_image or deal.thumbnail_url }}" alt="{{ deal.title }}" loading="lazy">
+        {% else %}
+        <div class="radar-no-image">No photo</div>
+        {% endif %}
+      </div>
+      <div class="deal-title">{{ deal.class_emoji or '' }} {{ deal.candidate_model or deal.title }}</div>
+      <div>
+        <span class="radar-pill good">{{ deal.classification or 'WATCH' }}</span>
+        <span class="radar-pill">{{ deal.source or 'facebook_marketplace' }}</span>
+        <span class="radar-pill">Ask ${{ '%.0f'|format(deal.asking_price or 0) }}</span>
+        {% if deal.inbound_shipping is not none %}<span class="radar-pill">Ship in ${{ '%.0f'|format(deal.inbound_shipping or 0) }}</span>{% endif %}
+        <span class="radar-pill">Landed ${{ '%.0f'|format(deal.landed_cost or deal.asking_price or 0) }}</span>
+        {% if deal.conservative_active_exit or deal.conservative_resale %}<span class="radar-pill">Exit ${{ '%.0f'|format(deal.conservative_active_exit or deal.conservative_resale or 0) }}</span>{% endif %}
+        {% if deal.expected_profit is not none %}<span class="radar-pill">Profit ${{ '%.0f'|format(deal.expected_profit or 0) }}</span>{% endif %}
+        {% if deal.roi_pct is not none %}<span class="radar-pill">ROI {{ '%.0f'|format(deal.roi_pct or 0) }}%</span>{% endif %}
+        {% if deal.margin_of_safety_percent is not none %}<span class="radar-pill">MoS {{ '%.0f'|format(deal.margin_of_safety_percent or 0) }}%</span>{% endif %}
+        {% if deal.break_even_resale %}<span class="radar-pill">BE ${{ '%.0f'|format(deal.break_even_resale or 0) }}</span>{% endif %}
+        {% if deal.valuation_error_cushion_percent is not none %}<span class="radar-pill">Cushion {{ '%.0f'|format(deal.valuation_error_cushion_percent or 0) }}%</span>{% endif %}
+        {% if deal.identity_confidence %}<span class="radar-pill">ID {{ deal.identity_confidence }}</span>{% endif %}
+        {% if deal.clean_comparable_count is not none %}<span class="radar-pill">Comps {{ deal.clean_comparable_count or 0 }}</span>{% endif %}
+        {% if deal.market_stability %}<span class="radar-pill">Mkt {{ deal.market_stability }}</span>{% endif %}
+        {% if deal.risk %}<span class="radar-pill">Risk {{ deal.risk }}</span>{% endif %}
+        <span class="radar-pill">{{ deal.valuation_basis_label or deal.valuation_basis or 'Conservative Active Market' }}</span>
+        {% if deal.first_seen_at %}<span class="radar-pill">Seen {{ deal.first_seen_at }}</span>{% endif %}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="radar-btn" href="/radar/deal/{{ deal.id }}">Deal sheet</a>
+        {% if deal.canonical_url or deal.listing_url %}
+        <a class="radar-btn soft" href="{{ deal.canonical_url or deal.listing_url }}" target="_blank" rel="noopener">{{ deal.open_label or 'OPEN LISTING' }}</a>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="radar-empty">
+    No First Profit deals yet. If current inventory has no HOT/MONSTER/STRONG with $50+ expected profit, that is real — nothing is fabricated. Run a small precision scan when ready.
+  </div>
+  {% endif %}
+</section>
+
+{% if user.is_admin and mp_scanner %}
+<section class="radar-card" id="marketplace-scanner">
+  <div class="section-kicker">Scanner (admin)</div>
+  <p class="radar-copy">{{ mp_scanner.message or 'Scanner idle. Recurring Facebook and eBay cycles stay off until Level 1 is live.' }}</p>
+</section>
+{% endif %}
+<script>
+async function runMarketplaceCanary(){
+  const btn = document.getElementById('mp-canary-btn');
+  if(!btn) return;
+  if(btn.dataset.busy === '1') return;
+  btn.dataset.busy = '1';
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Starting…';
+  try{
+    const res = await fetch('/api/radar/marketplace/canary', {method:'POST'});
+    const data = await res.json().catch(() => ({}));
+    if(data && data.ok){
+      window.location.href = '/radar?email={{ email }}&notice=Marketplace+canary+scan+started';
+      return;
+    }
+    alert((data && data.message) ? data.message : 'Marketplace canary scan could not start');
+  }catch(e){
+    alert('Marketplace canary scan failed');
+  }finally{
+    btn.dataset.busy = '0';
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+async function runEbayCanary(){
+  const btn = document.getElementById('ebay-canary-btn');
+  if(!btn) return;
+  if(btn.dataset.busy === '1') return;
+  btn.dataset.busy = '1';
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Starting…';
+  try{
+    const res = await fetch('/api/radar/ebay/canary', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:'switch oled', max_queries:1, max_items:8})});
+    const data = await res.json().catch(() => ({}));
+    if(data && data.ok){
+      window.location.href = '/radar?email={{ email }}&notice=eBay+canary+scan+started';
+      return;
+    }
+    alert((data && data.message) ? data.message : 'eBay canary scan could not start');
+  }catch(e){
+    alert('eBay canary scan failed');
+  }finally{
+    btn.dataset.busy = '0';
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+async function testMarketplaceSms(){
+  const btn = document.getElementById('mp-test-sms-btn');
+  if(!btn) return;
+  if(btn.dataset.busy === '1') return;
+  btn.dataset.busy = '1';
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Sending…';
+  try{
+    const res = await fetch('/radar/marketplace/test-sms', {method:'POST'});
+    const data = await res.json().catch(() => ({}));
+    if(data && data.ok){
+      window.location.href = '/radar?email={{ email }}&notice=Test+SMS+sent';
+      return;
+    }
+    alert((data && (data.error || data.message)) ? (data.error || data.message) : 'Test SMS could not send');
+  }catch(e){
+    alert('Test SMS failed');
+  }finally{
+    btn.dataset.busy = '0';
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+</script>
