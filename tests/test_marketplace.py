@@ -444,9 +444,25 @@ class MarketplaceTests(unittest.TestCase):
         with patch("marketplace.status.get_config", return_value=_cfg(primary_provider="mock")):
             status = scanner_status()
         self.assertEqual(status["discovery_health"], "LIVE")
-        self.assertEqual(status["detail_health"], "DEGRADED")
+        self.assertEqual(status["detail_health"], "LIVE")
+        self.assertIn("not required", (status.get("detail_message") or "").lower())
         self.assertEqual(status["operational"], "LIVE")
         self.assertNotEqual(status["operational"], "DEGRADED")
+
+    def test_current_detail_failure_degrades_when_stage2_on(self):
+        from types import SimpleNamespace
+        from marketplace.status import scanner_status
+        target = _target()
+        discovery_id = create_scan_run(target, stage="discovery", provider="mock")
+        finish_run(discovery_id, status="SUCCEEDED", raw_row_count=4, unique_count=3, candidate_count=1)
+        detail_id = create_scan_run({"id": "stage2-live"}, stage="detail", provider="mock")
+        finish_run(detail_id, status="FAILED", error_code="timeout", error_message="detail timeout")
+        mp_cfg = _cfg(primary_provider="mock", stage2_max_per_run=3)
+        db_cfg = SimpleNamespace(first_profit_mode=False, level1_max_stage2_per_day=5)
+        with patch("marketplace.status.get_config", return_value=mp_cfg), patch("dealbrain.config.get_config", return_value=db_cfg), patch("marketplace.config.get_config", return_value=mp_cfg):
+            status = scanner_status()
+        self.assertEqual(status["detail_health"], "DEGRADED")
+        self.assertIn("timeout", (status.get("detail_message") or "").lower())
 
     def test_facebook_run_and_spend_caps_block_planner(self):
         cfg = _cfg(scheduler_enabled=True, primary_provider="mock")
@@ -454,10 +470,14 @@ class MarketplaceTests(unittest.TestCase):
             blocked = asyncio.run(planner_tick(cfg))
         self.assertTrue(blocked.get("skipped"))
         self.assertEqual(blocked.get("reason"), "facebook_daily_run_cap")
+        self.assertTrue(blocked.get("scheduler_healthy"))
+        self.assertEqual(blocked.get("cap_state"), "CAP_REACHED")
         with patch("dealbrain.spend.can_start_facebook_run", return_value=(False, "apify_daily_cap", {"spent": 0.50, "cap": 0.50})):
             spent_out = asyncio.run(planner_tick(cfg))
         self.assertTrue(spent_out.get("skipped"))
         self.assertEqual(spent_out.get("reason"), "apify_daily_cap")
+        self.assertTrue(spent_out.get("scheduler_healthy"))
+        self.assertEqual(spent_out.get("cap_state"), "CAP_REACHED")
 
     def test_level1_hard_cap_is_fifty_cents_and_protects_core(self):
         from dataclasses import replace

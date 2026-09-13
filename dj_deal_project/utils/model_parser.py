@@ -42,6 +42,7 @@ PARTIAL_ITEM_PHRASES = [
     "for parts only", "parts only", "charger only", "cable only", "cord only", "case only", "cover only",
     "empty box", "box only", "manual only", "remote only", "dock only", "stand only", "shell only",
     "faceplate only", "no console", "no phone", "no tablet", "no laptop", "no tool", "no unit", "cartridge only",
+    "display only", "display unit", "demo unit", "dummy phone", "dummy unit",
 ]
 
 EXACT_ACCESSORY_HINTS = [
@@ -58,6 +59,9 @@ ACCESSORY_WORDS = [
     "motherboard only", "frame only", "back cover", "tempered glass", "keyboard cover", "joycon shell",
     "dust cover", "skin", "wrap", "shell", "rear cover", "back glass", "camera lens", "lens protector",
     "sim tray", "enclosure", "mouse", "mice", "keyboard", "controller shell", "controller case",
+    "logic board", "motherboard only", "main board", "daughterboard", "charging board", "power board",
+    "audio board", "usb board", "button board", "screen assembly", "display assembly", "lcd only",
+    "digitizer", "gpu fan", "cooling fan", "heatsink", "shroud", "backplate",
     "manual", "guide", "handbook", "binder", "copy", "book", "textbook", "paperback", "hardcover",
     "key", "code", "digital download", "digital code", "activation code", "earbud", "earbuds", "earphone",
     "earphones", "headphones", "headset", "wireless earphone", "wireless earbuds", "tws", "mono earbud",
@@ -105,6 +109,8 @@ AUTO_PART_TERMS = [
 ]
 LOW_VALUE_BULK_JUNK = [
     "2pack", "2 pack", "3pcs", "3 pcs", "10pcs", "10 pcs", "200pcs", "200 pcs", "pack lot", "sticker pack",
+    "osmo", "learning system", "starter kit", "learning kit", "vtech", "leapfrog",
+    "display only", "display unit", "demo unit", "store display", "dummy phone", "dummy unit",
 ]
 
 
@@ -112,7 +118,7 @@ def normalize_text(text: str) -> str:
     text = (text or "").lower()
     for correct, mistakes in MISSPELLINGS.items():
         for mistake in mistakes:
-            text = text.replace(mistake, correct)
+            text = re.sub(rf"\b{re.escape(mistake)}\b", correct, text)
     text = re.sub(r"[^a-z0-9+]+", " ", text)
     return f" {' '.join(text.split())} "
 
@@ -204,6 +210,50 @@ def _is_low_value_junk(title_n: str) -> bool:
     return _contains_any(title_n, LOW_VALUE_BULK_JUNK)
 
 
+def _extract_device_hint(text_n: str) -> dict:
+    if not text_n:
+        return {}
+    m = re.search(r" iphone (\d{1,2})(?: (mini|plus|pro|pro max))? ", text_n)
+    if m:
+        return {"kind": "iphone", "model": m.group(1), "variant": (m.group(2) or "").strip()}
+    if " xbox series x " in text_n:
+        return {"kind": "xbox", "model": "series x"}
+    if " xbox series s " in text_n:
+        return {"kind": "xbox", "model": "series s"}
+    if " ps5 " in text_n or " playstation 5 " in text_n:
+        return {"kind": "ps", "model": "5"}
+    if " ps4 " in text_n or " playstation 4 " in text_n:
+        return {"kind": "ps", "model": "4"}
+    if " switch oled " in text_n or " nintendo switch oled " in text_n:
+        return {"kind": "switch", "model": "oled"}
+    if " nintendo switch " in text_n or re.search(r"switch", text_n):
+        return {"kind": "switch", "model": "base"}
+    m = re.search(r" rtx (\d{4}) ", text_n)
+    if m:
+        return {"kind": "rtx", "model": m.group(1)}
+    return {}
+
+
+def _query_title_model_mismatch(title_n: str, keyword_n: str) -> bool:
+    query_hint = _extract_device_hint(keyword_n)
+    if not query_hint:
+        return False
+    title_hint = _extract_device_hint(title_n)
+    if not title_hint:
+        return False
+    if query_hint.get("kind") != title_hint.get("kind"):
+        return True
+    if query_hint.get("model") and title_hint.get("model") and query_hint.get("model") != title_hint.get("model"):
+        return True
+    query_variant = str(query_hint.get("variant") or "").strip()
+    title_variant = str(title_hint.get("variant") or "").strip()
+    if query_hint.get("kind") == "iphone" and query_variant and title_variant and query_variant != title_variant:
+        return True
+    if query_hint.get("kind") == "switch" and query_hint.get("model") == "base" and title_hint.get("model") == "oled":
+        return True
+    return False
+
+
 def is_accessory(title: str) -> bool:
     title_n = normalize_text(title)
     return (
@@ -219,7 +269,11 @@ def is_accessory(title: str) -> bool:
 
 def detect_category(title: str) -> str | None:
     title_n = normalize_text(title)
-    if any(word in title_n for word in GENERIC_PHONE_WORDS):
+    if re.search(r"\b(microphone|headphones?|earphones?|gramophone|saxophone|megaphone|xylophone|amplifier|voice\s*amp|karaoke|two[\s-]*mic|pa\s*system|bullhorn)\b", title_n):
+        phone_hit = bool(re.search(r"\b(iphone|smartphone|cell\s*phone|mobile\s*phone)\b", title_n))
+    else:
+        phone_hit = bool(re.search(r"\b(iphone|smartphone|cell\s*phone|mobile\s*phone|android\s*phone)\b", title_n) or re.search(r"\bphones?\b", title_n))
+    if phone_hit:
         return "phone"
     if any(word in title_n for word in GENERIC_CONSOLE_WORDS):
         return "console"
@@ -237,6 +291,8 @@ def is_accessory_listing(title: str, keyword: str = "") -> bool:
     keyword_n = normalize_text(keyword)
 
     if _contains_any(title_n, AUTO_PART_TERMS) or _contains_any(title_n, ACCESSORY_WORDS) and _contains_any(title_n, ["smart phones", "laptop", "macbook", "ipad"]):
+        return True
+    if _query_title_model_mismatch(title_n, keyword_n):
         return True
     if any(f" {phrase} " in title_n for phrase in PARTIAL_ITEM_PHRASES):
         return True

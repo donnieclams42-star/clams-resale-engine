@@ -23,6 +23,11 @@ def start_marketplace_workers(cache_dir: str) -> None:
     global _thread, _started
     cfg = get_config()
     init_store(cache_dir)
+    try:
+        from marketplace.ledger import backfill_run_ledger_from_scan_runs
+        backfill_run_ledger_from_scan_runs()
+    except Exception:
+        logger.info("RUN_LEDGER_BACKFILL_SKIPPED")
     seed_defaults(cfg.primary_provider if cfg.primary_provider != "mock" else "rigelbytes")
     if cfg.scheduler_enabled:
         try:
@@ -38,6 +43,34 @@ def start_marketplace_workers(cache_dir: str) -> None:
                 summary.get("precision_targets"),
                 summary.get("treasure_targets"),
             )
+            try:
+                from marketplace.store import enable_phase2_expansion
+                from marketplace.catalog import estimate_phase2_remote_cost
+                remote_cost = estimate_phase2_remote_cost()
+                enable_remote = int(remote_cost.get("leftover_runs") or 0) >= 1
+                phase2 = enable_phase2_expansion(
+                    cfg.primary_provider if cfg.primary_provider != "mock" else "rigelbytes",
+                    enable_repair=True,
+                    enable_generic=True,
+                    enable_remote=enable_remote,
+                )
+                logger.info(
+                    "FACEBOOK_PHASE2_ENABLED repair=%s generic=%s remote=%s leftover_usd=%s",
+                    phase2.get("repair_targets"),
+                    phase2.get("generic_targets"),
+                    phase2.get("remote_enabled"),
+                    (phase2.get("remote_cost") or {}).get("leftover_usd"),
+                )
+            except Exception:
+                logger.info("FACEBOOK_PHASE2_SEED_SKIPPED")
+            try:
+                from dealbrain.pipeline import recheck_actionable_inventory
+                from marketplace.ledger import save_identity_recheck
+                report = recheck_actionable_inventory(send_alerts=False)
+                save_identity_recheck(report)
+                logger.info("IDENTITY_RECHECK %s", report)
+            except Exception:
+                logger.info("IDENTITY_RECHECK_SKIPPED")
         else:
             forced_off = disable_all_scan_targets()
             if forced_off:
@@ -99,6 +132,11 @@ async def _tick(cfg) -> None:
     from marketplace.recovery import recover_stale_runs
     await recover_stale_runs(cfg)
     await planner_tick(cfg)
+    try:
+        from marketplace.planner import planner_research_tick
+        await planner_research_tick(cfg)
+    except Exception:
+        logger.info("MARKET_RESEARCH_TICK_SKIPPED")
     try:
         from dealbrain.valuation.pricecharting.refresh import refresh_tick
         refresh_tick()

@@ -90,6 +90,48 @@ CREATE TABLE IF NOT EXISTS marketplace_scan_runs (
     error_code TEXT,
     error_message TEXT,
     ingested INTEGER DEFAULT 0,
+    extra_json TEXT,
+    lane TEXT,
+    market_id TEXT,
+    query TEXT
+);
+CREATE TABLE IF NOT EXISTS marketplace_run_ledger (
+    run_id TEXT PRIMARY KEY,
+    started_at TEXT,
+    finished_at TEXT,
+    lane TEXT,
+    market_id TEXT,
+    query TEXT,
+    provider TEXT,
+    result_limit INTEGER DEFAULT 0,
+    raw_count INTEGER DEFAULT 0,
+    unique_count INTEGER DEFAULT 0,
+    duplicate_count INTEGER DEFAULT 0,
+    stage1_count INTEGER DEFAULT 0,
+    deep_count INTEGER DEFAULT 0,
+    identity_verified_count INTEGER DEFAULT 0,
+    needs_verification_count INTEGER DEFAULT 0,
+    actionable_count INTEGER DEFAULT 0,
+    discord_alert_count INTEGER DEFAULT 0,
+    cost_usd REAL,
+    cost_kind TEXT,
+    success INTEGER,
+    failure_reason TEXT,
+    duration_ms INTEGER DEFAULT 0,
+    extra_json TEXT,
+    stage TEXT,
+    status TEXT
+);
+CREATE TABLE IF NOT EXISTS marketplace_scheduler_decisions (
+    id TEXT PRIMARY KEY,
+    created_at TEXT,
+    selected_lane TEXT,
+    selected_market TEXT,
+    selected_query TEXT,
+    reason_selected TEXT,
+    skipped_json TEXT,
+    cap_state TEXT,
+    launched INTEGER DEFAULT 0,
     extra_json TEXT
 );
 CREATE TABLE IF NOT EXISTS marketplace_raw_events (
@@ -462,8 +504,90 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
             problem_rate REAL,
             updated_at TEXT
         );
+        CREATE TABLE IF NOT EXISTS market_price_observations (
+            id TEXT PRIMARY KEY,
+            listing_id TEXT,
+            source TEXT,
+            product_family TEXT,
+            candidate_model TEXT,
+            product_key TEXT,
+            asking_price REAL,
+            metro_id TEXT,
+            state TEXT,
+            region TEXT,
+            country TEXT,
+            location_text TEXT,
+            location_known INTEGER DEFAULT 0,
+            clean INTEGER DEFAULT 0,
+            observed_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_mkt_obs_metro ON market_price_observations(metro_id, product_key);
+        CREATE TABLE IF NOT EXISTS market_price_indexes (
+            id TEXT PRIMARY KEY,
+            scope TEXT,
+            scope_id TEXT,
+            product_key TEXT,
+            sample_count INTEGER,
+            p10 REAL,
+            p25 REAL,
+            median REAL,
+            p75 REAL,
+            index_value REAL,
+            extra_json TEXT,
+            updated_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS repair_cost_table (
+            id TEXT PRIMARY KEY,
+            product_family TEXT,
+            exact_model TEXT,
+            repair_type TEXT,
+            parts_estimate REAL,
+            labor_estimate REAL,
+            donald_diy INTEGER DEFAULT 0,
+            outside_repair_cost REAL,
+            risk_reserve REAL,
+            updated_at TEXT,
+            source_note TEXT
+        );
+        CREATE TABLE IF NOT EXISTS market_opportunity_stats (
+            metro_id TEXT PRIMARY KEY,
+            avg_acquisition_discount REAL,
+            candidate_rate REAL,
+            hot_rate REAL,
+            monster_rate REAL,
+            duplicate_rate REAL,
+            provider_spend REAL,
+            expected_profit_discovered REAL,
+            actual_profit REAL,
+            score REAL,
+            recommendation TEXT,
+            components_json TEXT,
+            updated_at TEXT
+        );
         """
     )
+    _ensure("deal_verdicts", "opportunity_types_json", "TEXT")
+    _ensure("deal_verdicts", "deal_lane", "TEXT")
+    _ensure("deal_verdicts", "repair_type", "TEXT")
+    _ensure("deal_verdicts", "max_repair_buy", "REAL")
+    _ensure("deal_verdicts", "repair_expected_profit", "REAL")
+    _ensure("deal_verdicts", "metro_id", "TEXT")
+    _ensure("deal_verdicts", "repair_alert_ok", "INTEGER")
+    _ensure("deal_verdicts", "cost_status", "TEXT")
+    _ensure("deal_verdicts", "phone_checklist_json", "TEXT")
+    _ensure("deal_verdicts", "repair_warnings_json", "TEXT")
+    _ensure("deal_verdicts", "acquisition_type", "TEXT")
+    _ensure("deal_verdicts", "estimated_repair", "REAL")
+    _ensure("deal_verdicts", "repair_risk_reserve", "REAL")
+    _ensure("deal_verdicts", "working_conservative_exit", "REAL")
+    _ensure("repair_cost_table", "confidence", "TEXT")
+    _ensure("repair_cost_table", "notes", "TEXT")
+    _ensure("marketplace_listings", "description", "TEXT")
+    _ensure("marketplace_scan_runs", "lane", "TEXT")
+    _ensure("marketplace_scan_runs", "market_id", "TEXT")
+    _ensure("marketplace_scan_runs", "query", "TEXT")
+    _ensure("deal_verdicts", "feed_lane", "TEXT")
+    _ensure("deal_verdicts", "identity_state", "TEXT")
     try:
         from dealbrain.valuation.pricecharting.catalog import SCHEMA as PC_SCHEMA
         conn.executescript(PC_SCHEMA)
@@ -577,6 +701,332 @@ def enable_first_profit_level1_targets(provider: str = "rigelbytes") -> dict[str
         "treasure_targets": treasure_count,
         "markets": [row["id"] for row in first_profit_level1_markets()],
     }
+
+
+def seed_market_arbitrage_map(provider: str = "rigelbytes", *, enable_pilot: bool = False) -> dict[str, Any]:
+    """Create nationwide metro DATA and optional disabled research targets. Never disables Level 1."""
+    from marketplace.catalog import RESEARCH_BASKET_QUERIES, RESEARCH_RESULT_LIMIT, miles_to_km
+    from dealbrain.market_map import MARKET_ARBITRAGE_METROS, RESEARCH_PILOT_METRO_IDS
+    from dealbrain.repair_hunter import SEED_REPAIR_COSTS, repair_cost_id
+
+    now = utc_now()
+    markets = 0
+    targets = 0
+    costs = 0
+    with _connect() as conn:
+        for market in MARKET_ARBITRAGE_METROS:
+            enabled = 1 if market.get("role") == "LOCAL_ACTIONABLE" else 0
+            conn.execute(
+                """INSERT INTO marketplace_scan_markets
+                (id, name, location, country, currency, latitude, longitude, radius_miles, region, enabled, created_at, updated_at)
+                VALUES (?, ?, ?, 'US', 'USD', ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET name=excluded.name, location=excluded.location, latitude=excluded.latitude,
+                longitude=excluded.longitude, radius_miles=excluded.radius_miles, region=excluded.region, updated_at=excluded.updated_at""",
+                (
+                    market["id"], market["name"], market["location"], market["latitude"], market["longitude"],
+                    market["radius_miles"], market.get("region") or "", enabled, now, now,
+                ),
+            )
+            markets += 1
+        for market in MARKET_ARBITRAGE_METROS:
+            if market["id"] not in RESEARCH_PILOT_METRO_IDS:
+                conn.execute(
+                    "UPDATE marketplace_scan_targets SET enabled=0, updated_at=? WHERE id LIKE 'research:%' AND market_id=?",
+                    (now, market["id"]),
+                )
+                continue
+            radius = int(market["radius_miles"])
+            radius_km = miles_to_km(radius)
+            for query in RESEARCH_BASKET_QUERIES:
+                target_id = f"research:{provider}:{market['id']}:{query['query']}".replace(" ", "-")[:80]
+                existing = conn.execute("SELECT id, enabled FROM marketplace_scan_targets WHERE id = ?", (target_id,)).fetchone()
+                enabled = 1 if enable_pilot else 0
+                if existing:
+                    conn.execute(
+                        "UPDATE marketplace_scan_targets SET enabled=?, cadence_tier='RESEARCH', updated_at=? WHERE id=?",
+                        (enabled, now, target_id),
+                    )
+                    targets += 1
+                    continue
+                conn.execute(
+                    """INSERT INTO marketplace_scan_targets
+                    (id, name, enabled, provider, query, product_family, query_type, market_id, location, radius_miles, radius_km,
+                     currency, country, cadence_tier, result_limit, minimum_price, maximum_price, condition, delivery, listing_age_days,
+                     last_started_at, last_success_at, next_due_at, consecutive_failures, cost_budget, priority, health_status,
+                     is_canary, latitude, longitude, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'USD', 'US', 'RESEARCH', ?, NULL, NULL, '', '', 3, '', '', '', 0, 0, ?, 'idle', 0, ?, ?, ?, ?)""",
+                    (
+                        target_id,
+                        f"RESEARCH {market['name']} · {query['query']}",
+                        enabled,
+                        provider,
+                        query["query"],
+                        query.get("product_family") or "",
+                        query.get("query_type") or "EXACT_MODEL",
+                        market["id"],
+                        market["location"],
+                        radius,
+                        radius_km,
+                        RESEARCH_RESULT_LIMIT,
+                        80 + int(query.get("priority") or 20),
+                        market["latitude"],
+                        market["longitude"],
+                        now,
+                        now,
+                    ),
+                )
+                targets += 1
+        for row in SEED_REPAIR_COSTS:
+            cost_id = repair_cost_id(row.get("product_family") or "", row.get("exact_model") or "", row.get("repair_type") or "")
+            conn.execute(
+                """INSERT INTO repair_cost_table
+                (id, product_family, exact_model, repair_type, parts_estimate, labor_estimate, donald_diy, outside_repair_cost, risk_reserve, updated_at, source_note, confidence, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET parts_estimate=excluded.parts_estimate, labor_estimate=excluded.labor_estimate,
+                donald_diy=excluded.donald_diy, outside_repair_cost=excluded.outside_repair_cost, risk_reserve=excluded.risk_reserve,
+                updated_at=excluded.updated_at, source_note=excluded.source_note, confidence=excluded.confidence, notes=excluded.notes""",
+                (
+                    cost_id, row.get("product_family") or "", row.get("exact_model") or "", row.get("repair_type") or "",
+                    row.get("parts_estimate"), row.get("labor_estimate"), int(row.get("donald_diy") or 0),
+                    row.get("outside_repair_cost"), row.get("risk_reserve"), now, row.get("source_note") or "",
+                    row.get("confidence") or ("MEDIUM" if row.get("parts_estimate") not in (None, "") else "LOW"),
+                    row.get("notes") or row.get("source_note") or "",
+                ),
+            )
+            costs += 1
+    return {
+        "ok": True,
+        "markets": markets,
+        "research_targets": targets,
+        "repair_cost_rows": costs,
+        "pilot_enabled": bool(enable_pilot),
+        "pilot_metros": list(RESEARCH_PILOT_METRO_IDS),
+        "extra_spend_usd": 0.0 if not enable_pilot else None,
+    }
+
+
+def enable_phase2_expansion(
+    provider: str = "rigelbytes",
+    *,
+    enable_repair: bool = True,
+    enable_generic: bool = True,
+    enable_remote: bool = True,
+) -> dict[str, Any]:
+    """Add Repair Hunter + generic high-value lanes locally. Never disables Level 1."""
+    from marketplace.catalog import (
+        first_profit_level1_markets,
+        miles_to_km,
+        estimate_phase2_remote_cost,
+        LEVEL1_PROTECTED_MARKET_IDS,
+    )
+    from dealbrain.repair_hunter import GENERIC_HIGH_VALUE_QUERIES, REPAIR_QUERIES
+
+    now = utc_now()
+    local_markets = list(first_profit_level1_markets())
+    core = [row for row in local_markets if row["id"] in LEVEL1_PROTECTED_MARKET_IDS] or local_markets[:2]
+    repair_count = 0
+    generic_count = 0
+    remote_cost = estimate_phase2_remote_cost()
+    with _connect() as conn:
+        if enable_repair:
+            for market in local_markets:
+                radius = int(market["radius_miles"])
+                radius_km = miles_to_km(radius)
+                for query in REPAIR_QUERIES:
+                    target_id = f"p2:{provider}:{market['id']}:REPAIR:{query['query']}".replace(" ", "-")[:80]
+                    priority = 50 + int(market.get("priority_base") or 10) + int(query.get("priority") or 30)
+                    _upsert_level1_target(
+                        conn,
+                        target_id=target_id,
+                        name=f"{market['name']} · repair · {query['query']}",
+                        provider=provider,
+                        query=query["query"],
+                        product_family=query.get("product_family") or "",
+                        query_type="REPAIR",
+                        market=market,
+                        radius=radius,
+                        radius_km=radius_km,
+                        cadence="REPAIR",
+                        result_limit=8,
+                        listing_age_days=3,
+                        priority=priority,
+                        now=now,
+                    )
+                    repair_count += 1
+        if enable_generic:
+            for market in core:
+                radius = int(market["radius_miles"])
+                radius_km = miles_to_km(radius)
+                for query in GENERIC_HIGH_VALUE_QUERIES:
+                    cadence = "REPAIR" if str(query.get("query_type") or "") == "REPAIR" else "GENERIC"
+                    target_id = f"p2:{provider}:{market['id']}:GENERIC:{query['query']}".replace(" ", "-")[:80]
+                    priority = 66 + int(market.get("priority_base") or 10) + int(query.get("priority") or 40)
+                    _upsert_level1_target(
+                        conn,
+                        target_id=target_id,
+                        name=f"{market['name']} · hv · {query['query']}",
+                        provider=provider,
+                        query=query["query"],
+                        product_family=query.get("product_family") or "",
+                        query_type=query.get("query_type") or "GENERIC",
+                        market=market,
+                        radius=radius,
+                        radius_km=radius_km,
+                        cadence=cadence,
+                        result_limit=8,
+                        listing_age_days=7,
+                        priority=priority,
+                        now=now,
+                    )
+                    generic_count += 1
+    remote = seed_market_arbitrage_map(provider, enable_pilot=bool(enable_remote))
+    return {
+        "ok": True,
+        "repair_targets": repair_count,
+        "generic_targets": generic_count,
+        "remote": remote,
+        "remote_cost": remote_cost,
+        "remote_enabled": bool(enable_remote),
+        "level1_untouched": True,
+    }
+
+
+def save_price_observation(row: dict[str, Any]) -> None:
+    if not row:
+        return
+    payload = {
+        "id": str(row.get("id") or uuid.uuid4().hex),
+        "listing_id": str(row.get("listing_id") or ""),
+        "source": str(row.get("source") or ""),
+        "product_family": str(row.get("product_family") or ""),
+        "candidate_model": str(row.get("candidate_model") or ""),
+        "product_key": str(row.get("product_key") or ""),
+        "asking_price": row.get("asking_price"),
+        "metro_id": str(row.get("metro_id") or ""),
+        "state": str(row.get("state") or ""),
+        "region": str(row.get("region") or ""),
+        "country": str(row.get("country") or ""),
+        "location_text": str(row.get("location_text") or ""),
+        "location_known": 1 if row.get("location_known") else 0,
+        "clean": 1 if row.get("clean") else 0,
+        "observed_at": str(row.get("observed_at") or utc_now()),
+    }
+    with _connect() as conn:
+        conn.execute(
+            """INSERT INTO market_price_observations
+            (id, listing_id, source, product_family, candidate_model, product_key, asking_price, metro_id, state, region, country, location_text, location_known, clean, observed_at)
+            VALUES (:id, :listing_id, :source, :product_family, :candidate_model, :product_key, :asking_price, :metro_id, :state, :region, :country, :location_text, :location_known, :clean, :observed_at)""",
+            payload,
+        )
+
+
+def list_price_observations(limit: int = 5000) -> list[dict[str, Any]]:
+    with _connect() as conn:
+        return [_row(row) for row in conn.execute("SELECT * FROM market_price_observations ORDER BY observed_at DESC LIMIT ?", (limit,))]
+
+
+def save_market_indexes(indexes: dict[str, Any]) -> None:
+    now = utc_now()
+    with _connect() as conn:
+        conn.execute("DELETE FROM market_price_indexes")
+        for row in (indexes.get("metro") or []) + (indexes.get("state") or []):
+            key = f"{row.get('scope')}|{row.get('scope_id')}|{row.get('product_key')}"
+            extra = {k: v for k, v in row.items() if k not in {"scope", "scope_id", "product_key", "clean_sample_count", "p10", "p25", "median", "p75", "index_value"}}
+            conn.execute(
+                """INSERT INTO market_price_indexes
+                (id, scope, scope_id, product_key, sample_count, p10, p25, median, p75, index_value, extra_json, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    key,
+                    str(row.get("scope") or ""),
+                    str(row.get("scope_id") or ""),
+                    str(row.get("product_key") or ""),
+                    int(row.get("clean_sample_count") or row.get("metro_count") or 0),
+                    row.get("p10"),
+                    row.get("p25"),
+                    row.get("median"),
+                    row.get("p75"),
+                    row.get("index_value"),
+                    json.dumps(extra, default=str),
+                    now,
+                ),
+            )
+
+
+def list_market_indexes(scope: str = "") -> list[dict[str, Any]]:
+    sql = "SELECT * FROM market_price_indexes"
+    args: list[Any] = []
+    if scope:
+        sql += " WHERE scope = ?"
+        args.append(scope.upper())
+    with _connect() as conn:
+        rows = [_row(row) for row in conn.execute(sql, args)]
+    for row in rows:
+        extra = {}
+        try:
+            extra = json.loads(row.get("extra_json") or "{}")
+        except Exception:
+            extra = {}
+        if isinstance(extra, dict):
+            row.update(extra)
+    return rows
+
+
+def lookup_repair_cost_row(*, family: str = "", model: str = "", repair_type: str = "") -> dict[str, Any]:
+    with _connect() as conn:
+        if model and repair_type:
+            row = conn.execute(
+                "SELECT * FROM repair_cost_table WHERE exact_model = ? AND repair_type = ? LIMIT 1",
+                (model, repair_type),
+            ).fetchone()
+            if row:
+                return _row(row)
+        if family and repair_type:
+            row = conn.execute(
+                "SELECT * FROM repair_cost_table WHERE product_family = ? AND repair_type = ? LIMIT 1",
+                (family, repair_type),
+            ).fetchone()
+            if row:
+                return _row(row)
+    return {}
+
+
+def save_market_opportunity_stat(metro_id: str, payload: dict[str, Any]) -> None:
+    now = utc_now()
+    comps = payload.get("components") or {}
+    with _connect() as conn:
+        conn.execute(
+            """INSERT INTO market_opportunity_stats
+            (metro_id, avg_acquisition_discount, candidate_rate, hot_rate, monster_rate, duplicate_rate, provider_spend,
+             expected_profit_discovered, actual_profit, score, recommendation, components_json, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(metro_id) DO UPDATE SET avg_acquisition_discount=excluded.avg_acquisition_discount,
+            candidate_rate=excluded.candidate_rate, hot_rate=excluded.hot_rate, monster_rate=excluded.monster_rate,
+            duplicate_rate=excluded.duplicate_rate, provider_spend=excluded.provider_spend,
+            expected_profit_discovered=excluded.expected_profit_discovered, actual_profit=excluded.actual_profit,
+            score=excluded.score, recommendation=excluded.recommendation, components_json=excluded.components_json,
+            updated_at=excluded.updated_at""",
+            (
+                metro_id,
+                comps.get("average_acquisition_discount"),
+                comps.get("candidate_rate"),
+                comps.get("hot_rate"),
+                comps.get("monster_rate"),
+                comps.get("duplicate_rate"),
+                comps.get("provider_spend"),
+                comps.get("expected_profit_discovered"),
+                comps.get("actual_profit"),
+                payload.get("market_opportunity_score"),
+                payload.get("recommendation") or "",
+                json.dumps(comps),
+                now,
+            ),
+        )
+
+
+def list_market_opportunity_stats() -> list[dict[str, Any]]:
+    with _connect() as conn:
+        return [_row(row) for row in conn.execute("SELECT * FROM market_opportunity_stats ORDER BY score DESC")]
 
 
 def _upsert_level1_target(
@@ -837,17 +1287,40 @@ def create_scan_run(target: ScanTarget | dict[str, Any], *, stage: str, provider
     run_id = uuid.uuid4().hex
     target_id = target.id if isinstance(target, ScanTarget) else str(target.get("id") or "")
     now = utc_now()
+    extra: dict[str, Any] = {}
+    lane = ""
+    market_id = ""
+    query = ""
+    try:
+        from marketplace.ledger import seed_run_extra
+        extra = seed_run_extra(target, stage=stage)
+        lane = str(extra.get("lane") or "")
+        market_id = str(extra.get("market_id") or "")
+        query = str(extra.get("query") or "")
+    except Exception:
+        extra = {}
     with _connect() as conn:
         conn.execute(
             """INSERT INTO marketplace_scan_runs
-            (id, target_id, provider, actor, task_id, stage, status, apify_run_id, dataset_id, started_at, extra_json)
-            VALUES (?, ?, ?, ?, ?, ?, 'PENDING', '', '', ?, '{}')""",
-            (run_id, target_id, provider, actor, task_id, stage, now),
+            (id, target_id, provider, actor, task_id, stage, status, apify_run_id, dataset_id, started_at, extra_json, lane, market_id, query)
+            VALUES (?, ?, ?, ?, ?, ?, 'PENDING', '', '', ?, ?, ?, ?, ?)""",
+            (run_id, target_id, provider, actor, task_id, stage, now, json.dumps(extra), lane, market_id, query),
         )
         conn.execute(
             "UPDATE marketplace_scan_targets SET last_started_at = ?, health_status = 'running', updated_at = ? WHERE id = ?",
             (now, now, target_id),
         )
+    if str(stage or "discovery") != "detail":
+        try:
+            from marketplace.ledger import persist_run_ledger
+            persist_run_ledger(run_id, {
+                "status": "PENDING",
+                "lane": lane,
+                "market_id": market_id,
+                "query": query,
+            })
+        except Exception:
+            pass
     return run_id
 
 
@@ -882,14 +1355,41 @@ def list_stale_runs(stale_seconds: int) -> list[dict[str, Any]]:
 
 
 def finish_run(run_id: str, **fields: Any) -> None:
+    extra_update = fields.pop("extra", None)
     assignments = ["finished_at = ?"]
     values: list[Any] = [utc_now()]
     for key, value in fields.items():
+        if key == "extra_json" and extra_update is None:
+            extra_update = value
+            continue
         assignments.append(f"{key} = ?")
         values.append(value)
+    if extra_update is not None:
+        current = get_run(run_id) or {}
+        merged = {}
+        try:
+            merged = json.loads(current.get("extra_json") or "{}")
+            if not isinstance(merged, dict):
+                merged = {}
+        except Exception:
+            merged = {}
+        if isinstance(extra_update, str):
+            try:
+                extra_update = json.loads(extra_update)
+            except Exception:
+                extra_update = {}
+        if isinstance(extra_update, dict):
+            merged.update(extra_update)
+        assignments.append("extra_json = ?")
+        values.append(json.dumps(merged, default=str))
     values.append(run_id)
     with _connect() as conn:
         conn.execute(f"UPDATE marketplace_scan_runs SET {', '.join(assignments)} WHERE id = ?", values)
+    try:
+        from marketplace.ledger import persist_run_ledger
+        persist_run_ledger(run_id, {**fields, "extra": extra_update or {}, "finished_at": values[0]})
+    except Exception:
+        pass
 
 
 def record_target_success(target_id: str, next_due_at: str, **metrics: Any) -> None:
@@ -1185,11 +1685,34 @@ def scanner_counts() -> dict[str, Any]:
         enabled_markets = conn.execute("SELECT COUNT(DISTINCT market_id) FROM marketplace_scan_targets WHERE enabled = 1").fetchone()[0]
         precision_targets = conn.execute("SELECT COUNT(*) FROM marketplace_scan_targets WHERE enabled = 1 AND cadence_tier = 'PRECISION'").fetchone()[0]
         treasure_targets = conn.execute("SELECT COUNT(*) FROM marketplace_scan_targets WHERE enabled = 1 AND cadence_tier = 'TREASURE'").fetchone()[0]
-        runs_today = conn.execute("SELECT COUNT(*) FROM marketplace_scan_runs WHERE started_at LIKE ?", (f"{day}%",)).fetchone()[0]
-        raw_today = conn.execute("SELECT COALESCE(SUM(raw_row_count),0) FROM marketplace_scan_runs WHERE started_at LIKE ?", (f"{day}%",)).fetchone()[0]
-        unique_run_today = conn.execute("SELECT COALESCE(SUM(unique_count),0) FROM marketplace_scan_runs WHERE started_at LIKE ?", (f"{day}%",)).fetchone()[0]
-        dup_today = conn.execute("SELECT COALESCE(SUM(duplicate_count),0) FROM marketplace_scan_runs WHERE started_at LIKE ?", (f"{day}%",)).fetchone()[0]
-        cand_today = conn.execute("SELECT COALESCE(SUM(candidate_count),0) FROM marketplace_scan_runs WHERE started_at LIKE ?", (f"{day}%",)).fetchone()[0]
+        repair_targets = conn.execute("SELECT COUNT(*) FROM marketplace_scan_targets WHERE enabled = 1 AND cadence_tier = 'REPAIR'").fetchone()[0]
+        generic_targets = conn.execute("SELECT COUNT(*) FROM marketplace_scan_targets WHERE enabled = 1 AND cadence_tier = 'GENERIC'").fetchone()[0]
+        research_targets = conn.execute("SELECT COUNT(*) FROM marketplace_scan_targets WHERE enabled = 1 AND cadence_tier = 'RESEARCH'").fetchone()[0]
+        level1_ids = ("south-jersey", "philadelphia", "trenton", "newark")
+        level1_markets_active = conn.execute(
+            f"SELECT COUNT(DISTINCT market_id) FROM marketplace_scan_targets WHERE enabled = 1 AND market_id IN ({','.join('?' for _ in level1_ids)})",
+            level1_ids,
+        ).fetchone()[0]
+        runs_today = conn.execute(
+            "SELECT COUNT(*) FROM marketplace_scan_runs WHERE started_at LIKE ? AND COALESCE(stage,'discovery') != 'detail'",
+            (f"{day}%",),
+        ).fetchone()[0]
+        raw_today = conn.execute(
+            "SELECT COALESCE(SUM(raw_row_count),0) FROM marketplace_scan_runs WHERE started_at LIKE ? AND COALESCE(stage,'discovery') != 'detail'",
+            (f"{day}%",),
+        ).fetchone()[0]
+        unique_run_today = conn.execute(
+            "SELECT COALESCE(SUM(unique_count),0) FROM marketplace_scan_runs WHERE started_at LIKE ? AND COALESCE(stage,'discovery') != 'detail'",
+            (f"{day}%",),
+        ).fetchone()[0]
+        dup_today = conn.execute(
+            "SELECT COALESCE(SUM(duplicate_count),0) FROM marketplace_scan_runs WHERE started_at LIKE ? AND COALESCE(stage,'discovery') != 'detail'",
+            (f"{day}%",),
+        ).fetchone()[0]
+        cand_today = conn.execute(
+            "SELECT COALESCE(SUM(candidate_count),0) FROM marketplace_scan_runs WHERE started_at LIKE ? AND COALESCE(stage,'discovery') != 'detail'",
+            (f"{day}%",),
+        ).fetchone()[0]
     return {
         "listings_24h": listings_24h,
         "new_count": new_count,
@@ -1204,6 +1727,10 @@ def scanner_counts() -> dict[str, Any]:
         "enabled_markets": enabled_markets,
         "precision_targets": precision_targets,
         "treasure_targets": treasure_targets,
+        "repair_targets": repair_targets,
+        "generic_targets": generic_targets,
+        "research_targets": research_targets,
+        "level1_markets_active": level1_markets_active,
         "runs_today": runs_today,
         "seen_today": seen_today,
         "unique_today": unique_today,
@@ -1224,7 +1751,14 @@ def running_discovery_run() -> dict[str, Any]:
         ).fetchone())
 
 
-def due_targets_for_market(market_id: str, limit: int = 1, cadence: str = "") -> list[dict[str, Any]]:
+def due_targets_for_market(
+    market_id: str,
+    limit: int = 1,
+    cadence: str = "",
+    query_type: str = "",
+    product_family: str = "",
+    query: str = "",
+) -> list[dict[str, Any]]:
     now = utc_now()
     sql = """SELECT * FROM marketplace_scan_targets
             WHERE enabled = 1 AND market_id = ?
@@ -1234,6 +1768,15 @@ def due_targets_for_market(market_id: str, limit: int = 1, cadence: str = "") ->
     if cadence:
         sql += " AND UPPER(cadence_tier) = ?"
         args.append(str(cadence).upper())
+    if query_type:
+        sql += " AND UPPER(query_type) = ?"
+        args.append(str(query_type).upper())
+    if product_family:
+        sql += " AND LOWER(product_family) LIKE ?"
+        args.append(f"%{str(product_family).lower()}%")
+    if query:
+        sql += " AND LOWER(query) LIKE ?"
+        args.append(f"%{str(query).lower()}%")
     sql += " ORDER BY priority ASC, last_success_at ASC LIMIT ?"
     args.append(limit)
     with _connect() as conn:

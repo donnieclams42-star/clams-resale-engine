@@ -64,6 +64,22 @@ def save_verdict(listing_id: str, listing: dict[str, Any], verdict: dict[str, An
         "active_p25": verdict.get("active_p25"),
         "active_haircut": verdict.get("active_haircut"),
         "expected_net": verdict.get("expected_net") or verdict.get("net_resale"),
+        "opportunity_types_json": json.dumps(verdict.get("opportunity_types") or []),
+        "deal_lane": verdict.get("deal_lane") or verdict.get("feed_lane") or "",
+        "feed_lane": verdict.get("feed_lane") or verdict.get("deal_lane") or "",
+        "identity_state": verdict.get("identity_state") or verdict.get("identity_confidence") or "",
+        "repair_type": verdict.get("repair_type") or "",
+        "max_repair_buy": verdict.get("max_repair_buy"),
+        "repair_expected_profit": verdict.get("repair_expected_profit"),
+        "metro_id": verdict.get("metro_id") or listing.get("market_id") or "",
+        "repair_alert_ok": 1 if verdict.get("repair_alert_ok") else 0,
+        "cost_status": verdict.get("cost_status") or "",
+        "phone_checklist_json": json.dumps(verdict.get("phone_checklist") or []),
+        "repair_warnings_json": json.dumps(verdict.get("repair_warnings") or []),
+        "acquisition_type": verdict.get("acquisition_type") or "",
+        "estimated_repair": verdict.get("estimated_repair"),
+        "repair_risk_reserve": verdict.get("repair_risk_reserve"),
+        "working_conservative_exit": verdict.get("working_conservative_exit") or verdict.get("WORKING_CONSERVATIVE_EXIT"),
     }
     columns = ",".join(payload.keys())
     placeholders = ",".join(f":{key}" for key in payload)
@@ -109,6 +125,10 @@ def latest_verdict(listing_id: str) -> dict[str, Any]:
         row["signals"] = _json_list(row.get("signals_json"))
         row["provider_badges"] = _json_list(row.get("provider_badges_json"))
         row["why_this_value"] = _json_list(row.get("why_json"))
+        row["opportunity_types"] = _json_list(row.get("opportunity_types_json"))
+        row["phone_checklist"] = _json_list(row.get("phone_checklist_json"))
+        row["repair_warnings"] = _json_list(row.get("repair_warnings_json"))
+        row["repair_alert_ok"] = bool(int(row.get("repair_alert_ok") or 0))
     return row
 
 
@@ -129,7 +149,10 @@ def list_deal_feed(filters: dict[str, Any] | None = None, limit: int = 60) -> li
              v.clean_comparable_count, v.raw_comparable_count, v.excluded_comparable_count,
              v.market_stability, v.market_sample_confidence, v.valuation_basis, v.why_this_deal,
              v.first_profit_priority, v.active_p25, v.active_haircut, v.expected_net, v.inbound_shipping,
-             v.identity_confidence, v.candidate_model, v.candidate_product_family
+             v.identity_confidence, v.candidate_model, v.candidate_product_family,
+             v.opportunity_types_json, v.deal_lane, v.repair_type, v.max_repair_buy, v.repair_expected_profit, v.metro_id,
+             v.repair_alert_ok, v.cost_status, v.phone_checklist_json, v.repair_warnings_json, v.acquisition_type,
+             v.estimated_repair, v.repair_risk_reserve, v.working_conservative_exit, v.feed_lane, v.identity_state
              FROM marketplace_listings l
              LEFT JOIN deal_verdicts v ON v.listing_id = l.id
              WHERE 1=1"""
@@ -162,16 +185,28 @@ def list_deal_feed(filters: dict[str, Any] | None = None, limit: int = 60) -> li
         if include_risk:
             allowed.append("RISK")
         placeholders = ",".join("?" for _ in allowed)
-        sql += f" AND v.classification IN ({placeholders})"
-        args.extend(allowed)
         try:
             from dealbrain.config import get_config
-            sql += " AND COALESCE(v.expected_profit,0) >= ?"
-            args.append(float(get_config().first_profit_min_profit))
+            min_profit = float(get_config().first_profit_min_profit)
         except Exception:
-            sql += " AND COALESCE(v.expected_profit,0) >= 50"
+            min_profit = 50.0
+        sql += f" AND ((v.classification IN ({placeholders}) AND COALESCE(v.expected_profit,0) >= ? AND COALESCE(v.feed_lane,'ACTIONABLE') NOT IN ('NEEDS_VERIFICATION','FALSE_MATCH','REJECTED') AND UPPER(COALESCE(v.identity_confidence,'')) IN ('EXACT_CONFIRMED','EXACT_STRONG','CONFIRMED','STRONG')) OR COALESCE(v.repair_alert_ok,0) = 1)"
+        args.extend(allowed)
+        args.append(min_profit)
+    elif mode == "repair":
+        sql += " AND (COALESCE(v.repair_alert_ok,0) = 1 OR (COALESCE(v.repair_type,'') != '' AND UPPER(v.repair_type) NOT IN ('UNKNOWN','')))"
+    elif mode == "needs_verification":
+        sql += " AND (COALESCE(v.feed_lane,'') IN ('NEEDS_VERIFICATION','NEEDS VERIFICATION') OR COALESCE(v.identity_confidence,'') IN ('FAMILY_ONLY','AMBIGUOUS','PROBABLE','UNKNOWN'))"
+    elif mode == "false_match":
+        sql += " AND COALESCE(v.feed_lane,'') IN ('FALSE_MATCH','REJECTED')"
+    elif mode == "actionable":
+        sql += " AND COALESCE(v.feed_lane, v.deal_lane, 'ACTIONABLE') = 'ACTIONABLE' AND v.classification IN ('MONSTER','HOT','STRONG')"
     sort = str(filters.get("sort") or "best").lower()
-    if sort == "newest":
+    if mode == "repair" and sort == "best":
+        sql += " ORDER BY COALESCE(v.repair_expected_profit, v.expected_profit, -99999) DESC, l.last_seen_at DESC"
+    elif mode == "market_arbitrage" and sort == "best":
+        sql += " ORDER BY COALESCE(v.expected_profit, -99999) DESC, l.last_seen_at DESC"
+    elif sort == "newest":
         sql += " ORDER BY l.last_seen_at DESC"
     elif sort == "profit":
         sql += " ORDER BY COALESCE(v.expected_profit, -99999) DESC"
@@ -205,6 +240,10 @@ def list_deal_feed(filters: dict[str, Any] | None = None, limit: int = 60) -> li
         row["facebook_url"] = row.get("canonical_url") if str(row.get("source") or "").startswith("facebook") else ""
         row["provider_badges"] = _json_list(row.get("provider_badges_json"))
         row["why_this_value"] = _json_list(row.get("why_json"))
+        row["opportunity_types"] = _json_list(row.get("opportunity_types_json"))
+        row["phone_checklist"] = _json_list(row.get("phone_checklist_json"))
+        row["repair_warnings"] = _json_list(row.get("repair_warnings_json"))
+        row["repair_alert_ok"] = bool(int(row.get("repair_alert_ok") or 0))
     return rows
 
 
@@ -276,8 +315,12 @@ def record_alert(
     sent: bool = False,
     skip_reason: str = "",
     channel: str = "sms",
+    extra: dict[str, Any] | None = None,
 ) -> None:
-    payload = json.dumps({"classification": classification, "price": price, "profit": profit}, default=str)
+    payload = {"classification": classification, "price": price, "profit": profit}
+    if extra:
+        payload.update(extra)
+    payload = json.dumps(payload, default=str)
     now = utc_now()
     with connect() as conn:
         conn.execute(
@@ -297,12 +340,15 @@ def record_alert(
         )
 
 
-def alerts_for(listing_id: str) -> list[dict[str, Any]]:
+def alerts_for(listing_id: str, channel: str | None = None) -> list[dict[str, Any]]:
+    sql = "SELECT * FROM marketplace_alert_events WHERE listing_id = ?"
+    args: list[Any] = [listing_id]
+    if channel:
+        sql += " AND channel = ?"
+        args.append(channel)
+    sql += " ORDER BY created_at DESC"
     with connect() as conn:
-        rows = [_row(row) for row in conn.execute(
-            "SELECT * FROM marketplace_alert_events WHERE listing_id = ? ORDER BY created_at DESC",
-            (listing_id,),
-        )]
+        rows = [_row(row) for row in conn.execute(sql, args)]
     for row in rows:
         payload = {}
         try:
@@ -311,17 +357,24 @@ def alerts_for(listing_id: str) -> list[dict[str, Any]]:
             payload = {}
         row["classification"] = payload.get("classification") or ""
         row["price"] = payload.get("price")
+        row["profit"] = payload.get("profit")
+        row["risk"] = payload.get("risk") or ""
+        row["fingerprint"] = payload.get("fingerprint") or ""
         row["sent"] = 1 if row.get("sent_at") and not row.get("skip_reason") else 0
     return rows
 
 
-def recent_alerts(hours: int = 1, sent_only: bool = False) -> list[dict[str, Any]]:
+def recent_alerts(hours: int = 1, sent_only: bool = False, channel: str | None = None) -> list[dict[str, Any]]:
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).replace(microsecond=0).isoformat()
     sql = "SELECT * FROM marketplace_alert_events WHERE created_at >= ?"
+    args: list[Any] = [cutoff]
     if sent_only:
         sql += " AND sent_at != '' AND (skip_reason IS NULL OR skip_reason = '')"
+    if channel:
+        sql += " AND channel = ?"
+        args.append(channel)
     with connect() as conn:
-        return [_row(row) for row in conn.execute(sql, (cutoff,))]
+        return [_row(row) for row in conn.execute(sql, args)]
 
 
 def save_sniper_run(**fields: Any) -> str:
@@ -482,6 +535,12 @@ def save_own_sale(fields: dict[str, Any]) -> None:
                 )
             except Exception:
                 pass
+    try:
+        if str(fields.get("sale_price") or "") and float(fields.get("profit") or 0) >= 100:
+            from dealbrain.budget import maybe_unlock_realized_tier
+            maybe_unlock_realized_tier(profit=fields.get("profit"), sold=True)
+    except Exception:
+        pass
 
 
 def manual_refs_for(key: str) -> list[dict[str, Any]]:

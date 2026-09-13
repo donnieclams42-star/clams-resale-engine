@@ -20,6 +20,7 @@
     <div class="radar-stat"><div class="radar-stat-label">FB Level</div><div class="radar-stat-value" style="font-size:16px;">{{ facebook_level or 0 }}</div></div>
     <div class="radar-stat"><div class="radar-stat-label">FB markets</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_markets_active or 0 }}</div></div>
     <div class="radar-stat"><div class="radar-stat-label">Precision / Treasure</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_precision_targets or 0 }} / {{ fb_treasure_targets or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Repair / HV queries</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_repair_targets or 0 }} / {{ fb_generic_targets or 0 }}</div></div>
     <div class="radar-stat"><div class="radar-stat-label">FB runs today</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_runs_today or 0 }}</div></div>
     <div class="radar-stat"><div class="radar-stat-label">Seen / unique today</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_listings_seen_today or 0 }} / {{ fb_unique_listings_today or 0 }}</div></div>
     <div class="radar-stat"><div class="radar-stat-label">Candidates today</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_candidates_today or mp_counts.stage1_candidates or 0 }}</div></div>
@@ -35,13 +36,138 @@
   </div>
 </section>
 
+{% if user and (user.is_admin or user.email) %}
+<section class="radar-card" id="scanner-truth">
+  <div class="section-kicker">Scanner truth</div>
+  <p class="radar-copy">What Facebook actually ran. Scheduler stays healthy at cap; it just launches no new paid runs.</p>
+  <div class="radar-status-grid">
+    <div class="radar-stat"><div class="radar-stat-label">Facebook scheduler</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_scheduler_on or 'OFF' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Discovery</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_discovery_health or 'LIVE' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Detail</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_detail_health or 'LIVE' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Budget tier</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_budget_tier or '$0.50' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Spend today</div><div class="radar-stat-value" style="font-size:16px;">${{ '%.3f'|format(first_profit_spend.apify_spend_today or 0) }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Daily cap</div><div class="radar-stat-value" style="font-size:16px;">${{ '%.2f'|format(apify_daily_cap_usd or 0.50) }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Runs</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_runs_today or 0 }} / {{ fb_run_cap or 30 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Cap state</div><div class="radar-stat-value" style="font-size:13px;">{{ fb_cap_state or 'CAP_OK' }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Precision today</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_lane_runs_today.precision or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Repair today</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_lane_runs_today.repair or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Generic today</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_lane_runs_today.generic or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Treasure today</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_lane_runs_today.treasure or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Remote today</div><div class="radar-stat-value" style="font-size:16px;">{{ fb_lane_runs_today.remote or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Remaining budget</div><div class="radar-stat-value" style="font-size:13px;">${{ '%.3f'|format(fb_remaining_budget or 0) }}</div></div>
+  </div>
+  <p class="radar-copy" style="margin-top:10px;"><strong>Next planned:</strong>
+    {{ fb_next_planned_run.lane or '—' }} /
+    {{ fb_next_planned_run.market or '—' }} /
+    {{ fb_next_planned_run.query or '—' }}
+    {% if fb_next_planned_run.reason %} · {{ fb_next_planned_run.reason }}{% endif %}
+  </p>
+  <p class="radar-copy">Detail: {{ fb_detail_message or 'Detail fetch not required for First Profit discovery' }}{% if fb_detail_cause %} · Cause: {{ fb_detail_cause }}{% endif %}</p>
+  {% if identity_recheck %}
+  <p class="radar-copy"><strong>Identity recheck:</strong>
+    actionable {{ identity_recheck.old_actionable or 0 }} → {{ identity_recheck.new_actionable or 0 }} ·
+    needs verification {{ identity_recheck.needs_verification or 0 }} ·
+    accessory rejects {{ identity_recheck.accessory_rejects or 0 }} ·
+    false matches {{ identity_recheck.false_matches or 0 }}
+  </p>
+  {% endif %}
+  {% if fb_starvation %}
+  <p class="radar-copy"><strong>Phase 2:</strong>
+    Repair {{ (fb_starvation.REPAIR.status if fb_starvation.REPAIR else '—') }} ·
+    Generic {{ (fb_starvation.GENERIC.status if fb_starvation.GENERIC else '—') }} ·
+    Remote {{ (fb_starvation.REMOTE_RESEARCH.status if fb_starvation.REMOTE_RESEARCH else '—') }}
+  </p>
+  {% endif %}
+</section>
+
+<section class="radar-card" id="scanner-history">
+  <div class="section-kicker">Last 24 hours</div>
+  {% if fb_run_history %}
+  <div style="overflow:auto;">
+    <table class="radar-table" style="width:100%;font-size:12px;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th align="left">Time</th><th align="left">Lane</th><th align="left">Market</th><th align="left">Query</th>
+          <th>Cost</th><th>Raw</th><th>Unique</th><th>Dups</th><th>S1</th><th>Deep</th><th>Verified</th><th>Actionable</th><th>Alerts</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in fb_run_history %}
+        <tr>
+          <td>{{ (run.started_at or '')[:16] }}</td>
+          <td>{{ run.lane }}</td>
+          <td>{{ run.market_name or run.market_id }}</td>
+          <td>{{ run.query }}</td>
+          <td>${{ '%.3f'|format(run.cost_usd or 0) }}{% if run.cost_label == 'estimated' %} est{% endif %}</td>
+          <td>{{ run.raw_count or 0 }}</td>
+          <td>{{ run.unique_count or 0 }}</td>
+          <td>{{ run.duplicate_count or 0 }}</td>
+          <td>{{ run.stage1_count or 0 }}</td>
+          <td>{{ run.deep_count or 0 }}</td>
+          <td>{{ run.identity_verified_count or 0 }}</td>
+          <td>{{ run.actionable_count or 0 }}</td>
+          <td>{{ run.discord_alert_count or 0 }}</td>
+          <td>{{ run.status }}{% if not run.success and run.failure_reason %} · {{ run.failure_reason }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="radar-empty">No paid Facebook runs recorded in the last 24 hours yet.</div>
+  {% endif %}
+</section>
+
+{% if fb_market_performance %}
+<section class="radar-card" id="market-performance">
+  <div class="section-kicker">Market performance</div>
+  <div style="overflow:auto;">
+    <table class="radar-table" style="width:100%;font-size:12px;border-collapse:collapse;">
+      <thead><tr><th align="left">Market</th><th>Runs</th><th>Spend</th><th>Raw</th><th>Unique</th><th>Dup %</th><th>Stage 1</th><th>Verified</th><th>Actionable</th></tr></thead>
+      <tbody>
+        {% for row in fb_market_performance %}
+        <tr>
+          <td>{{ row.market_name }}</td>
+          <td>{{ row.runs }}</td>
+          <td>${{ '%.3f'|format(row.spend or 0) }}</td>
+          <td>{{ row.raw }}</td>
+          <td>{{ row.unique }}</td>
+          <td>{{ row.duplicate_pct }}%</td>
+          <td>{{ row.stage1 }}</td>
+          <td>{{ row.verified }}</td>
+          <td>{{ row.actionable }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if fb_query_performance %}
+<section class="radar-card" id="query-performance">
+  <div class="section-kicker">Query performance</div>
+  <p class="radar-copy"><strong>Top yielding:</strong>
+    {% for row in fb_query_performance.top_yielding or [] %}{{ row.query }} ({{ row.actionable }} act){% if not loop.last %} · {% endif %}{% else %}need runs{% endfor %}
+  </p>
+  <p class="radar-copy"><strong>Lowest yielding:</strong>
+    {% for row in fb_query_performance.lowest_yielding or [] %}{{ row.query }} ({{ row.actionable }} act){% if not loop.last %} · {% endif %}{% else %}need runs{% endfor %}
+  </p>
+</section>
+{% endif %}
+{% endif %}
+
 <section class="radar-card" id="marketplace-feed">
   <div class="section-kicker">First Profit feed</div>
   <form class="form-grid" method="get" action="/radar" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr));margin-bottom:12px;">
     {% if email %}<input type="hidden" name="email" value="{{ email }}">{% endif %}
     <div><label class="radar-label">Mode</label>
       <select class="radar-field" name="mp_mode">
-        <option value="first_profit" {% if mp_filters.mode!='all' %}selected{% endif %}>First Profit</option>
+        <option value="first_profit" {% if mp_filters.mode=='first_profit' or not mp_filters.mode %}selected{% endif %}>ACTIONABLE</option>
+        <option value="needs_verification" {% if mp_filters.mode=='needs_verification' %}selected{% endif %}>Needs verification</option>
+        <option value="repair" {% if mp_filters.mode=='repair' %}selected{% endif %}>Repair</option>
+        <option value="market_arbitrage" {% if mp_filters.mode=='market_arbitrage' %}selected{% endif %}>Market research</option>
+        <option value="false_match" {% if mp_filters.mode=='false_match' %}selected{% endif %}>False match / rejected</option>
         <option value="all" {% if mp_filters.mode=='all' %}selected{% endif %}>All classes</option>
       </select>
     </div>
@@ -101,7 +227,12 @@
         {% if deal.market_stability %}<span class="radar-pill">Mkt {{ deal.market_stability }}</span>{% endif %}
         {% if deal.risk %}<span class="radar-pill">Risk {{ deal.risk }}</span>{% endif %}
         <span class="radar-pill">{{ deal.valuation_basis_label or deal.valuation_basis or 'Conservative Active Market' }}</span>
-        {% if deal.first_seen_at %}<span class="radar-pill">Seen {{ deal.first_seen_at }}</span>{% endif %}
+        {% if deal.opportunity_types %}<span class="radar-pill">{{ deal.opportunity_types|join(' · ') }}</span>{% endif %}
+        {% if deal.deal_lane %}<span class="radar-pill">{{ deal.deal_lane }}</span>{% endif %}
+        {% if deal.repair_type %}<span class="radar-pill">Repair {{ deal.repair_type }}</span>{% endif %}
+        {% if deal.max_repair_buy is not none %}<span class="radar-pill">Max repair buy ${{ '%.0f'|format(deal.max_repair_buy or 0) }}</span>{% elif deal.cost_status == 'UNKNOWN' %}<span class="radar-pill">Repair cost UNKNOWN</span>{% endif %}
+        {% if deal.phone_checklist %}<span class="radar-pill">PHONE VERIFY IMEI / ICLOUD / WATER</span>{% endif %}
+        {% if deal.metro_id %}<span class="radar-pill">Metro {{ deal.metro_id }}</span>{% endif %}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a class="radar-btn" href="/radar/deal/{{ deal.id }}">Deal sheet</a>
@@ -118,6 +249,107 @@
   </div>
   {% endif %}
 </section>
+
+{% if market_arbitrage_map %}
+<section class="radar-card" id="market-arbitrage-map">
+  <div class="section-kicker">Market Arbitrage Map</div>
+  <p class="radar-copy">U.S. metro intelligence only — not a nationwide Facebook scan. Live Facebook remains NJ/Philly Level 1. Remote research is leftover-only under the $0.50 base cap.</p>
+  <div class="radar-status-grid">
+    <div class="radar-stat"><div class="radar-stat-label">Map</div><div class="radar-stat-value" style="font-size:16px;">{% if market_arbitrage_map.ready %}READY{% else %}BUILDING{% endif %}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Benchmark products</div><div class="radar-stat-value" style="font-size:16px;">{{ market_arbitrage_map.benchmark_count or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Observations</div><div class="radar-stat-value" style="font-size:16px;">{{ market_arbitrage_map.observation_count or 0 }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Remote pilot</div><div class="radar-stat-value" style="font-size:13px;">{% if market_arbitrage_map.pilot_enabled %}LEFTOVER{% else %}DATA ONLY{% endif %}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Repair Hunter</div><div class="radar-stat-value" style="font-size:13px;">{% if market_arbitrage_map.repair_hunter_enabled %}ON{% else %}OFF{% endif %}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Generic HV</div><div class="radar-stat-value" style="font-size:13px;">{% if market_arbitrage_map.generic_high_value_enabled %}ON{% else %}OFF{% endif %}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Budget tier</div><div class="radar-stat-value" style="font-size:13px;">{{ (market_arbitrage_map.budget.current_tier if market_arbitrage_map.budget else 'BASE_0.50') }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">FB spend today</div><div class="radar-stat-value" style="font-size:13px;">${{ '%.2f'|format((market_arbitrage_map.budget.facebook_spend_today if market_arbitrage_map.budget else 0) or 0) }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Projected profit today</div><div class="radar-stat-value" style="font-size:13px;">${{ '%.0f'|format((market_arbitrage_map.budget.projected_profit_discovered_today if market_arbitrage_map.budget else 0) or 0) }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Realized profit</div><div class="radar-stat-value" style="font-size:13px;">${{ '%.0f'|format((market_arbitrage_map.budget.realized_profit if market_arbitrage_map.budget else 0) or 0) }}</div></div>
+    <div class="radar-stat"><div class="radar-stat-label">Opp / $1 spent</div><div class="radar-stat-value" style="font-size:13px;">{% if market_arbitrage_map.budget and market_arbitrage_map.budget.projected_opportunity_per_dollar is not none %}${{ '%.0f'|format(market_arbitrage_map.budget.projected_opportunity_per_dollar) }}{% else %}need data{% endif %}</div></div>
+  </div>
+  {% if market_arbitrage_map.report and market_arbitrage_map.report.products %}
+  <div class="deal-grid" style="margin-top:12px;">
+    {% for product in market_arbitrage_map.report.products %}
+    <article class="deal">
+      <div class="deal-title">{{ product.product }}</div>
+      <div class="radar-copy"><strong>Cheapest</strong></div>
+      {% for row in product.cheapest_markets[:3] %}
+      <div class="radar-copy">{{ loop.index }}. {{ row.metro_id }} — p25 ${{ '%.0f'|format(row.p25 or 0) }} (index {{ row.index_value or 0 }})</div>
+      {% else %}
+      <div class="radar-copy">Not enough clean metro samples yet.</div>
+      {% endfor %}
+      <div class="radar-copy" style="margin-top:6px;"><strong>Expensive</strong></div>
+      {% for row in product.expensive_markets[:3] %}
+      <div class="radar-copy">{{ loop.index }}. {{ row.metro_id }} — p25 ${{ '%.0f'|format(row.p25 or 0) }}</div>
+      {% endfor %}
+      <div class="radar-copy">Estimated spread ${{ '%.0f'|format(product.estimated_spread or 0) }}</div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="radar-empty">No measured metro spreads yet. The map learns from eBay locations and Facebook observations without scanning every ZIP.</div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if repair_deals %}
+<section class="radar-card" id="repair-hunter-feed">
+  <div class="section-kicker">Repair Hunter</div>
+  <p class="radar-copy">Easy repairs first. A cheap cracked phone is never auto-HOT — verify IMEI / iCloud / financing / water damage before buying.</p>
+  <div class="deal-grid">
+    {% for deal in repair_deals %}
+    <article class="deal">
+      <div class="deal-title">🔧 {{ deal.candidate_model or deal.title }}</div>
+      <div>
+        <span class="radar-pill">{{ deal.repair_type or 'UNKNOWN' }}</span>
+        <span class="radar-pill">Ask ${{ '%.0f'|format(deal.asking_price or 0) }}</span>
+        {% if deal.working_conservative_exit %}<span class="radar-pill">Working exit ${{ '%.0f'|format(deal.working_conservative_exit or 0) }}</span>{% endif %}
+        {% if deal.estimated_repair is not none %}<span class="radar-pill">Repair ${{ '%.0f'|format(deal.estimated_repair or 0) }}</span>{% elif deal.cost_status == 'UNKNOWN' %}<span class="radar-pill">Repair cost UNKNOWN</span>{% endif %}
+        {% if deal.repair_risk_reserve is not none %}<span class="radar-pill">Risk reserve ${{ '%.0f'|format(deal.repair_risk_reserve or 0) }}</span>{% endif %}
+        {% if deal.repair_expected_profit is not none %}<span class="radar-pill">Expected ${{ '%.0f'|format(deal.repair_expected_profit or 0) }}</span>{% endif %}
+        {% if deal.max_repair_buy is not none %}<span class="radar-pill">MAX BUY ${{ '%.0f'|format(deal.max_repair_buy or 0) }}</span>{% endif %}
+        {% if deal.phone_checklist or deal.repair_warnings %}<span class="radar-pill">VERIFY IMEI / ICLOUD / WATER</span>{% endif %}
+        {% if deal.deal_lane %}<span class="radar-pill">{{ deal.deal_lane }}</span>{% endif %}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="radar-btn" href="/radar/deal/{{ deal.id }}">Deal sheet</a>
+        {% if deal.canonical_url or deal.listing_url %}
+        <a class="radar-btn soft" href="{{ deal.canonical_url or deal.listing_url }}" target="_blank" rel="noopener">{{ deal.open_label or 'OPEN FACEBOOK LISTING' }}</a>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if market_arbitrage_deals %}
+<section class="radar-card" id="market-arbitrage-feed">
+  <div class="section-kicker">Market Arbitrage</div>
+  <p class="radar-copy">Facebook cheap market → eBay national exit. Remote pickup stays research unless shipping works. Do not drive across the country for a listing.</p>
+  <div class="deal-grid">
+    {% for deal in market_arbitrage_deals %}
+    <article class="deal">
+      <div class="deal-title">🌎 {{ deal.candidate_model or deal.title }}</div>
+      <div>
+        <span class="radar-pill">{{ deal.metro_id or deal.location_text or 'UNKNOWN' }}</span>
+        <span class="radar-pill">Ask ${{ '%.0f'|format(deal.asking_price or 0) }}</span>
+        {% if deal.conservative_active_exit or deal.conservative_resale %}<span class="radar-pill">National exit ${{ '%.0f'|format(deal.conservative_active_exit or deal.conservative_resale or 0) }}</span>{% endif %}
+        {% if deal.expected_profit is not none %}<span class="radar-pill">Profit after costs ${{ '%.0f'|format(deal.expected_profit or 0) }}</span>{% endif %}
+        <span class="radar-pill">{{ deal.acquisition_type or 'UNKNOWN' }}</span>
+        {% if deal.deal_lane %}<span class="radar-pill">{{ deal.deal_lane }}</span>{% endif %}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="radar-btn" href="/radar/deal/{{ deal.id }}">Deal sheet</a>
+        {% if deal.canonical_url or deal.listing_url %}
+        <a class="radar-btn soft" href="{{ deal.canonical_url or deal.listing_url }}" target="_blank" rel="noopener">{{ deal.open_label or 'OPEN LISTING' }}</a>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 
 {% if user.is_admin and mp_scanner %}
 <section class="radar-card" id="marketplace-scanner">

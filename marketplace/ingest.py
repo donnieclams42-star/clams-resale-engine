@@ -27,14 +27,14 @@ logger = logging.getLogger("market_radar.marketplace")
 _deep_analyzed = 0
 
 
-def _maybe_analyze_candidate(listing: dict[str, Any], config: MarketplaceConfig | None = None, *, send_alerts: bool = False) -> str:
+def _maybe_analyze_candidate(listing: dict[str, Any], config: MarketplaceConfig | None = None, *, send_alerts: bool = True) -> dict[str, Any]:
     global _deep_analyzed
     try:
         from dealbrain.config import get_config as dealbrain_config
         from dealbrain.pipeline import analyze_and_store
         cfg = dealbrain_config()
         if _deep_analyzed >= max(0, cfg.deep_max_per_run):
-            return ""
+            return {}
         previous_class = ""
         previous_price = listing.get("asking_price")
         try:
@@ -52,10 +52,10 @@ def _maybe_analyze_candidate(listing: dict[str, Any], config: MarketplaceConfig 
             previous_price=previous_price,
         )
         _deep_analyzed += 1
-        return str((verdict or {}).get("classification") or "")
+        return verdict or {}
     except Exception:
         logger.info("DEALBRAIN_ANALYZE_SKIPPED listing_id=%s", listing.get("id"))
-        return ""
+        return {}
 
 
 async def ingest_dataset(
@@ -84,6 +84,10 @@ async def ingest_dataset(
     missing_id = 0
     missing_price = 0
     class_counts = {"STRONG": 0, "HOT": 0, "MONSTER": 0}
+    identity_verified = 0
+    needs_verification = 0
+    actionable = 0
+    discord_alerts = 0
     new_ids: list[str] = []
 
     async for raw in provider.fetch_dataset(dataset_id):
@@ -114,6 +118,14 @@ async def ingest_dataset(
             duplicate_count += 1
         stage = evaluate_stage1({**listing, **saved, "lifecycle_status": lifecycle}, target.to_dict())
         apply_stage1(str(saved.get("id") or ""), stage)
+        try:
+            from dealbrain.market_map import observation_from_listing
+            from marketplace.store import save_price_observation
+            obs = observation_from_listing({**listing, **saved, **stage})
+            if obs:
+                save_price_observation(obs)
+        except Exception:
+            pass
         if stage.get("stage1_status") == STAGE1_CANDIDATE:
             candidate_count += 1
         treasure = str(target.cadence_tier or "").upper() == "TREASURE" or str(target.query_type or "").upper() in {"BUNDLE", "GENERIC", "URGENCY"}
@@ -127,11 +139,44 @@ async def ingest_dataset(
             elif stage.get("stage1_status") == STAGE1_CANDIDATE or str(lifecycle) == "PRICE_DROP":
                 should_analyze = True
         if should_analyze:
-            klass = _maybe_analyze_candidate({**listing, **saved, "lifecycle_status": lifecycle}, config=cfg, send_alerts=False)
+            verdict = _maybe_analyze_candidate({**listing, **saved, "lifecycle_status": lifecycle}, config=cfg, send_alerts=True)
+            klass = str((verdict or {}).get("classification") or "") if isinstance(verdict, dict) else str(verdict or "")
             if klass in class_counts:
                 class_counts[klass] += 1
+            if isinstance(verdict, dict) and verdict:
+                from marketplace.identity import identity_is_exact
+                from dealbrain.identity_gate import FEED_ACTIONABLE, FEED_NEEDS_VERIFICATION, needs_verification as _needs
+                if identity_is_exact(str(verdict.get("identity_confidence") or "")):
+                    identity_verified += 1
+                if str(verdict.get("feed_lane") or "") == FEED_NEEDS_VERIFICATION or _needs(verdict):
+                    needs_verification += 1
+                if str(verdict.get("feed_lane") or "") == FEED_ACTIONABLE or klass in {"HOT", "MONSTER", "STRONG"}:
+                    if identity_is_exact(str(verdict.get("identity_confidence") or "")):
+                        actionable += 1
+                if verdict.get("discord_sent") or verdict.get("alert_sent"):
+                    discord_alerts += 1
 
     status = "completed_zero" if raw_count == 0 else "SUCCEEDED"
+    try:
+        from marketplace.ledger import persist_run_ledger, resolve_cost
+        cost_usd, cost_kind = resolve_cost(usage_usd)
+        if usage_usd in (None, "", 0, 0.0):
+            usage_usd = cost_usd
+        extra = {
+            "deep_count": _deep_analyzed,
+            "identity_verified_count": identity_verified,
+            "needs_verification_count": needs_verification,
+            "actionable_count": actionable,
+            "discord_alert_count": discord_alerts,
+            "cost_usd": cost_usd,
+            "cost_kind": cost_kind,
+            "success": True,
+            "hot": class_counts["HOT"],
+            "monster": class_counts["MONSTER"],
+            "strong": class_counts["STRONG"],
+        }
+    except Exception:
+        cost_usd, cost_kind, extra = float(usage_usd or 0), "actual" if usage_usd else "estimated", {}
     finish_run(
         run_id,
         status=status,
@@ -146,7 +191,19 @@ async def ingest_dataset(
         ingested=1,
         error_code="" if raw_count else "zero_results",
         error_message="" if raw_count else "Scan completed — 0 listings",
+        extra=extra,
     )
+    try:
+        persist_run_ledger(run_id, {
+            "raw_row_count": raw_count,
+            "unique_count": unique_count,
+            "candidate_count": candidate_count,
+            "duplicate_count": duplicate_count,
+            "usage_usd": usage_usd,
+            "status": status,
+        })
+    except Exception:
+        pass
     try:
         from dealbrain.spend import record_apify_spend
         from dealbrain.store import record_query_stats

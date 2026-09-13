@@ -43,7 +43,7 @@ def apify_spend_today() -> float:
         with connect() as conn:
             row = conn.execute(
                 """SELECT COALESCE(SUM(usage_usd), 0) FROM marketplace_scan_runs
-                WHERE started_at LIKE ?""",
+                WHERE started_at LIKE ? AND COALESCE(stage, 'discovery') != 'detail'""",
                 (f"{day}%",),
             ).fetchone()
         if row:
@@ -153,14 +153,90 @@ def facebook_runs_today() -> int:
         return 0
 
 
-def can_start_facebook_run(estimated_usd: float = 0.02) -> tuple[bool, str, dict[str, Any]]:
+def facebook_research_runs_today() -> int:
+    day = _today()
+    try:
+        from marketplace.store import connect
+        with connect() as conn:
+            row = conn.execute(
+                """SELECT COUNT(*) FROM marketplace_scan_runs r
+                JOIN marketplace_scan_targets t ON t.id = r.target_id
+                WHERE r.started_at LIKE ?
+                AND UPPER(COALESCE(t.cadence_tier, '')) = 'RESEARCH'
+                AND COALESCE(r.stage, 'discovery') != 'detail'""",
+                (f"{day}%",),
+            ).fetchone()
+        return int(row[0] or 0) if row else 0
+    except Exception:
+        return 0
+
+
+def leftover_research_gate(
+    *,
+    runs_today: int,
+    research_runs_today: int,
+    remaining_usd: float,
+    usd_per_run: float = 0.016,
+    local_allotment: int = 30,
+    max_research_runs: int = 1,
+) -> tuple[bool, str]:
+    """Remote research only after local hunting used its allotment, and only with leftover dollars.
+
+    Boosted budget must not become extra remote research. Cap leftover research at the
+    base-cap leftover (usually 1 run), not at the boosted remainder.
+    """
+    if int(runs_today or 0) < int(local_allotment or 30):
+        return False, "local_allotment_reserved"
+    per = float(usd_per_run or 0.016)
+    if per <= 0 or float(remaining_usd or 0) < per:
+        return False, "no_leftover_budget"
+    allowed = max(0, int(max_research_runs or 0))
+    if allowed <= 0:
+        return False, "no_leftover_budget"
+    if int(research_runs_today or 0) >= allowed:
+        return False, "leftover_research_cap"
+    return True, "ok"
+
+
+def can_start_facebook_run(estimated_usd: float = 0.02, *, leftover_research: bool = False) -> tuple[bool, str, dict[str, Any]]:
     cfg = get_config()
     spent = apify_spend_today()
     cap = cfg.apify_daily_cap_usd()
     runs = facebook_runs_today()
     run_cap = int(cfg.level1_max_fb_runs_per_day or 30)
     ok_spend, reason, _spent = can_spend_apify(estimated_usd)
-    meta = {"spent": spent, "cap": cap, "runs": runs, "run_cap": run_cap}
+    try:
+        from dealbrain.budget import current_tier_name, effective_run_cap, boost_targeting
+        run_cap = effective_run_cap(run_cap)
+        meta = {"spent": spent, "cap": cap, "runs": runs, "run_cap": run_cap, "budget_tier": current_tier_name(), "boost": boost_targeting()}
+    except Exception:
+        meta = {"spent": spent, "cap": cap, "runs": runs, "run_cap": run_cap}
+    remaining = cap - spent
+    meta["remaining"] = round(remaining, 4)
+    meta["protect_core_regions"] = remaining < max(0.12, estimated_usd * 7)
+    if leftover_research:
+        meta["leftover_research"] = True
+        meta["protect_core_regions"] = False
+        if not ok_spend:
+            return False, reason, meta
+        try:
+            from marketplace.catalog import LEVEL1_MAX_RUNS_PER_DAY, estimate_phase2_remote_cost
+            local_allotment = int(LEVEL1_MAX_RUNS_PER_DAY or 30)
+            max_research = int((estimate_phase2_remote_cost() or {}).get("leftover_runs") or 0)
+        except Exception:
+            local_allotment = int(cfg.level1_max_fb_runs_per_day or 30)
+            max_research = 1
+        ok_left, left_reason = leftover_research_gate(
+            runs_today=runs,
+            research_runs_today=facebook_research_runs_today(),
+            remaining_usd=remaining,
+            usd_per_run=float(estimated_usd or 0.016),
+            local_allotment=local_allotment,
+            max_research_runs=max_research,
+        )
+        if not ok_left:
+            return False, left_reason, meta
+        return True, "ok", meta
     if not ok_spend:
         return False, reason, meta
     if runs >= run_cap:
@@ -176,13 +252,16 @@ def can_start_facebook_run(estimated_usd: float = 0.02) -> tuple[bool, str, dict
                 return False, "market_stagger", meta
         except Exception:
             pass
-    remaining = cap - spent
-    meta["remaining"] = round(remaining, 4)
-    meta["protect_core_regions"] = remaining < max(0.12, estimated_usd * 7)
     return True, "ok", meta
 
 
-def mark_facebook_level1_start(market_id: str) -> None:
+def facebook_cap_state(estimated_usd: float = 0.016) -> tuple[str, str, dict[str, Any]]:
+    ok, reason, meta = can_start_facebook_run(estimated_usd)
+    from marketplace.ledger import cap_state_from_meta
+    return cap_state_from_meta(meta, ok=ok, reason=reason), reason, meta
+
+
+def mark_facebook_level1_start(market_id: str = "") -> None:
     _kv_set("fb_level1_last_start_ts", datetime.now(timezone.utc).replace(microsecond=0).isoformat())
     _kv_set("fb_level1_last_market", str(market_id or ""))
 
@@ -193,7 +272,7 @@ def last_facebook_market() -> str:
 
 def spend_snapshot() -> dict[str, Any]:
     cfg = get_config()
-    return {
+    snap = {
         "apify_spend_today": round(apify_spend_today(), 4),
         "apify_daily_cap_usd": cfg.apify_daily_cap_usd(),
         "ebay_calls_today": ebay_calls_today(),
@@ -203,3 +282,10 @@ def spend_snapshot() -> dict[str, Any]:
         "unique_per_call": unique_per_call_today(),
         "as_of": utc_now(),
     }
+    try:
+        from dealbrain.budget import budget_snapshot, effective_run_cap
+        snap.update(budget_snapshot())
+        snap["facebook_run_cap"] = effective_run_cap(int(cfg.level1_max_fb_runs_per_day or 30))
+    except Exception:
+        pass
+    return snap

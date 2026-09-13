@@ -91,7 +91,50 @@ def dealbrain_status() -> dict[str, Any]:
         "first_profit_live": bool(cfg.first_profit_live),
         "spend": spend,
         "apify_daily_cap_usd": cfg.apify_daily_cap_usd(),
+        "market_arbitrage_map": market_map_status(),
     }
+
+
+def market_map_status() -> dict[str, Any]:
+    try:
+        from dealbrain.market_map import RESEARCH_PILOT_METRO_IDS, BENCHMARK_BASKET, market_report, build_indexes
+        from marketplace.store import list_price_observations, list_market_indexes, list_market_opportunity_stats, list_targets
+        from dealbrain.budget import budget_snapshot
+        from marketplace.catalog import estimate_phase2_remote_cost
+        observations = list_price_observations(4000)
+        stored = list_market_indexes("METRO")
+        if not stored and observations:
+            built = build_indexes(observations)
+            from marketplace.store import save_market_indexes
+            save_market_indexes(built)
+            stored = built.get("metro") or []
+            report = market_report(built)
+        else:
+            report = market_report({"metro": stored})
+        targets = list_targets()
+        repair_on = any(str(row.get("cadence_tier") or "").upper() == "REPAIR" and int(row.get("enabled") or 0) == 1 for row in targets)
+        generic_on = any(str(row.get("cadence_tier") or "").upper() == "GENERIC" and int(row.get("enabled") or 0) == 1 for row in targets)
+        remote_on = any(str(row.get("cadence_tier") or "").upper() == "RESEARCH" and int(row.get("enabled") or 0) == 1 for row in targets)
+        budget = budget_snapshot()
+        return {
+            "ready": True,
+            "local_facebook_unchanged": True,
+            "pilot_metros": list(RESEARCH_PILOT_METRO_IDS),
+            "pilot_enabled": remote_on,
+            "repair_hunter_enabled": repair_on,
+            "generic_high_value_enabled": generic_on,
+            "remote_mode": "leftover_only" if remote_on else "off",
+            "remote_cost": estimate_phase2_remote_cost(),
+            "benchmark_count": len(BENCHMARK_BASKET),
+            "benchmark_products": [row.get("model") or row.get("query") for row in BENCHMARK_BASKET],
+            "observation_count": len(observations),
+            "report": report,
+            "opportunity_stats": list_market_opportunity_stats(),
+            "extra_spend_usd": 0.0,
+            "budget": budget,
+        }
+    except Exception:
+        return {"ready": False, "local_facebook_unchanged": True, "extra_spend_usd": 0.0}
 
 
 def radar_dealbrain_context(filters: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -104,12 +147,30 @@ def radar_dealbrain_context(filters: dict[str, Any] | None = None) -> dict[str, 
     except Exception:
         mp_status = {"operational": "NOT CONFIGURED", "message": "Marketplace Scanner not configured"}
     deals = []
+    repair_deals = []
+    market_deals = []
     try:
         deals = list_deal_feed(filters, limit=60)
     except Exception:
         deals = []
+    try:
+        repair_deals = list_deal_feed({"mode": "repair", "sort": "best"}, limit=12)
+    except Exception:
+        repair_deals = []
+    try:
+        market_deals = list_deal_feed({"mode": "market_arbitrage", "sort": "best"}, limit=12)
+    except Exception:
+        market_deals = []
+    try:
+        verify_deals = list_deal_feed({"mode": "needs_verification", "sort": "best"}, limit=12)
+    except Exception:
+        verify_deals = []
+    try:
+        rejected_deals = list_deal_feed({"mode": "false_match", "sort": "newest"}, limit=12)
+    except Exception:
+        rejected_deals = []
     from dealbrain.classify import class_emoji
-    for deal in deals:
+    for deal in deals + repair_deals + market_deals:
         deal["class_emoji"] = class_emoji(deal.get("classification") or "")
         if str(deal.get("source") or "").startswith("facebook"):
             deal["open_label"] = "OPEN FACEBOOK LISTING"
@@ -137,6 +198,10 @@ def radar_dealbrain_context(filters: dict[str, Any] | None = None) -> dict[str, 
             "next_scan_at": mp_status.get("next_scan") or "Scheduler off",
         },
         "mp_deals": deals,
+        "repair_deals": repair_deals,
+        "market_arbitrage_deals": market_deals,
+        "verify_deals": verify_deals,
+        "rejected_deals": rejected_deals,
         "mp_filters": filters,
         "mp_watches": [],
         "mp_default_location": "Atlantic City, New Jersey",
@@ -145,6 +210,9 @@ def radar_dealbrain_context(filters: dict[str, Any] | None = None) -> dict[str, 
         "fb_markets_active": mp_status.get("markets_active") or 0,
         "fb_precision_targets": mp_status.get("precision_targets") or 0,
         "fb_treasure_targets": mp_status.get("treasure_targets") or 0,
+        "fb_repair_targets": mp_status.get("repair_targets") or 0,
+        "fb_generic_targets": mp_status.get("generic_targets") or 0,
+        "fb_research_targets": mp_status.get("research_targets") or 0,
         "fb_runs_today": mp_status.get("runs_today") or 0,
         "fb_listings_seen_today": mp_status.get("listings_seen_today") or 0,
         "fb_unique_listings_today": mp_status.get("unique_listings_today") or 0,
@@ -163,4 +231,22 @@ def radar_dealbrain_context(filters: dict[str, Any] | None = None) -> dict[str, 
         "first_profit_mode": status.get("first_profit_mode") or "READY",
         "first_profit_spend": status.get("spend") or {},
         "apify_daily_cap_usd": status.get("apify_daily_cap_usd"),
+        "market_arbitrage_map": status.get("market_arbitrage_map") or {},
+        "scanner_truth": mp_status.get("scanner_truth") or {},
+        "fb_scheduler_on": mp_status.get("scheduler_on") or ("ON" if mp_status.get("scheduler_enabled") else "OFF"),
+        "fb_cap_state": mp_status.get("cap_state") or "",
+        "fb_lane_runs_today": mp_status.get("lane_runs_today") or {},
+        "fb_spend_by_lane": mp_status.get("spend_by_lane") or {},
+        "fb_starvation": mp_status.get("starvation") or {},
+        "fb_next_planned_run": mp_status.get("next_planned_run") or {},
+        "fb_run_history": mp_status.get("run_history_24h") or [],
+        "fb_market_performance": mp_status.get("market_performance") or [],
+        "fb_query_performance": mp_status.get("query_performance") or {},
+        "fb_budget_tier": mp_status.get("budget_tier") or "$0.50",
+        "fb_remaining_budget": mp_status.get("remaining_budget"),
+        "fb_run_cap": mp_status.get("facebook_run_cap") or 30,
+        "fb_runs_remaining": mp_status.get("runs_remaining"),
+        "fb_detail_message": mp_status.get("detail_message") or "",
+        "fb_detail_cause": mp_status.get("last_detail_cause") or "",
+        "identity_recheck": (mp_status.get("scanner_truth") or {}).get("identity_recheck") or {},
     }

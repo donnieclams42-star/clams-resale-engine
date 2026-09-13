@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from marketplace.catalog import (
@@ -71,6 +72,55 @@ def _run_health(run: dict[str, Any], *, waiting_message: str) -> tuple[str, str]
     return "LIVE", waiting_message
 
 
+def _run_age_hours(run: dict[str, Any]) -> float | None:
+    raw = str((run or {}).get("started_at") or (run or {}).get("finished_at") or "")
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return max(0.0, (datetime.now(timezone.utc) - parsed).total_seconds() / 3600.0)
+    except Exception:
+        return None
+
+
+def _detail_health(last_detail: dict[str, Any]) -> tuple[str, str, str]:
+    """Current detail health. Stale historical failures are not current degradation."""
+    stage2_off = True
+    err = str((last_detail or {}).get("error_message") or (last_detail or {}).get("error_code") or "")
+    try:
+        from dealbrain.config import get_config as dealbrain_config
+        from marketplace.config import get_config as mp_config
+        db = dealbrain_config()
+        mp = mp_config()
+        stage2_off = bool(getattr(db, "first_profit_mode", True)) or int(getattr(mp, "stage2_max_per_run", 0) or 0) <= 0
+        try:
+            from dealbrain.config import get_config
+            stage2_off = stage2_off or int(getattr(get_config(), "level1_max_stage2_per_day", 0) or 0) <= 0
+        except Exception:
+            pass
+    except Exception:
+        stage2_off = True
+    if stage2_off:
+        if last_detail and str(last_detail.get("status") or "") in {"FAILED", "provider_error"}:
+            cause = f"stale historical detail failure ({err or 'provider_error'}); detail fetch is not in the current First Profit path"
+            return "LIVE", "Detail fetch not required for First Profit discovery", cause
+        return "LIVE", "Detail fetch not required for First Profit discovery", "detail fetch not required for First Profit discovery"
+    if not last_detail:
+        return "IDLE", "Detail fetch idle", "no detail runs recorded"
+    age = _run_age_hours(last_detail)
+    status = str(last_detail.get("status") or "")
+    if age is not None and age > 24 and status in {"FAILED", "provider_error"}:
+        return "LIVE", "No current detail failure (last detail error is stale)", f"stale historical detail failure ({err or 'provider_error'}); not current"
+    state, message = _run_health(last_detail, waiting_message="Detail fetch idle")
+    if state == "DEGRADED":
+        return state, message, err or "detail fetch error"
+    if state == "IDLE":
+        return state, message, "no detail runs recorded"
+    return state, message, "no current detail failure"
+
+
 def scanner_status() -> dict[str, Any]:
     cfg = get_config()
     try:
@@ -82,9 +132,7 @@ def scanner_status() -> dict[str, Any]:
     last_detail = counts.get("last_detail") or {}
     flags = runtime_flags()
     discovery_state, discovery_message = _run_health(last, waiting_message="Marketplace scanner is waiting for the first successful scan")
-    detail_state, detail_message = _run_health(last_detail, waiting_message="Detail fetch idle")
-    if not last_detail:
-        detail_state, detail_message = "IDLE", "Detail fetch not required for First Profit discovery"
+    detail_state, detail_message, detail_cause = _detail_health(last_detail)
     if not cfg.apify_configured and cfg.primary_provider != "mock":
         operational = "NOT CONFIGURED"
         message = "Marketplace Scanner not configured"
@@ -110,10 +158,14 @@ def scanner_status() -> dict[str, Any]:
         "discovery_message": discovery_message,
         "detail_health": detail_state,
         "detail_message": detail_message,
+        "last_detail_cause": detail_cause,
         "facebook_level": 1 if cfg.scheduler_enabled else 0,
-        "markets_active": int(counts.get("enabled_markets") or 0),
+        "markets_active": int(counts.get("level1_markets_active") or counts.get("enabled_markets") or 0),
         "precision_targets": int(counts.get("precision_targets") or 0),
         "treasure_targets": int(counts.get("treasure_targets") or 0),
+        "repair_targets": int(counts.get("repair_targets") or 0),
+        "generic_targets": int(counts.get("generic_targets") or 0),
+        "research_targets": int(counts.get("research_targets") or 0),
         "runs_today": int(counts.get("runs_today") or 0),
         "listings_seen_today": int(counts.get("seen_today") or 0),
         "unique_listings_today": int(counts.get("unique_today") or 0),
@@ -130,6 +182,8 @@ def scanner_status() -> dict[str, Any]:
         "estimated_daily_apify_usd": ESTIMATED_DAILY_APIFY_USD,
         "slowdown_recommendations": facebook_query_recommendations(),
         "active_market_cells": [row["id"] for row in first_profit_level1_markets()],
+        "nationwide_facebook": False,
+        "research_pilot_enabled": False,
         "primary_provider": cfg.primary_provider,
         "actor": cfg.actor_for(cfg.primary_provider),
         "configured": cfg.apify_configured or cfg.primary_provider == "mock",
@@ -156,6 +210,26 @@ def scanner_status() -> dict[str, Any]:
         payload["provider_health"] = get_provider_health(cfg.primary_provider) or {}
     except Exception:
         pass
+    payload["research_pilot_enabled"] = bool(int(counts.get("research_targets") or 0) > 0)
+    try:
+        from marketplace.ledger import scanner_truth_snapshot
+        truth = scanner_truth_snapshot()
+        payload["scanner_truth"] = truth
+        payload["cap_state"] = truth.get("cap_state")
+        payload["lane_runs_today"] = truth.get("lane_runs_today")
+        payload["spend_by_lane"] = truth.get("spend_by_lane")
+        payload["starvation"] = truth.get("starvation")
+        payload["next_planned_run"] = truth.get("next_planned_run")
+        payload["run_history_24h"] = truth.get("history_24h")
+        payload["market_performance"] = truth.get("market_performance")
+        payload["query_performance"] = truth.get("query_performance")
+        payload["budget_tier"] = truth.get("budget_tier_label") or truth.get("budget_tier")
+        payload["remaining_budget"] = truth.get("remaining_budget")
+        payload["runs_remaining"] = truth.get("runs_remaining")
+        payload["facebook_run_cap"] = truth.get("run_cap")
+        payload["scheduler_on"] = "ON" if truth.get("scheduler_on") else "OFF"
+    except Exception:
+        payload["scanner_truth"] = {}
     return payload
 
 
