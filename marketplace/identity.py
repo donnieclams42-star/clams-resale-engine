@@ -49,8 +49,13 @@ _FOR_NAMED_PRODUCT_RE = re.compile(
 )
 _PARTS_RE = re.compile(
     r"\b(parts?\s*only|for\s*parts|parting\s*out|logic\s*board|motherboard|replacement\s*screen|"
-    r"replacement\s*fan|water\s*block|housing\s*only|shell\s*only|board\s*only|digitizer|"
-    r"lcd\s*only|screen\s*assembly)\b"
+    r"replacement\s*fan|gpu\s*fan|graphics\s*card\s*fan|cooler\s*fan|fan\s*only|water\s*block|"
+    r"housing\s*only|shell\s*only|board\s*only|digitizer|lcd\s*only|screen\s*assembly)\b"
+)
+# Multi-fan cooler marketing on a complete GPU (e.g. "Triple Fan") must not look like a bare fan part.
+_MULTI_FAN_COOLER_RE = re.compile(
+    # Only cooler-count marketing (triple/dual/2-fan/3 fan). Do NOT match model numbers like "4070 fan".
+    r"\b(?:triple|dual|twin|single|rgb|[1-4])\s*[\s-]*fans?\b"
 )
 _BOX_RE = re.compile(r"\b(empty\s*box|box\s*only|box\s*only\s*no\s*console|retail\s*box\s*only)\b")
 _BUNDLE_RE = re.compile(r"\b(lot|bundle|mixed|assorted|various)\b")
@@ -202,7 +207,7 @@ _ACCESSORY_RE = re.compile(
     r"\b(case|cover|skin|pouch|bag|grip|shell|bumper|protector|tempered\s*glass|screen\s*film|"
     r"screen\s*protector|charger|cable|cord|adapter|dock\s*only|stand|holder|mount|stylus|"
     r"sticker|decal|silicone|carrying|travel\s*bag|microsd|micro\s*sd|sd\s*card|memory\s*card|"
-    r"game\s*card|amiibo|water\s*block|cooler|bracket|housing)\b"
+    r"game\s*card|amiibo|water\s*block|cooler|bracket|housing|fan)\b"
 )
 _UNIT_RE = re.compile(
     r"\b(console|handheld|complete|with\s+dock|w\/?\s*dock|bundle|in\s*box|cib|body\s*only)\b"
@@ -269,11 +274,22 @@ def _role_from_title(title: str) -> dict[str, Any]:
         return {"identity_confidence": IDENTITY_PARTS_ONLY, "item_kind": "parts", "reasons": ["parts only / replacement component"]}
     if _FOR_PRODUCT_HEAD_RE.search(text):
         return {"identity_confidence": IDENTITY_ACCESSORY_ONLY, "item_kind": "accessory", "for_product": True, "reasons": ["for-product accessory/part, not the named main product"]}
+    # Bare fan / GPU fan / cooler fan without multi-fan cooler marketing → PARTS_ONLY before model EXACT.
+    if (
+        re.search(r"\bfan\b", text)
+        and not _MULTI_FAN_COOLER_RE.search(text)
+        and not re.search(r"\b(console|handheld|complete|working phone|unlocked)\b", text)
+    ):
+        return {"identity_confidence": IDENTITY_PARTS_ONLY, "item_kind": "parts", "reasons": ["parts only / replacement component"]}
     if _ACCESSORY_RE.search(text) and _FOR_NAMED_PRODUCT_RE.search(text) and not _UNIT_RE.search(text):
         return {"identity_confidence": IDENTITY_ACCESSORY_ONLY, "item_kind": "accessory", "for_product": True, "reasons": ["accessory for a named product"]}
     if _ACCESSORY_RE.search(text) and not _UNIT_RE.search(text) and not re.search(r"\b(with|plus|w\/|and)\b.{0,24}\b(case|cover|charger|dock|game)\b", text):
-        if re.search(r"\b(case|cover|protector|charger|dock|controller|shell|housing|water\s*block|cooler|bracket|motherboard|logic\s*board)\b", text):
-            return {"identity_confidence": IDENTITY_ACCESSORY_ONLY, "item_kind": "accessory", "reasons": ["accessory/part language without a complete unit"]}
+        if re.search(r"\b(case|cover|protector|charger|dock|controller|shell|housing|water\s*block|cooler|bracket|motherboard|logic\s*board|fan)\b", text):
+            # Do not treat multi-fan cooler marketing on a complete GPU as an accessory/part.
+            if re.search(r"\bfan\b", text) and _MULTI_FAN_COOLER_RE.search(text):
+                pass
+            else:
+                return {"identity_confidence": IDENTITY_ACCESSORY_ONLY, "item_kind": "accessory", "reasons": ["accessory/part language without a complete unit"]}
     if AUDIO_NOT_PHONE_RE.search(text) and not re.search(r"\b(iphone\s*\d|galaxy\s*s\d|pixel\s*\d|switch|ps5|playstation|xbox|macbook|steam\s*deck|rtx)\b", text):
         return {"identity_confidence": IDENTITY_FALSE_MATCH, "item_kind": "accessory", "reasons": ["audio/accessory language is not a phone or named console"]}
     if _BUNDLE_RE.search(text) and not re.search(r"\b(console|iphone|macbook|ps5|switch oled|steam deck)\b", text):
@@ -364,6 +380,15 @@ def _identify_product_core(title: str, query: str = "") -> dict[str, Any]:
             confidence = IDENTITY_EXACT_STRONG
         if chosen["model"] == "Nintendo Switch OLED" and "oled" in title_n:
             confidence = IDENTITY_EXACT_CONFIRMED
+        # Base Nintendo Switch without OLED/Lite/2 must stay FAMILY_ONLY (never EXACT).
+        if chosen["model"] == "Nintendo Switch" or chosen["family"] == "switch-base":
+            if not re.search(r"\b(oled|lite|switch\s*2)\b", title_n):
+                return {
+                    "candidate_product_family": "switch-family",
+                    "candidate_model": "Nintendo Switch",
+                    "identity_confidence": IDENTITY_FAMILY_ONLY,
+                    "reasons": ["Switch family without OLED/Lite/2 variant"],
+                }
         if _unproven_premium_variant(chosen["model"], title_n):
             return {
                 "candidate_product_family": chosen["family"],
